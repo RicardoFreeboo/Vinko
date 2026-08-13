@@ -1,0 +1,1516 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b12">
+<title>Vinko — porras con amigos</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+/* ============ Vinko v1 web — mobile-first (430px frame) ============ */
+:root{
+  --bg:#0b0b12; --bg2:#12121c; --card:#171725; --line:#262638;
+  --tx:#f4f4fa; --tx2:#9a9ab0; --acc:#7c4dff; --acc2:#00e0b8;
+  --gold:#ffc44d; --danger:#ff5470; --ok:#2fd573;
+  --navh:62px; --toph:54px;
+  /* z-index scale: nav SIEMPRE encima de todo (regla del repo) */
+  --z-view:10; --z-sheet:500; --z-nav:9999; --z-modal:10500; --z-toast:11000;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:#050508;color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#frame{position:relative;margin:0 auto;width:100%;max-width:430px;height:100dvh;background:var(--bg);overflow:hidden;box-shadow:0 0 60px rgba(124,77,255,.15)}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select,textarea{font:inherit}
+::-webkit-scrollbar{display:none}
+
+/* ---------- top bar ---------- */
+#topbar{position:absolute;top:0;left:0;right:0;height:var(--toph);z-index:var(--z-nav);display:flex;align-items:center;gap:8px;padding:0 12px;background:linear-gradient(180deg,rgba(5,5,8,.92),rgba(5,5,8,0));pointer-events:none}
+#topbar>*{pointer-events:auto}
+.logo{font-weight:800;font-size:20px;letter-spacing:-.5px;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.chips{display:flex;gap:6px;margin-left:auto}
+.chip{display:flex;align-items:center;gap:4px;background:rgba(23,23,37,.85);border:1px solid var(--line);border-radius:999px;padding:5px 10px;font-size:13px;font-weight:700;backdrop-filter:blur(6px)}
+.chip small{font-weight:400;color:var(--tx2)}
+
+/* ---------- views ---------- */
+.view{position:absolute;inset:0;z-index:var(--z-view);display:none;overflow-y:auto;padding:calc(var(--toph) + 6px) 14px calc(var(--navh) + 16px)}
+.view.on{display:block}
+#view-feed{display:none;padding:0}
+#view-feed.on{display:block}
+.vtitle{font-size:22px;font-weight:800;margin:8px 2px 14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.muted{color:var(--tx2);font-size:12.5px;line-height:1.45}
+.sep{height:1px;background:var(--line);margin:12px 0}
+
+/* ---------- feed (snap vertical, un vídeo por porra) ---------- */
+#feed{height:100%;overflow-y:auto;scroll-snap-type:y mandatory}
+.pool{position:relative;height:100%;scroll-snap-align:start;scroll-snap-stop:always;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.vid{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:84px;animation:drift 16s ease-in-out infinite alternate}
+@keyframes drift{0%{transform:scale(1)}100%{transform:scale(1.09)}}
+.pool.off .vid{animation-play-state:paused}
+.vv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+@media (prefers-reduced-motion:reduce){.vid{animation:none}}
+.vid .mk{position:absolute;bottom:46%;left:0;right:0;text-align:center;font-size:12px;color:rgba(255,255,255,.94);letter-spacing:.4px;text-shadow:0 1px 6px rgba(0,0,0,.85)}
+.pool .shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,5,8,.25) 0%,rgba(5,5,8,0) 30%,rgba(5,5,8,.82) 78%)}
+.pcontent{position:relative;padding:0 74px calc(var(--navh) + 14px) 14px;display:flex;flex-direction:column;gap:9px}
+.author{display:flex;align-items:center;gap:8px}
+.av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.35)}
+.author .h{font-weight:700;font-size:14px}
+.author .lvl{font-size:11px;color:var(--acc2);border:1px solid rgba(0,224,184,.4);border-radius:999px;padding:1px 7px}
+.q{font-size:19px;font-weight:800;line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,.5)}
+.opts{display:flex;flex-direction:column;gap:6px}
+.opt{position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.22);border-radius:12px;padding:9px 12px;font-size:14px;font-weight:600;text-align:left;background:rgba(10,10,18,.68)}
+.opt .bar{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,rgba(124,77,255,.4),rgba(0,224,184,.28));transition:width .5s}
+.opt .lab{position:relative;display:flex;justify-content:space-between;gap:8px}
+.opt.sel{border-color:var(--acc2);box-shadow:0 0 0 1px var(--acc2)}
+.meta{display:flex;gap:12px;font-size:12.5px;color:#cfcfe2}
+.meta b{color:var(--gold)}
+.cta{background:linear-gradient(90deg,var(--acc),#5e35b1);border-radius:14px;padding:13px;font-size:16px;font-weight:800;text-align:center;box-shadow:0 6px 22px rgba(124,77,255,.4)}
+.cta.done{background:var(--card);border:1px solid var(--ok);color:var(--ok);box-shadow:none}
+.aff{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--tx2);background:rgba(10,10,18,.5);border:1px dashed rgba(255,255,255,.2);border-radius:10px;padding:7px 10px}
+.aff b{color:var(--tx)}
+.badge18{flex-shrink:0;border:1.5px solid var(--danger);color:var(--danger);border-radius:6px;font-weight:800;font-size:10px;padding:1px 5px}
+.rail{position:absolute;right:10px;bottom:calc(var(--navh) + 20px);display:flex;flex-direction:column;align-items:center;gap:16px;z-index:2}
+.rail .rbtn{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.rail .rbtn .ic{font-size:26px}
+.rail .rbtn.liked .ic{filter:drop-shadow(0 0 6px var(--danger))}
+.resband{position:relative;background:rgba(47,213,115,.15);border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:7px 10px;font-size:12.5px;font-weight:700}
+.resband.lost{background:rgba(255,84,112,.12);border-color:var(--danger);color:var(--danger)}
+.flash{position:relative;align-self:flex-start;background:var(--gold);color:#221a00;font-size:11px;font-weight:800;border-radius:999px;padding:3px 9px}
+
+/* ---------- nav (SIEMPRE encima) ---------- */
+#tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--navh);z-index:var(--z-nav);display:flex;align-items:stretch;background:rgba(9,9,15,.96);border-top:1px solid var(--line);backdrop-filter:blur(10px)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;color:var(--tx2)}
+.tab .ic{font-size:21px;line-height:1}
+.tab.on{color:var(--tx)}
+.tab.on .ic{filter:drop-shadow(0 0 8px var(--acc))}
+.tab.mk{position:relative}
+.tab.mk .ic{width:42px;height:30px;border-radius:10px;background:linear-gradient(90deg,var(--acc),var(--acc2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px}
+
+/* ---------- sheets (encima del viewer, debajo del nav) ---------- */
+.sheet{position:absolute;left:0;right:0;bottom:var(--navh);max-height:72%;z-index:var(--z-sheet);background:var(--bg2);border-radius:18px 18px 0 0;border:1px solid var(--line);border-bottom:none;transform:translateY(105%);transition:transform .28s cubic-bezier(.2,.8,.2,1);display:flex;flex-direction:column}
+.sheet.open{transform:translateY(0)}
+.sh-head{display:flex;align-items:center;gap:10px;padding:14px 16px 10px}
+.sh-head h3{font-size:16px;flex:1}
+.sh-x{color:var(--tx2);font-size:20px;padding:4px 8px}
+.sh-body{overflow-y:auto;padding:0 16px 18px;display:flex;flex-direction:column;gap:10px}
+.stake{display:flex;align-items:center;justify-content:space-between;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:14px}
+.btn{background:linear-gradient(90deg,var(--acc),#5e35b1);border-radius:13px;padding:13px;font-weight:800;font-size:15px;text-align:center}
+.btn.ghost{background:var(--card);border:1px solid var(--line)}
+.btn.mini{padding:8px 12px;font-size:13px;border-radius:10px}
+.btn.ok{border-color:var(--ok);color:var(--ok)}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin-bottom:12px}
+.segb{flex:1;padding:9px;border-radius:9px;font-weight:700;font-size:13.5px;color:var(--tx2)}
+.segb.on{background:linear-gradient(90deg,var(--acc),#5e35b1);color:#fff}
+.vrow{display:flex;gap:8px}
+.vrow input{flex:1;min-width:0}
+.micbtn{width:46px;flex-shrink:0;border-radius:11px;background:var(--card);border:1px solid var(--line);font-size:19px}
+.micbtn.rec{background:var(--danger);border-color:var(--danger);animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.55}}
+.frow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px;border-radius:11px;border:1px solid transparent}
+.frow.sel{border-color:var(--acc2);background:rgba(0,224,184,.08)}
+.frow .fn{flex:1;font-weight:600;font-size:14px}
+.frow .fp{color:var(--tx2);font-size:12px}
+.duelst{font-size:12px;font-weight:700}
+.sbtn{display:flex;align-items:center;gap:12px;border-radius:13px;padding:12px 16px;font-weight:700;font-size:14.5px;border:1px solid var(--line);background:var(--card);width:100%;text-align:left}
+.sbtn svg{width:20px;height:20px;flex-shrink:0}
+.sbtn.google{background:#fff;color:#1a1a1a;border-color:#fff}
+.sbtn.apple,.sbtn.x,.sbtn.tiktok{background:#000;color:#fff;border-color:#333}
+.btn[disabled]{opacity:.45}
+.cmt{display:flex;gap:9px;align-items:flex-start}
+.cmt .tx{background:var(--card);border-radius:0 12px 12px 12px;padding:8px 11px;font-size:13.5px}
+.cmt .who{font-size:11px;color:var(--tx2);margin-bottom:2px}
+.cmtrow{display:flex;gap:8px;padding-top:4px}
+.cmtrow input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:10px 14px;color:var(--tx);outline:none}
+
+/* ---------- modals ---------- */
+.modal{position:absolute;inset:0;z-index:var(--z-modal);display:none;align-items:center;justify-content:center;background:rgba(4,4,8,.72);backdrop-filter:blur(4px);padding:24px}
+.modal.open{display:flex}
+.mbox{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.mbox h3{font-size:18px}
+.mbox .big{font-size:44px}
+
+/* ---------- toast ---------- */
+#toast{position:absolute;left:50%;bottom:calc(var(--navh) + 18px);transform:translateX(-50%) translateY(20px);z-index:var(--z-toast);background:#1d1d2e;border:1px solid var(--line);border-radius:999px;padding:10px 18px;font-size:13.5px;font-weight:600;opacity:0;transition:.25s;pointer-events:none;white-space:nowrap;max-width:92%;overflow:hidden;text-overflow:ellipsis}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- confetti (se autolimpia; bug histórico) ---------- */
+#confetti{position:absolute;inset:0;z-index:var(--z-toast);pointer-events:none;overflow:hidden}
+.cf{position:absolute;width:8px;height:12px;top:-14px;animation:fall 1.4s ease-in forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg);opacity:0}}
+
+/* ---------- retos / racha ---------- */
+.streakcal{display:flex;gap:6px;justify-content:space-between}
+.dayb{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 0;font-size:11px;color:var(--tx2)}
+.dayb.hit{border-color:var(--acc);color:var(--tx)}
+.dayb .f{font-size:16px}
+.reto{display:flex;align-items:center;gap:11px}
+.reto .info{flex:1}
+.reto .name{font-size:14px;font-weight:700}
+.pbar{height:6px;background:var(--line);border-radius:99px;margin-top:6px;overflow:hidden}
+.pbar i{display:block;height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:99px}
+.pts{color:var(--gold);font-weight:800;font-size:13px;white-space:nowrap}
+
+/* ---------- liga / premios ---------- */
+.prize{display:flex;align-items:center;gap:12px}
+.prize .pos{width:52px;font-weight:800;color:var(--gold);font-size:13px}
+.prize .nm{flex:1;font-size:14px;font-weight:600}
+.prize .sp{font-size:11px;color:var(--tx2)}
+.trow{display:flex;align-items:center;gap:10px;padding:7px 4px;font-size:13.5px;border-bottom:1px solid var(--line)}
+.trow:last-child{border-bottom:none}
+.trow .rk{width:26px;color:var(--tx2);font-weight:700}
+.trow .nm{flex:1;display:flex;align-items:center;gap:8px}
+.trow .sc{font-weight:800}
+.trow.me{background:rgba(124,77,255,.12);border-radius:8px}
+.trow.up .rk{color:var(--ok)}
+.trow.down .rk{color:var(--danger)}
+
+/* ---------- grupos ---------- */
+.gitem{display:flex;align-items:center;gap:12px}
+.gava{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg)}
+.gitem .gi{flex:1}
+.gitem .gn{font-weight:700;font-size:15px}
+.ledger .trow .nm{flex-direction:column;align-items:flex-start;gap:1px}
+.st{font-size:10.5px;border-radius:6px;padding:2px 7px;font-weight:700}
+.st.pend{background:rgba(255,196,77,.15);color:var(--gold)}
+.st.paid{background:rgba(47,213,115,.15);color:var(--ok)}
+
+/* ---------- perfil ---------- */
+.pstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.pstats .card{padding:10px 4px;margin:0}
+.pstats b{font-size:17px;display:block}
+.pstats small{color:var(--tx2);font-size:10.5px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.g3{aspect-ratio:9/13;border-radius:10px;display:flex;align-items:flex-end;padding:7px;font-size:10.5px;font-weight:700;line-height:1.2;background-size:cover;position:relative;overflow:hidden;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.g3 .r{position:absolute;top:5px;right:5px;font-size:13px}
+.setrow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+.setrow:last-child{border-bottom:none}
+.setrow select{background:var(--card);color:var(--tx);border:1px solid var(--line);border-radius:9px;padding:7px 10px}
+.sw{width:44px;height:26px;border-radius:99px;background:var(--line);position:relative;transition:.2s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--acc)}
+.sw.on::after{left:21px}
+
+/* ---------- crear ---------- */
+.f{display:flex;flex-direction:column;gap:6px}
+.f label{font-size:12.5px;color:var(--tx2);font-weight:600}
+.f input,.f select,.f textarea{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 13px;color:var(--tx);outline:none}
+.optin{display:flex;gap:8px;margin-bottom:8px}
+.optin input{flex:1}
+video#camprev{width:100%;border-radius:14px;background:#000;aspect-ratio:9/14;object-fit:cover}
+@media (min-width:431px){body{display:flex;align-items:center}}
+</style>
+</head>
+<body>
+<div id="frame">
+  <header id="topbar">
+    <span class="logo">vinko</span>
+    <div class="chips">
+      <button class="chip" id="chip-streak" onclick="go('retos')">🔥 <span id="c-streak">0</span></button>
+      <button class="chip" onclick="go('premios')">🎯 <span id="c-prec">0</span></button>
+      <button class="chip" id="chip-pts">🪙 <span id="c-pts">0</span></button>
+    </div>
+  </header>
+
+  <!-- FEED -->
+  <section class="view on" id="view-feed"><div id="feed"></div></section>
+
+  <!-- RETOS / RACHA -->
+  <section class="view" id="view-retos">
+    <h2 class="vtitle" data-i18n="retos.title"></h2>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-size:34px">🔥</div>
+        <div style="flex:1"><b id="streak-line"></b><div class="muted" id="streak-mult"></div></div>
+      </div>
+      <div class="streakcal" id="streakcal"></div>
+    </div>
+    <h3 class="vtitle" style="font-size:16px" data-i18n="retos.daily"></h3>
+    <div id="retolist"></div>
+    <h3 class="vtitle" style="font-size:16px" data-i18n="retos.refs"></h3>
+    <div class="card">
+      <div class="reto"><div class="info">
+        <div class="name" data-i18n="refs.invite"></div>
+        <div class="muted" data-i18n="refs.expl"></div>
+      </div><span class="pts">+300 🪙</span></div>
+      <div class="sep"></div>
+      <div class="muted" id="refs-status"></div>
+      <div style="height:10px"></div>
+      <button class="btn" onclick="inviteFriend()" data-i18n="refs.cta"></button>
+    </div>
+    <p class="muted" style="margin-top:10px" data-i18n="retos.legal"></p>
+  </section>
+
+  <!-- CREAR -->
+  <section class="view" id="view-crear">
+    <h2 class="vtitle" data-i18n="crear.title"></h2>
+    <div class="seg">
+      <button class="segb on" id="seg-porra" onclick="crearMode('porra')" data-i18n="crear.tabPorra"></button>
+      <button class="segb" id="seg-reto" onclick="crearMode('reto')" data-i18n="duel.tab"></button>
+    </div>
+    <div class="card f" id="crear-reto" style="display:none">
+      <label for="dq" data-i18n="duel.q"></label>
+      <div class="vrow"><input id="dq" maxlength="90" data-i18n-ph="duel.qph"><button class="micbtn" id="dq-mic" data-i18n-al="duel.voice" onclick="startVoice('dq')">🎙️</button></div>
+      <label data-i18n="duel.rival"></label>
+      <div id="rivallist"></div>
+      <button class="btn ghost" onclick="inviteFriend()" data-i18n="refs.cta300"></button>
+      <label data-i18n="duel.judge"></label>
+      <p class="muted" style="margin-top:-2px" data-i18n="duel.judgeHint"></p>
+      <div id="judgelist"></div>
+      <label for="dentry" data-i18n="duel.entry"></label>
+      <select id="dentry"><option>10</option><option selected>25</option><option>50</option></select>
+      <div style="height:4px"></div>
+      <button class="btn" onclick="createDuel()" data-i18n="duel.cta"></button>
+    </div>
+    <div class="card f" id="crear-porra">
+      <label for="nq" data-i18n="crear.q"></label>
+      <div class="vrow"><input id="nq" maxlength="90" data-i18n-ph="crear.qph"><button class="micbtn" id="nq-mic" data-i18n-al="duel.voice" onclick="startVoice('nq')">🎙️</button></div>
+      <label for="no1" data-i18n="crear.opts"></label>
+      <div class="optin"><input id="no1" maxlength="24" placeholder="A"><input id="no2" maxlength="24" placeholder="B"></div>
+      <label for="nentry" data-i18n="crear.entry"></label>
+      <select id="nentry"><option>10</option><option selected>25</option><option>50</option></select>
+      <label for="ncloses" data-i18n="crear.closes"></label>
+      <select id="ncloses"><option value="1" data-i18n="crear.h1"></option><option value="24" selected data-i18n="crear.h24"></option><option value="72" data-i18n="crear.h72"></option></select>
+      <div style="height:4px"></div>
+      <button class="btn ghost" id="recbtn" onclick="openRec()">🎥 <span data-i18n="crear.rec"></span></button>
+      <button class="btn" onclick="createPool()" data-i18n="crear.cta"></button>
+      <p class="muted" data-i18n="crear.hint"></p>
+    </div>
+  </section>
+
+  <!-- GRUPOS -->
+  <section class="view" id="view-grupos">
+    <div id="glist">
+      <h2 class="vtitle" data-i18n="grupos.title"></h2>
+      <div id="groups"></div>
+      <p class="muted" data-i18n="grupos.legal"></p>
+    </div>
+    <div id="gdetail" style="display:none"></div>
+  </section>
+
+  <!-- PREMIOS / LIGA -->
+  <section class="view" id="view-premios">
+    <h2 class="vtitle" data-i18n="liga.title"></h2>
+    <div class="card">
+      <b id="liga-div"></b>
+      <div class="muted" data-i18n="liga.expl"></div>
+    </div>
+    <h3 class="vtitle" style="font-size:16px" data-i18n="liga.prizes"></h3>
+    <div class="card" id="prizelist"></div>
+    <p class="muted" data-i18n="liga.legalnote"></p>
+    <h3 class="vtitle" style="font-size:16px" data-i18n="liga.standings"></h3>
+    <div class="card" id="standings"></div>
+  </section>
+
+  <!-- PERFIL -->
+  <section class="view" id="view-perfil">
+    <div style="display:flex;align-items:center;gap:14px;margin:8px 0 14px">
+      <div class="av" id="me-av" style="width:58px;height:58px;font-size:20px"></div>
+      <div><b style="font-size:18px" id="me-name"></b>
+        <div><span class="author"><span class="lvl" id="me-lvl"></span></span></div>
+        <div class="muted" id="me-sub" style="margin-top:3px"></div>
+      </div>
+      <button class="chip" style="margin-left:auto" data-i18n-al="a11y.settings" onclick="toggleSettings()">⚙️</button>
+    </div>
+    <div class="pstats" id="pstats"></div>
+    <div class="card" id="settings" style="display:none;margin-top:12px">
+      <div class="setrow"><span data-i18n="set.account"></span><button class="btn mini ghost" id="authbtn" onclick="authAction()"></button></div>
+      <div class="setrow"><span data-i18n="set.lang"></span>
+        <select id="langsel" onchange="setLang(this.value)"><option value="es">Español</option><option value="pt">Português (BR)</option><option value="en">English</option></select>
+      </div>
+      <div class="setrow"><span data-i18n="set.notif"></span><button class="sw" id="sw-notif" role="switch" aria-checked="false" data-i18n-al="set.notif" onclick="toggleNotif()"></button></div>
+      <div class="setrow"><span data-i18n="set.age"></span><b id="age-state"></b></div>
+      <div class="setrow"><span data-i18n="set.reset"></span><button class="btn mini ghost" onclick="resetDemo()" data-i18n="set.resetbtn"></button></div>
+    </div>
+    <h3 class="vtitle" style="font-size:16px;margin-top:16px" data-i18n="perfil.mygrid"></h3>
+    <div class="grid3" id="mygrid"></div>
+  </section>
+
+  <!-- NAV: SIEMPRE encima de cualquier vista -->
+  <nav id="tabbar">
+    <button class="tab on" data-v="feed" onclick="go('feed')"><span class="ic">🎬</span><span data-i18n="nav.feed"></span></button>
+    <button class="tab" data-v="premios" onclick="go('premios')"><span class="ic">🏆</span><span data-i18n="nav.premios"></span></button>
+    <button class="tab mk" data-v="crear" onclick="go('crear')"><span class="ic">＋</span><span data-i18n="nav.crear"></span></button>
+    <button class="tab" data-v="grupos" onclick="go('grupos')"><span class="ic">👥</span><span data-i18n="nav.grupos"></span></button>
+    <button class="tab" data-v="retos" onclick="go('retos')"><span class="ic">🔥</span><span data-i18n="nav.retos"></span></button>
+    <button class="tab" data-v="perfil" onclick="go('perfil')"><span class="ic">👤</span><span data-i18n="nav.perfil"></span></button>
+  </nav>
+
+  <!-- BET SHEET (encima del viewer, debajo del nav) -->
+  <div class="sheet" id="betsheet">
+    <div class="sh-head"><h3 id="bs-q"></h3><button class="sh-x" data-i18n-al="a11y.close" onclick="closeSheet('betsheet')">✕</button></div>
+    <div class="sh-body">
+      <div id="bs-opts" class="opts"></div>
+      <div class="stake"><span data-i18n="bet.entry"></span><b id="bs-entry"></b></div>
+      <div class="stake"><span data-i18n="bet.pot"></span><b id="bs-pot"></b></div>
+      <button class="btn" id="bs-go" onclick="confirmBet()"></button>
+      <button class="btn ghost" id="bs-ad" style="display:none" onclick="watchAd()"></button>
+      <p class="muted" data-i18n="bet.note"></p>
+    </div>
+  </div>
+
+  <!-- COMMENTS SHEET -->
+  <div class="sheet" id="cmtsheet">
+    <div class="sh-head"><h3 data-i18n="cmt.title"></h3><button class="sh-x" data-i18n-al="a11y.close" onclick="closeSheet('cmtsheet')">✕</button></div>
+    <div class="sh-body">
+      <div id="cmt-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      <div class="cmtrow"><input id="cmt-in" data-i18n-ph="cmt.ph" data-i18n-al="a11y.writecmt" onkeydown="if(event.key==='Enter')sendCmt()"><button class="btn mini" onclick="sendCmt()" data-i18n="cmt.send"></button></div>
+    </div>
+  </div>
+
+  <!-- AUTH SHEET (registro en 1 toque; mock listo para Supabase signInWithOAuth) -->
+  <div class="sheet" id="authsheet">
+    <div class="sh-head"><h3 data-i18n="auth.title"></h3><button class="sh-x" data-i18n-al="a11y.close" onclick="closeSheet('authsheet')">✕</button></div>
+    <div class="sh-body">
+      <div id="auth-main" style="display:flex;flex-direction:column;gap:9px">
+        <p class="muted" data-i18n="auth.sub"></p>
+        <button class="sbtn google" onclick="authWith('google')">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2.1 5.1-4.4 6.7v5.5h7.1c4.2-3.8 6.6-9.5 6.6-16.2z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.5c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.6-3.9-12.3-9.1H4.4v5.7C8 41.1 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.7 28.2c-.4-1.3-.7-2.7-.7-4.2s.3-2.9.7-4.2v-5.7H4.4C2.9 17.1 2 20.4 2 24s.9 6.9 2.4 9.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.8c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8 6.9 4.4 14.1l7.3 5.7c1.7-5.2 6.6-9 12.3-9z"/></svg>
+          <span data-i18n="auth.google"></span></button>
+        <button class="sbtn apple" onclick="authWith('apple')">
+          <svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.9-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+          <span data-i18n="auth.apple"></span></button>
+        <button class="sbtn x" onclick="authWith('x')">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          <span data-i18n="auth.x"></span></button>
+        <button class="sbtn tiktok" onclick="authWith('tiktok')">
+          <svg viewBox="0 0 448 512" aria-hidden="true"><path fill="currentColor" d="M448 209.9a210.1 210.1 0 0 1-122.8-39.3v178.8A162.6 162.6 0 1 1 185 188.3v89.9a74.6 74.6 0 1 0 52.2 71.2V0h88a121.2 121.2 0 0 0 1.9 22.2A122.2 122.2 0 0 0 381 102.4a121.4 121.4 0 0 0 67 20.1z"/></svg>
+          <span data-i18n="auth.tiktok"></span></button>
+        <button class="btn ghost" onclick="closeSheet('authsheet')" data-i18n="auth.guest"></button>
+        <p class="muted" data-i18n="auth.terms"></p>
+      </div>
+      <div id="auth-dob-step" style="display:none;flex-direction:column;gap:9px">
+        <label for="dob-in" data-i18n="auth.dob" style="font-size:13px;color:var(--tx2);font-weight:600"></label>
+        <input type="date" id="dob-in" style="background:var(--card);border:1px solid var(--line);border-radius:11px;padding:11px 13px;color:var(--tx);outline:none;color-scheme:dark">
+        <p class="muted" data-i18n="auth.dobHint"></p>
+        <button class="btn" onclick="authConfirm()" data-i18n="auth.confirm"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AGE GATE -->
+  <div class="modal" id="agegate" role="dialog" aria-modal="true"><div class="mbox">
+    <div class="big">🔞</div>
+    <h3 data-i18n="age.title"></h3>
+    <p class="muted" data-i18n="age.expl"></p>
+    <button class="btn" onclick="ageYes()" data-i18n="age.yes"></button>
+    <button class="btn ghost" onclick="ageNo()" data-i18n="age.no"></button>
+  </div></div>
+
+  <!-- DAILY REWARD -->
+  <div class="modal" id="dailymod" role="dialog" aria-modal="true"><div class="mbox">
+    <div class="big">🔥</div>
+    <h3 id="dm-title"></h3>
+    <p class="muted" id="dm-sub"></p>
+    <button class="btn" onclick="closeModal('dailymod')" data-i18n="daily.cta"></button>
+  </div></div>
+
+  <!-- AD (recarga: máx. 5/día, cada recarga < asignación diaria base) -->
+  <div class="modal" id="admod" role="dialog" aria-modal="true"><div class="mbox">
+    <div class="big">📺</div>
+    <h3 data-i18n="ad.title"></h3>
+    <p class="muted" id="ad-count"></p>
+    <button class="btn" id="ad-go" onclick="adDone()" disabled></button>
+    <button class="btn ghost" onclick="adCancel()" data-i18n="ad.cancel"></button>
+  </div></div>
+
+  <!-- RECORDER (negociación de códec: NUNCA hardcodear VP9) -->
+  <div class="modal" id="recmod" role="dialog" aria-modal="true"><div class="mbox">
+    <video id="camprev" autoplay muted playsinline></video>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" id="rec-go" onclick="recToggle()"></button>
+      <button class="btn ghost" style="flex:1" onclick="closeRec()" data-i18n="rec.close"></button>
+    </div>
+    <p class="muted" id="rec-fmt"></p>
+  </div></div>
+
+  <div id="confetti" aria-hidden="true"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   Vinko v1 web — SPA vanilla. Reglas de oro del CLAUDE.md aplicadas:
+   sin custodia, puntos nunca comprables (recarga por anuncio máx. 5/día,
+   < asignación diaria base), premios por ranking de precisión (jamás por
+   saldo), porras con dinero solo en grupos privados P2P, afiliación solo
+   tras age-gate 18+, gamificación solo sobre la capa gratuita.
+   ===================================================================== */
+
+/* ---------- invariantes regla de oro 2 (hardcodeados, fuera de config remota) ---------- */
+const DAILY_BASE = 100;          // asignación diaria base (sin multiplicador)
+const MAX_AD_RECHARGES = 5;      // máx. recargas/día
+const AD_RECHARGE_PTS = 90;      // cada recarga < DAILY_BASE
+const MAX_REF_REWARDS_DAY = 10;  // anti-granja referidos
+
+/* ---------- i18n ---------- */
+// <i18n:es>
+const I18N_ES = {
+"nav.feed":"Feed","nav.premios":"Liga","nav.crear":"Crear","nav.grupos":"Grupos","nav.retos":"Retos","nav.perfil":"Perfil",
+"feed.aimaking":"La IA está creando el vídeo","feed.closes":"cierra en {t}","feed.closed":"cerrada","feed.pot":"bote {n} 🪙","feed.entry":"entrada {n} 🪙","feed.players":"{n} jugando",
+"feed.bet":"Apostar {n} 🪙","feed.betdone":"Apostado ✓ {o}","feed.won":"¡Acertaste! +{n} 🪙 · 🎯 +{p}","feed.lost":"No acertaste esta vez","feed.flash":"⚡ RELÁMPAGO · puntos ×2",
+"feed.aff":"¿Apuesta real? Solo con operador licenciado","feed.affcta":"Ver operador","feed.resp":"Juega con responsabilidad",
+"bet.entry":"Entrada","bet.pot":"Bote actual","bet.cta":"Confirmar apuesta","bet.pick":"Elige una opción","bet.nopts":"Te faltan puntos","bet.note":"El bote de puntos se reparte entre quienes acierten. Los puntos no se compran ni se convierten en dinero.","bet.ad":"📺 Ver anuncio (+{n} 🪙)",
+"cmt.title":"Comentarios","cmt.ph":"Escribe un comentario…","cmt.send":"Enviar",
+"retos.title":"Racha y retos","retos.daily":"Retos de hoy","retos.refs":"Invita y gana","retos.legal":"Los retos y recompensas operan solo sobre la capa gratuita y social. Nunca premian actividad con dinero real.",
+"streak.line":"Días de racha: {n}","streak.mult":"Multiplicador de apertura diaria: ×{m}","streak.freeze":"Pierde un día y el multiplicador se reinicia (el saldo no).",
+"reto.p3":"Participa en 3 porras","reto.c1":"Crea 1 porra","reto.a1":"Acierta 1 porra","reto.s1":"Comparte 1 porra por WhatsApp",
+"reto.claim":"Reclamar","reto.done":"Hecho ✓","reto.claimed":"+{n} 🪙 por el reto","refs.invite":"Amigo invitado validado","refs.expl":"Validado = se registra y juega 1 porra. Él recibe +200 🪙. Máx. 10 recompensas/día.","refs.cta":"Invitar por WhatsApp","refs.status":"Invitados: {i} · Validados: {v}","refs.shared":"Invitación lista para enviar",
+"crear.title":"Crea tu porra","crear.q":"Pregunta","crear.qph":"¿Quién gana esta noche…?","crear.opts":"Opciones","crear.entry":"Entrada (🪙)","crear.closes":"Cierra en","crear.h1":"1 hora (relámpago ⚡)","crear.h24":"24 horas","crear.h72":"3 días","crear.rec":"Grabar vídeo (opcional)","crear.cta":"Publicar porra","crear.hint":"Ganas +25 🪙 por cada persona que juegue tu porra (máx. 500).","crear.err":"Completa la pregunta y las dos opciones","crear.ok":"¡Porra publicada! +{n} 🪙 cuando la jueguen",
+"rec.start":"● Grabar","rec.stop":"■ Parar","rec.close":"Cerrar","rec.saved":"Vídeo listo ✓","rec.nocam":"Cámara no disponible en este dispositivo","rec.fmt":"Formato: {f}",
+"grupos.title":"Tus grupos","grupos.members":"{n} miembros","grupos.legal":"Las porras de grupo son privadas: nunca aparecen en el feed público.","grupos.rank":"Ranking de precisión del grupo","grupos.rankNote":"Solo porras de puntos. El pique entre amigos es la mejor liga.","grupos.debts":"Deudas de la peña","grupos.debtNote":"Vinko solo calcula y recuerda. El pago es directo entre vosotros (Bizum) — Vinko no toca el dinero ni cobra comisión.","grupos.judge":"Árbitro del grupo: {n}","grupos.owes":"{a} debe {n} a {b}","grupos.pay":"Pagar por Bizum","grupos.paid":"Pagado","grupos.pend":"Pendiente","grupos.back":"← Grupos","grupos.money18":"Las porras con dinero del grupo requieren +18.","grupos.paylink":"Enlace de pago directo generado (demo). El pago va de persona a persona: Vinko no interviene.",
+"liga.title":"Liga y premios","liga.div":"División {d} · puesto {p} de {n}","liga.expl":"Liga semanal de PRECISIÓN: divisiones de ~30 con tu nivel. Top 10 asciende, cola desciende.","liga.prizes":"Premios del ranking","liga.legalnote":"Los premios se otorgan por posición en el ranking de PRECISIÓN (competición de habilidad). Nunca por saldo de puntos ni por azar.","liga.standings":"Tu división","liga.sponsor":"patrocinado por {s}","liga.you":"tú",
+"prize.p1":"1º","prize.p23":"2º–3º","prize.p410":"4º–10º",
+"perfil.mygrid":"Tus porras","perfil.prec":"Precisión","perfil.hits":"Aciertos","perfil.streakS":"Racha","perfil.pts":"Puntos",
+"set.lang":"Idioma","set.notif":"Avisos con motivo real (máx. 1/día)","set.age":"Mayor de 18","set.age.yes":"Sí","set.age.no":"Sin verificar","set.reset":"Reiniciar demo","set.resetbtn":"Reiniciar",
+"age.title":"Contenido +18","age.expl":"Esta sección enlaza con juego con dinero real de un operador licenciado o entre adultos de tu grupo. Confirma que tienes 18 años o más.","age.yes":"Soy mayor de 18","age.no":"Soy menor","age.minor":"Sin problema: Vinko es 100% jugable gratis con puntos.",
+"daily.title":"+{n} 🪙 por venir hoy","daily.sub":"Día {d} de racha · multiplicador ×{m}","daily.cta":"¡A jugar!",
+"ad.title":"Recarga de puntos","ad.count":"Recargas hoy: {u} de {m} · cada recarga +{p} 🪙","ad.cta":"Recibir +{p} 🪙","ad.watch":"Viendo anuncio… {s}s","ad.limit":"Has llegado al límite de hoy (máx. {m}). Mañana más.",
+"lvl.0":"Novato","lvl.1":"Ojeador","lvl.2":"Pitonisa","lvl.3":"Oráculo",
+"toast.like":"❤️","toast.shared":"Compartida por WhatsApp ✓","toast.notifon":"Avisos activados (puedes quitarlos aquí)","toast.notifoff":"Avisos desactivados",
+"res.title":"Resultado disponible","time.h":"{n} h","time.m":"{n} min","time.now":"¡ya!",
+"feed.afflock":"Contenido para mayores de 18","feed.verify":"Verificar edad","ad.cancel":"Cancelar",
+"a11y.like":"Me gusta","a11y.cmt":"Comentarios","a11y.share":"Compartir","a11y.close":"Cerrar","a11y.settings":"Ajustes","a11y.writecmt":"Escribe un comentario",
+"auth.title":"Guarda tu progreso","auth.sub":"Crea tu cuenta en un toque: puntos, racha y precisión se guardan para siempre.","auth.google":"Continuar con Google","auth.apple":"Continuar con Apple","auth.x":"Continuar con X","auth.tiktok":"Continuar con TikTok","auth.guest":"Seguir como invitado","auth.terms":"Al continuar aceptas los Términos y la Política de privacidad. Edad mínima: 14 años.",
+"auth.dob":"Tu fecha de nacimiento","auth.dobHint":"Solo para verificar tu edad (mínimo 14 años; +18 para ver enlaces de juego real). No se muestra a nadie.","auth.confirm":"Crear cuenta","auth.under14":"Necesitas al menos 14 años para crear cuenta","auth.done":"¡Cuenta creada! Tu progreso está a salvo","auth.login":"Iniciar sesión","auth.logout":"Cerrar sesión","auth.guestlbl":"Invitado","auth.with":"Cuenta de {p}","set.account":"Cuenta",
+"crear.tabPorra":"Porra","duel.tab":"Reto 1v1","duel.q":"¿Qué os apostáis?","duel.qph":"Ej.: que Jorge no liga en la boda…","duel.voice":"Dictar por voz","voz.no":"Tu navegador no soporta dictado por voz — escríbelo","voz.err":"No te he entendido, prueba otra vez",
+"duel.rival":"Elige contrincante","duel.judge":"Elige árbitro","duel.judgeHint":"Los dos tenéis que aceptar quién es el árbitro. Él decide el ganador al cierre.","duel.entry":"Entrada (🪙)","duel.cta":"Lanzar reto","duel.err":"Di la apuesta y elige contrincante y árbitro","duel.errSame":"El árbitro no puede ser tu contrincante",
+"duel.sent":"Reto lanzado: esperando a {r}…","duel.accepted":"{r} aceptó el reto y a {j} como árbitro ✓","duel.waiting":"⏳ Esperando a {r}…","duel.ok":"✓ Aceptado por los dos","duel.pot":"bote {n} 🪙","duel.judgeLbl":"Árbitro: {j}","duel.resolve":"el árbitro decide al cierre","duel.list":"Tus retos 1v1","refs.cta300":"➕ Invitar a un amigo · gana +300 🪙",
+"duel.won":"⚖️ {j} ha decidido: ¡ganaste! +{n} 🪙","duel.wonCard":"🏆 Ganaste +{n} 🪙 · decidido por {j}","feed.joined":"👥 ¡Nuevo participante en tu porra! +25 🪙","refs.landed":"🎁 Te ha invitado {u}: juega gratis, ganáis los dos"
+};
+// </i18n:es>
+// <i18n:pt>
+const I18N_PT = {
+"nav.feed":"Feed","nav.premios":"Liga","nav.crear":"Criar","nav.grupos":"Grupos","nav.retos":"Desafios","nav.perfil":"Perfil",
+"feed.aimaking":"A IA está criando o vídeo","feed.closes":"fecha em {t}","feed.closed":"fechada","feed.pot":"pote {n} 🪙","feed.entry":"entrada {n} 🪙","feed.players":"{n} jogando",
+"feed.bet":"Apostar {n} 🪙","feed.betdone":"Apostado ✓ {o}","feed.won":"Acertou! +{n} 🪙 · 🎯 +{p}","feed.lost":"Não foi dessa vez","feed.flash":"⚡ RELÂMPAGO · pontos ×2",
+"feed.aff":"Aposta real? Só com operador licenciado","feed.affcta":"Ver operador","feed.resp":"Jogue com responsabilidade",
+"bet.entry":"Entrada","bet.pot":"Pote atual","bet.cta":"Confirmar aposta","bet.pick":"Escolha uma opção","bet.nopts":"Faltam pontos","bet.note":"O pote de pontos é dividido entre quem acertar. Pontos não se compram nem viram dinheiro.","bet.ad":"📺 Ver anúncio (+{n} 🪙)",
+"cmt.title":"Comentários","cmt.ph":"Escreva um comentário…","cmt.send":"Enviar",
+"retos.title":"Sequência e desafios","retos.daily":"Desafios de hoje","retos.refs":"Convide e ganhe","retos.legal":"Desafios e recompensas operam apenas na camada gratuita e social. Nunca premiam atividade com dinheiro real.",
+"streak.line":"Dias de sequência: {n}","streak.mult":"Multiplicador de abertura diária: ×{m}","streak.freeze":"Perca um dia e o multiplicador reinicia (o saldo não).",
+"reto.p3":"Participe de 3 bolões","reto.c1":"Crie 1 bolão","reto.a1":"Acerte 1 bolão","reto.s1":"Compartilhe 1 bolão no WhatsApp",
+"reto.claim":"Resgatar","reto.done":"Feito ✓","reto.claimed":"+{n} 🪙 pelo desafio","refs.invite":"Amigo convidado validado","refs.expl":"Validado = se registra e joga 1 bolão. Ele recebe +200 🪙. Máx. 10 recompensas/dia.","refs.cta":"Convidar pelo WhatsApp","refs.status":"Convidados: {i} · Validados: {v}","refs.shared":"Convite pronto para enviar",
+"crear.title":"Crie seu bolão","crear.q":"Pergunta","crear.qph":"Quem ganha hoje à noite…?","crear.opts":"Opções","crear.entry":"Entrada (🪙)","crear.closes":"Fecha em","crear.h1":"1 hora (relâmpago ⚡)","crear.h24":"24 horas","crear.h72":"3 dias","crear.rec":"Gravar vídeo (opcional)","crear.cta":"Publicar bolão","crear.hint":"Você ganha +25 🪙 por pessoa que jogar seu bolão (máx. 500).","crear.err":"Complete a pergunta e as duas opções","crear.ok":"Bolão publicado! +{n} 🪙 quando jogarem",
+"rec.start":"● Gravar","rec.stop":"■ Parar","rec.close":"Fechar","rec.saved":"Vídeo pronto ✓","rec.nocam":"Câmera indisponível neste aparelho","rec.fmt":"Formato: {f}",
+"grupos.title":"Seus grupos","grupos.members":"{n} membros","grupos.legal":"Bolões de grupo são privados: nunca aparecem no feed público.","grupos.rank":"Ranking de precisão do grupo","grupos.rankNote":"Só bolões de pontos. A rivalidade entre amigos é a melhor liga.","grupos.debts":"Dívidas da turma","grupos.debtNote":"O Vinko só calcula e lembra. O pagamento é direto entre vocês (PIX) — o Vinko não toca no dinheiro nem cobra comissão.","grupos.judge":"Juiz do grupo: {n}","grupos.owes":"{a} deve {n} a {b}","grupos.pay":"Pagar com PIX","grupos.paid":"Pago","grupos.pend":"Pendente","grupos.back":"← Grupos","grupos.money18":"Bolões com dinheiro do grupo exigem +18.","grupos.paylink":"Link de pagamento direto gerado (demo). O pagamento é de pessoa a pessoa: o Vinko não intervém.",
+"liga.title":"Liga e prêmios","liga.div":"Divisão {d} · posição {p} de {n}","liga.expl":"Liga semanal de PRECISÃO: divisões de ~30 do seu nível. Top 10 sobe, os últimos descem.","liga.prizes":"Prêmios do ranking","liga.legalnote":"Prêmios são concedidos por posição no ranking de PRECISÃO (competição de habilidade). Nunca por saldo de pontos nem por sorte.","liga.standings":"Sua divisão","liga.sponsor":"patrocinado por {s}","liga.you":"você",
+"prize.p1":"1º","prize.p23":"2º–3º","prize.p410":"4º–10º",
+"perfil.mygrid":"Seus bolões","perfil.prec":"Precisão","perfil.hits":"Acertos","perfil.streakS":"Sequência","perfil.pts":"Pontos",
+"set.lang":"Idioma","set.notif":"Avisos com motivo real (máx. 1/dia)","set.age":"Maior de 18","set.age.yes":"Sim","set.age.no":"Não verificado","set.reset":"Reiniciar demo","set.resetbtn":"Reiniciar",
+"age.title":"Conteúdo +18","age.expl":"Esta seção leva a jogo com dinheiro real de um operador licenciado ou entre adultos do seu grupo. Confirme que você tem 18 anos ou mais.","age.yes":"Sou maior de 18","age.no":"Sou menor","age.minor":"Sem problema: o Vinko é 100% jogável grátis com pontos.",
+"daily.title":"+{n} 🪙 por vir hoje","daily.sub":"Dia {d} de sequência · multiplicador ×{m}","daily.cta":"Bora jogar!",
+"ad.title":"Recarga de pontos","ad.count":"Recargas hoje: {u} de {m} · cada recarga +{p} 🪙","ad.cta":"Receber +{p} 🪙","ad.watch":"Vendo anúncio… {s}s","ad.limit":"Você chegou ao limite de hoje (máx. {m}). Amanhã tem mais.",
+"lvl.0":"Novato","lvl.1":"Olheiro","lvl.2":"Vidente","lvl.3":"Oráculo",
+"toast.like":"❤️","toast.shared":"Compartilhado no WhatsApp ✓","toast.notifon":"Avisos ativados (pode desativar aqui)","toast.notifoff":"Avisos desativados",
+"res.title":"Resultado disponível","time.h":"{n} h","time.m":"{n} min","time.now":"agora!",
+"feed.afflock":"Conteúdo para maiores de 18","feed.verify":"Verificar idade","ad.cancel":"Cancelar",
+"a11y.like":"Curtir","a11y.cmt":"Comentários","a11y.share":"Compartilhar","a11y.close":"Fechar","a11y.settings":"Ajustes","a11y.writecmt":"Escreva um comentário",
+"auth.title":"Salve seu progresso","auth.sub":"Crie sua conta em um toque: pontos, sequência e precisão ficam salvos para sempre.","auth.google":"Continuar com Google","auth.apple":"Continuar com Apple","auth.x":"Continuar com X","auth.tiktok":"Continuar com TikTok","auth.guest":"Seguir como convidado","auth.terms":"Ao continuar você aceita os Termos e a Política de privacidade. Idade mínima: 14 anos.",
+"auth.dob":"Sua data de nascimento","auth.dobHint":"Só para verificar sua idade (mínimo 14; +18 para ver links de jogo real). Não aparece para ninguém.","auth.confirm":"Criar conta","auth.under14":"Você precisa ter pelo menos 14 anos para criar conta","auth.done":"Conta criada! Seu progresso está salvo","auth.login":"Entrar","auth.logout":"Sair","auth.guestlbl":"Convidado","auth.with":"Conta de {p}","set.account":"Conta",
+"crear.tabPorra":"Bolão","duel.tab":"Desafio 1v1","duel.q":"O que vocês apostam?","duel.qph":"Ex.: que o Jorge não beija ninguém no casamento…","duel.voice":"Ditar por voz","voz.no":"Seu navegador não suporta ditado por voz — digite","voz.err":"Não entendi, tente de novo",
+"duel.rival":"Escolha o adversário","duel.judge":"Escolha o juiz","duel.judgeHint":"Os dois precisam aceitar quem é o juiz. Ele decide o vencedor no fechamento.","duel.entry":"Entrada (🪙)","duel.cta":"Lançar desafio","duel.err":"Diga a aposta e escolha adversário e juiz","duel.errSame":"O juiz não pode ser seu adversário",
+"duel.sent":"Desafio lançado: esperando {r}…","duel.accepted":"{r} aceitou o desafio e {j} como juiz ✓","duel.waiting":"⏳ Esperando {r}…","duel.ok":"✓ Aceito pelos dois","duel.pot":"pote {n} 🪙","duel.judgeLbl":"Juiz: {j}","duel.resolve":"o juiz decide no fechamento","duel.list":"Seus desafios 1v1","refs.cta300":"➕ Convidar um amigo · ganhe +300 🪙",
+"duel.won":"⚖️ {j} decidiu: você ganhou! +{n} 🪙","duel.wonCard":"🏆 Você ganhou +{n} 🪙 · decidido por {j}","feed.joined":"👥 Novo participante no seu bolão! +25 🪙","refs.landed":"🎁 {u} convidou você: jogue grátis, os dois ganham"
+};
+// </i18n:pt>
+// <i18n:en>
+const I18N_EN = {
+"nav.feed":"Feed","nav.premios":"League","nav.crear":"Create","nav.grupos":"Groups","nav.retos":"Streak","nav.perfil":"Profile",
+"feed.aimaking":"AI is creating the video","feed.closes":"closes in {t}","feed.closed":"closed","feed.pot":"pot {n} 🪙","feed.entry":"entry {n} 🪙","feed.players":"{n} playing",
+"feed.bet":"Bet {n} 🪙","feed.betdone":"Bet placed ✓ {o}","feed.won":"You got it! +{n} 🪙 · 🎯 +{p}","feed.lost":"Not this time","feed.flash":"⚡ FLASH · points ×2",
+"feed.aff":"Real bet? Only with a licensed operator","feed.affcta":"See operator","feed.resp":"Play responsibly",
+"bet.entry":"Entry","bet.pot":"Current pot","bet.cta":"Confirm bet","bet.pick":"Pick an option","bet.nopts":"Not enough points","bet.note":"The points pot is split among winners. Points can't be bought or turned into money.","bet.ad":"📺 Watch ad (+{n} 🪙)",
+"cmt.title":"Comments","cmt.ph":"Write a comment…","cmt.send":"Send",
+"retos.title":"Streak & challenges","retos.daily":"Today's challenges","retos.refs":"Invite & earn","retos.legal":"Challenges and rewards operate only on the free, social layer. They never reward real-money activity.",
+"streak.line":"Streak days: {n}","streak.mult":"Daily open multiplier: ×{m}","streak.freeze":"Miss a day and the multiplier resets (your balance doesn't).",
+"reto.p3":"Join 3 pools","reto.c1":"Create 1 pool","reto.a1":"Win 1 pool","reto.s1":"Share 1 pool on WhatsApp",
+"reto.claim":"Claim","reto.done":"Done ✓","reto.claimed":"+{n} 🪙 for the challenge","refs.invite":"Validated invited friend","refs.expl":"Validated = signs up and plays 1 pool. They get +200 🪙. Max 10 rewards/day.","refs.cta":"Invite via WhatsApp","refs.status":"Invited: {i} · Validated: {v}","refs.shared":"Invite ready to send",
+"crear.title":"Create your pool","crear.q":"Question","crear.qph":"Who wins tonight…?","crear.opts":"Options","crear.entry":"Entry (🪙)","crear.closes":"Closes in","crear.h1":"1 hour (flash ⚡)","crear.h24":"24 hours","crear.h72":"3 days","crear.rec":"Record video (optional)","crear.cta":"Publish pool","crear.hint":"You earn +25 🪙 per person who plays your pool (max 500).","crear.err":"Fill in the question and both options","crear.ok":"Pool published! +{n} 🪙 as people join",
+"rec.start":"● Record","rec.stop":"■ Stop","rec.close":"Close","rec.saved":"Video ready ✓","rec.nocam":"Camera unavailable on this device","rec.fmt":"Format: {f}",
+"grupos.title":"Your groups","grupos.members":"{n} members","grupos.legal":"Group pools are private: they never appear in the public feed.","grupos.rank":"Group precision ranking","grupos.rankNote":"Points pools only. Rivalry between friends is the best league.","grupos.debts":"Group debts","grupos.debtNote":"Vinko only calculates and reminds. Payment is direct between you — Vinko never touches the money nor takes a cut.","grupos.judge":"Group referee: {n}","grupos.owes":"{a} owes {n} to {b}","grupos.pay":"Pay directly","grupos.paid":"Paid","grupos.pend":"Pending","grupos.back":"← Groups","grupos.money18":"Group money pools require 18+.","grupos.paylink":"Direct payment link generated (demo). Payment goes person to person: Vinko is not involved.",
+"liga.title":"League & prizes","liga.div":"Division {d} · rank {p} of {n}","liga.expl":"Weekly PRECISION league: ~30-player divisions at your level. Top 10 go up, bottom go down.","liga.prizes":"Ranking prizes","liga.legalnote":"Prizes are awarded by PRECISION ranking position (skill competition). Never by points balance nor by chance.","liga.standings":"Your division","liga.sponsor":"sponsored by {s}","liga.you":"you",
+"prize.p1":"1st","prize.p23":"2nd–3rd","prize.p410":"4th–10th",
+"perfil.mygrid":"Your pools","perfil.prec":"Precision","perfil.hits":"Wins","perfil.streakS":"Streak","perfil.pts":"Points",
+"set.lang":"Language","set.notif":"Meaningful alerts (max 1/day)","set.age":"Over 18","set.age.yes":"Yes","set.age.no":"Not verified","set.reset":"Reset demo","set.resetbtn":"Reset",
+"age.title":"18+ content","age.expl":"This section links to real-money gambling with a licensed operator or between adults in your group. Confirm you are 18 or older.","age.yes":"I'm over 18","age.no":"I'm underage","age.minor":"No problem: Vinko is 100% free to play with points.",
+"daily.title":"+{n} 🪙 for showing up","daily.sub":"Streak day {d} · multiplier ×{m}","daily.cta":"Let's play!",
+"ad.title":"Points refill","ad.count":"Refills today: {u} of {m} · each refill +{p} 🪙","ad.cta":"Get +{p} 🪙","ad.watch":"Watching ad… {s}s","ad.limit":"You've hit today's limit (max {m}). More tomorrow.",
+"lvl.0":"Rookie","lvl.1":"Scout","lvl.2":"Seer","lvl.3":"Oracle",
+"toast.like":"❤️","toast.shared":"Shared on WhatsApp ✓","toast.notifon":"Alerts on (you can turn them off here)","toast.notifoff":"Alerts off",
+"res.title":"Result available","time.h":"{n} h","time.m":"{n} min","time.now":"now!",
+"feed.afflock":"18+ content","feed.verify":"Verify age","ad.cancel":"Cancel",
+"a11y.like":"Like","a11y.cmt":"Comments","a11y.share":"Share","a11y.close":"Close","a11y.settings":"Settings","a11y.writecmt":"Write a comment",
+"auth.title":"Save your progress","auth.sub":"Create your account in one tap: points, streak and precision are saved forever.","auth.google":"Continue with Google","auth.apple":"Continue with Apple","auth.x":"Continue with X","auth.tiktok":"Continue with TikTok","auth.guest":"Continue as guest","auth.terms":"By continuing you accept the Terms and Privacy Policy. Minimum age: 14.",
+"auth.dob":"Your date of birth","auth.dobHint":"Only to verify your age (14+ to register; 18+ to see real-money links). Never shown to anyone.","auth.confirm":"Create account","auth.under14":"You must be at least 14 to create an account","auth.done":"Account created! Your progress is safe","auth.login":"Log in","auth.logout":"Log out","auth.guestlbl":"Guest","auth.with":"{p} account","set.account":"Account",
+"crear.tabPorra":"Pool","duel.tab":"1v1 Challenge","duel.q":"What's the bet?","duel.qph":"E.g.: Jorge won't kiss anyone at the wedding…","duel.voice":"Dictate by voice","voz.no":"Your browser doesn't support voice dictation — type it","voz.err":"Didn't catch that, try again",
+"duel.rival":"Pick your opponent","duel.judge":"Pick the referee","duel.judgeHint":"Both of you must accept who the referee is. They decide the winner at close.","duel.entry":"Entry (🪙)","duel.cta":"Send challenge","duel.err":"Say the bet and pick opponent and referee","duel.errSame":"The referee can't be your opponent",
+"duel.sent":"Challenge sent: waiting for {r}…","duel.accepted":"{r} accepted the challenge and {j} as referee ✓","duel.waiting":"⏳ Waiting for {r}…","duel.ok":"✓ Accepted by both","duel.pot":"pot {n} 🪙","duel.judgeLbl":"Referee: {j}","duel.resolve":"the referee decides at close","duel.list":"Your 1v1 challenges","refs.cta300":"➕ Invite a friend · earn +300 🪙",
+"duel.won":"⚖️ {j} decided: you won! +{n} 🪙","duel.wonCard":"🏆 You won +{n} 🪙 · decided by {j}","feed.joined":"👥 New player on your pool! +25 🪙","refs.landed":"🎁 {u} invited you: play free, you both win"
+};
+// </i18n:en>
+const I18N = {es:I18N_ES, pt:I18N_PT, en:I18N_EN};
+function t(k,vars){
+  let s = (I18N[S.lang]||I18N.es)[k] ?? I18N.es[k] ?? k;
+  if(vars) for(const v in vars) s = s.replaceAll("{"+v+"}", vars[v]);
+  return s;
+}
+
+/* ---------- estado ---------- */
+// Fechas SIEMPRE en hora local del usuario: con toISOString (UTC) la racha,
+// los retos y las recargas cambiarían a las 02:00 en España (doble cobro).
+const dstr = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const today = () => dstr(new Date());
+const yesterdayStr = () => { const n = new Date(); return dstr(new Date(n.getFullYear(), n.getMonth(), n.getDate()-1)); };
+const DEFAULT_S = {
+  ver:1, lang:"es", pts:1450, xp:620, prec:1180, hits:8, plays:13,
+  streak:{days:4, last:yesterdayStr()}, age18:null, notif:false,
+  auth:null, authPrompted:false, duels:[], creatorBonus:{},
+  bets:{}, likes:{}, cmts:{}, shares:{},
+  retos:{date:null, list:[]},
+  refs:{invited:3, validated:1, rewardsToday:0, day:null},
+  ads:{day:null, used:0},
+  paid:{}, dailyShown:null, myPools:[], analytics:[]
+};
+let S = load();
+function load(){
+  try{ const raw = localStorage.getItem("vinko_s"); if(raw){ const s = JSON.parse(raw); if(s.ver===1){
+    // merge profundo por sección: campos anidados nuevos de DEFAULT_S llegan a guardados antiguos
+    const base = structuredClone(DEFAULT_S);
+    for(const k in base){
+      if(base[k] && typeof base[k]==="object" && !Array.isArray(base[k]) && s[k] && typeof s[k]==="object" && !Array.isArray(s[k]))
+        s[k] = Object.assign(base[k], s[k]);
+    }
+    return Object.assign(base, s);
+  } } }catch(e){}
+  return structuredClone(DEFAULT_S);
+}
+function save(){ try{ localStorage.setItem("vinko_s", JSON.stringify(S)); }catch(e){} }
+
+/* ---------- analítica (instrumentar TODO desde v1; lista para Supabase) ---------- */
+function track(ev, props){
+  const rec = {t:Date.now(), ev, ...(props||{})};
+  S.analytics.push(rec); if(S.analytics.length>400) S.analytics.shift();
+  save(); try{ console.debug("[vinko:track]", ev, props||{}); }catch(e){}
+}
+
+/* ---------- datos demo ---------- */
+const AV_COLORS = ["#7c4dff","#00b8d9","#ff5470","#ffc44d","#2fd573","#f77f00","#9d4edd","#0ead69","#e07be0","#4d96ff"];
+function avatar(name,i){ return `<span class="av" style="background:${AV_COLORS[i%AV_COLORS.length]}">${name.slice(0,2).toUpperCase()}</span>`; }
+
+const NOW = Date.now(), H = 3600e3;
+const POOLS = [
+ {id:"clasico", vs:"assets/v/clasico.webm", th:"assets/t/clasico.jpg", cat:"⚽", grad:"linear-gradient(135deg,#123c2b,#0b7a4b,#123c2b)", sport:true, author:{n:"Marcos",h:"@marcosfut",lvl:2,i:0},
+  q:"¿Quién gana el Clásico del domingo?", opts:[{t:"Real Madrid",v:412},{t:"Barça",v:388},{t:"Empate",v:97}],
+  entry:25, closes:NOW+30*H, likes:1240, flash:false, resolved:null,
+  cmts:[{u:"Lucía",x:"Madrid en el 90', ya veréis"},{u:"Pau",x:"El Barça llega mejor"}]},
+ {id:"reality", vs:"assets/v/reality.webm", th:"assets/t/reality.jpg", cat:"📺", grad:"linear-gradient(135deg,#4a1636,#a4285f,#4a1636)", sport:false, author:{n:"Sara",h:"@sarareality",lvl:1,i:1},
+  q:"¿Raquel es la expulsada de esta noche?", opts:[{t:"Sí",v:731},{t:"No",v:305}],
+  entry:10, closes:NOW+7*H, likes:2381, flash:false, resolved:null,
+  cmts:[{u:"Noe",x:"Después de lo de anoche, fijo"},{u:"Iván",x:"El público la salva otra vez"}]},
+ {id:"flashgol", vs:"assets/v/flashgol.webm", th:"assets/t/flashgol.jpg", cat:"⚡", grad:"linear-gradient(135deg,#3d2f00,#b98a00,#3d2f00)", sport:true, author:{n:"Vinko IA",h:"@vinko",lvl:3,i:2},
+  q:"⚡ ¿Habrá gol en la primera parte del derbi?", opts:[{t:"Sí",v:210},{t:"No",v:64}],
+  entry:10, closes:NOW+0.6*H, likes:340, flash:true, resolved:null,
+  cmts:[{u:"Chema",x:"Con estas defensas… sí o sí"}]},
+ {id:"btc", vs:"assets/v/btc.webm", th:"assets/t/btc.jpg", cat:"📈", grad:"linear-gradient(135deg,#0d2b4a,#1266b0,#0d2b4a)", sport:false, author:{n:"Andrés",h:"@andrescripto",lvl:2,i:3},
+  q:"¿BTC por encima de 120K el viernes?", opts:[{t:"Sí",v:96},{t:"No",v:154}],
+  entry:50, closes:NOW+52*H, likes:87, flash:false, resolved:null,
+  cmts:[{u:"Rob",x:"Ni de broma esta semana"}]},
+ {id:"boda", vs:"assets/v/boda.webm", th:"assets/t/boda.jpg", cat:"💍", grad:"linear-gradient(135deg,#3a1a4a,#8548b8,#3a1a4a)", sport:false, author:{n:"Claudia",h:"@clau",lvl:0,i:4},
+  q:"¿Llueve el sábado en la boda de Marta?", opts:[{t:"Cae la de dios",v:44},{t:"Ni una gota",v:71}],
+  entry:10, closes:NOW+90*H, likes:56, flash:false, resolved:null,
+  cmts:[{u:"Marta",x:"Como llueva os mato a todos"},{u:"Jorge",x:"He mirado 4 apps del tiempo, hay empate"}]},
+ {id:"topuria", vs:"assets/v/topuria.webm", th:"assets/t/topuria.jpg", cat:"🥊", grad:"linear-gradient(135deg,#40140f,#b0341f,#40140f)", sport:true, author:{n:"Dani",h:"@danimma",lvl:2,i:5},
+  q:"¿Cómo gana Topuria su próxima pelea?", opts:[{t:"KO",v:503},{t:"Decisión",v:161},{t:"Pierde",v:58}],
+  entry:25, closes:NOW+140*H, likes:1873, flash:false, resolved:null,
+  cmts:[{u:"Álex",x:"KO en el segundo, apunta"}]},
+ {id:"velada", vs:"assets/v/velada.webm", th:"assets/t/velada.jpg", cat:"🎤", grad:"linear-gradient(135deg,#1c1240,#4930b8,#1c1240)", sport:false, author:{n:"Vinko IA",h:"@vinko",lvl:3,i:6},
+  q:"¿Quién gana el combate principal de La Velada?", opts:[{t:"El favorito",v:322},{t:"La sorpresa",v:289}],
+  entry:10, closes:NOW+200*H, likes:990, flash:false, resolved:null,
+  cmts:[{u:"Tami",x:"La sorpresa, siempre la sorpresa"}]},
+ {id:"amistoso", vs:"assets/v/amistoso.webm", th:"assets/t/amistoso.jpg", cat:"⚽", grad:"linear-gradient(135deg,#12303c,#1b7a96,#12303c)", sport:true, author:{n:"Marcos",h:"@marcosfut",lvl:2,i:0},
+  q:"¿Ganó España el amistoso de anoche?", opts:[{t:"Sí",v:610},{t:"No",v:120}],
+  entry:25, closes:NOW-3*H, likes:1502, flash:false, resolved:{winner:0},
+  cmts:[{u:"Pau",x:"Qué golazo el segundo"}]}
+];
+// apuesta histórica del usuario, ya acertada (siembra precisión y demo de resolución)
+S.bets["amistoso"] = S.bets["amistoso"] ?? 0;
+
+const GROUPS = [
+ {id:"boda", ic:"💍", name:"Boda de Marta", members:[
+   {n:"Tú",prec:1180},{n:"Marta",prec:1320},{n:"Claudia",prec:990},{n:"Jorge",prec:870},{n:"Luis",prec:640}],
+  money:null},
+ {id:"pena", ic:"🍺", name:"Peña del barrio", members:[
+   {n:"Tú",prec:1180},{n:"Rober",prec:1410},{n:"Chema",prec:1105},{n:"Andrés",prec:830}],
+  money:{judge:"Rober", ledger:[
+   {from:"Chema",to:"Tú",amt:"5 €",state:"pend"},
+   {from:"Tú",to:"Rober",amt:"2,50 €",state:"pend"},
+   {from:"Andrés",to:"Rober",amt:"7,50 €",state:"paid"}]}}
+];
+
+const PRIZES = [
+ {posK:"prize.p1", name:"PS5", sponsor:"GameOn", ic:"🎮"},
+ {posK:"prize.p23", name:"Auriculares inalámbricos", sponsor:"SoundMax", ic:"🎧"},
+ {posK:"prize.p410", name:"1 mes de streaming", sponsor:"PlayFlix", ic:"🍿"}
+];
+const LIGA_DIV = "Plata III";
+const LIGA_NAMES = ["Rober","MartaG","Pau","Lucía","Chema","Iván","Noe","Andrés","Tami","Álex","Jorge","Claudia","Dani","Sara","Marcos","Nerea","Hugo","Vera","Leo","Aitana","Bruno","Carla","Diego","Elsa","Fran","Gala","Nico","Olga","Rafa"];
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+function pct(v, total){ return total>0 ? Math.round(v*100/total) : 0; } // SIEMPRE entero redondeado
+function fmtLeft(ms){
+  if(ms<=0) return t("time.now");
+  const h = Math.floor(ms/H); if(h>=1) return t("time.h",{n:h});
+  return t("time.m",{n:Math.max(1,Math.round(ms/60000))});
+}
+function toast(msg){
+  const el = $("toast"); el.textContent = msg; el.classList.add("show");
+  clearTimeout(toast._t); toast._t = setTimeout(()=>el.classList.remove("show"), 2200);
+}
+function confetti(){
+  const box = $("confetti");
+  for(let i=0;i<36;i++){
+    const p = document.createElement("i"); p.className = "cf";
+    p.style.left = Math.random()*100+"%";
+    p.style.background = AV_COLORS[i%AV_COLORS.length];
+    p.style.animationDelay = (Math.random()*0.4)+"s";
+    // limpieza garantizada (bug histórico: confeti pegado en pantalla)
+    p.addEventListener("animationend", ()=>p.remove());
+    box.appendChild(p);
+  }
+  setTimeout(()=>{ box.innerHTML=""; }, 2600); // red de seguridad
+}
+function potOf(p){ return p.opts.reduce((a,o)=>a+o.v,0) * p.entry; }
+function playersOf(p){ return p.opts.reduce((a,o)=>a+o.v,0); }
+function levelOf(xp){ return xp>=4000?3 : xp>=1500?2 : xp>=500?1 : 0; }
+
+/* ---------- i18n render ---------- */
+function applyI18n(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll("[data-i18n-al]").forEach(el=>{ el.setAttribute("aria-label", t(el.dataset.i18nAl)); });
+  document.documentElement.lang = S.lang==="pt" ? "pt-BR" : S.lang;
+}
+
+/* ---------- navegación ---------- */
+let VIEW = "feed";
+function go(v){
+  VIEW = v;
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
+  $("view-"+v).classList.add("on");
+  document.querySelectorAll("#tabbar .tab").forEach(x=>x.classList.toggle("on", x.dataset.v===v));
+  closeSheet("betsheet"); closeSheet("cmtsheet");
+  if(v==="retos") renderRetos();
+  if(v==="grupos") renderGroups();
+  if(v==="premios") renderLiga();
+  if(v==="perfil") renderPerfil();
+  track("view", {v});
+}
+
+/* ---------- FEED ---------- */
+function addCard(p){
+  const sec = document.createElement("section");
+  sec.className = "pool"; sec.dataset.id = p.id;
+  sec.innerHTML = `
+    <div class="vid" style="background-image:${p.grad}">${p.vs
+      ? `<video class="vv" src="${p.vs}" ${p.th?`poster="${p.th}"`:""} muted loop playsinline preload="metadata"></video>`
+      : `${p.cat}<span class="mk">▶ ${t("feed.aimaking")}</span>`}</div>
+    <div class="shade"></div>
+    <div class="rail">
+      ${avatar(p.author.n, p.author.i)}
+      <button class="rbtn ${S.likes[p.id]?"liked":""}" aria-label="${t("a11y.like")}" onclick="likePool('${p.id}')"><span class="ic">${S.likes[p.id]?"❤️":"🤍"}</span><span class="lk">${p.likes + (S.likes[p.id]?1:0)}</span></button>
+      <button class="rbtn" aria-label="${t("a11y.cmt")}" onclick="openCmts('${p.id}')"><span class="ic">💬</span><span>${p.cmts.length + (S.cmts[p.id]?.length||0)}</span></button>
+      <button class="rbtn" aria-label="${t("a11y.share")}" onclick="sharePool('${p.id}')"><span class="ic">↗️</span><span></span></button>
+    </div>
+    <div class="pcontent">
+      ${p.flash ? `<span class="flash">${t("feed.flash")}</span>` : ""}
+      <div class="author"><b class="h" onclick="toast('${p.author.h}')">${p.author.h}</b><span class="lvl">${t("lvl."+p.author.lvl)}</span></div>
+      <div class="q">${esc(p.q)}</div>
+      <div class="opts">${p.opts.map((o,i)=>optHtml(p,o,i)).join("")}</div>
+      <div class="meta">
+        <span>🪙 <b>${t("feed.pot",{n:potOf(p)}).replace("bote ","").replace("pote ","").replace("pot ","")}</b></span>
+        <span>👥 ${t("feed.players",{n:playersOf(p)})}</span>
+        <span>⏳ <span class="left">${p.resolved ? t("feed.closed") : t("feed.closes",{t:fmtLeft(p.closes-Date.now())})}</span></span>
+      </div>
+      <div class="ctaslot"></div>
+      ${p.sport ? affSlot(p) : ""}
+    </div>`;
+  $("feed").appendChild(sec);
+  paintCta(p);
+}
+function optHtml(p,o,i){
+  const total = playersOf(p);
+  const mine = S.bets[p.id]===i;
+  const win = p.resolved && p.resolved.winner===i;
+  return `<div class="opt ${mine?"sel":""}"><span class="bar" style="width:${pct(o.v,total)}%"></span>
+    <span class="lab"><span>${win?"🏆 ":""}${esc(o.t)}</span><b>${pct(o.v,total)}%</b></span></div>`;
+}
+function affSlot(p){
+  // Regla de oro 8: el botón de afiliación solo se VE tras pasar el age-gate.
+  if(S.age18===false) return "";      // menores declarados: nada, jamás
+  if(S.age18!==true)                   // sin verificar: aviso neutro, sin operador
+    return `<button class="aff" onclick="AFTER_AGE=null;openModal('agegate')">
+      <span class="badge18">+18</span>
+      <span style="flex:1;text-align:left"><b>${t("feed.afflock")}</b></span>
+      <span style="color:var(--acc2);font-weight:700">${t("feed.verify")}</span></button>`;
+  return affHtml(p);
+}
+function affHtml(p){
+  return `<button class="aff" onclick="affiliate('${p.id}')">
+    <span class="badge18">+18</span>
+    <span style="flex:1;text-align:left"><b>${t("feed.aff")}</b><br>${t("feed.resp")}</span>
+    <span style="color:var(--acc2);font-weight:700">${t("feed.affcta")}</span></button>`;
+}
+function paintCta(p){
+  const sec = document.querySelector(`.pool[data-id="${p.id}"]`); if(!sec) return;
+  const slot = sec.querySelector(".ctaslot");
+  const betIdx = S.bets[p.id];
+  if(p.resolved){
+    if(betIdx!==undefined){
+      const won = betIdx===p.resolved.winner;
+      const pd = (typeof S.paid[p.id]==="object" && S.paid[p.id]) || {share:0, prec:0};
+      slot.innerHTML = `<div class="resband ${won?"":"lost"}">${won? t("feed.won",{n:pd.share,p:pd.prec}) : t("feed.lost")}</div>`;
+    } else slot.innerHTML = "";
+  } else if(betIdx!==undefined){
+    slot.innerHTML = `<div class="cta done">${t("feed.betdone",{o:esc(p.opts[betIdx].t)})}</div>`;
+  } else {
+    slot.innerHTML = `<button class="cta" onclick="openBet('${p.id}')">${t("feed.bet",{n:p.entry})}</button>`;
+  }
+  // refresca opciones y contadores
+  sec.querySelector(".opts").innerHTML = p.opts.map((o,i)=>optHtml(p,o,i)).join("");
+}
+let IO = null;
+function observeFeed(){
+  // pausa las animaciones de los pools fuera del viewport (fps en gama media)
+  if(!("IntersectionObserver" in window)) return;
+  if(IO) IO.disconnect();
+  IO = new IntersectionObserver(es=>es.forEach(e=>{
+    e.target.classList.toggle("off", !e.isIntersecting);
+    // un vídeo por apuesta: reproduce solo el visible (datos y batería)
+    const v = e.target.querySelector("video.vv");
+    if(v){ if(e.isIntersecting){ v.play().catch(()=>{}); } else v.pause(); }
+  }), {root:$("feed"), threshold:0.05});
+  document.querySelectorAll(".pool").forEach(s=>IO.observe(s));
+}
+function renderFeed(keepScroll=true){
+  const fd = $("feed");
+  const st = keepScroll ? fd.scrollTop : 0;
+  fd.innerHTML = "";
+  POOLS.forEach(addCard); // arranque sagrado: sin esto el feed queda vacío
+  fd.scrollTop = st;
+  observeFeed();
+}
+
+/* ---------- like / comentarios / compartir ---------- */
+function likePool(id){
+  if(S.likes[id]) return;
+  S.likes[id] = true; save(); track("like",{id});
+  const p = POOLS.find(x=>x.id===id); paintRail(p); toast(t("toast.like"));
+}
+function paintRail(p){
+  const sec = document.querySelector(`.pool[data-id="${p.id}"]`); if(!sec) return;
+  const b = sec.querySelector(".rail .rbtn");
+  b.classList.toggle("liked", !!S.likes[p.id]);
+  b.querySelector(".ic").textContent = S.likes[p.id] ? "❤️" : "🤍";
+  b.querySelector(".lk").textContent = p.likes + (S.likes[p.id]?1:0);
+}
+let CMT_POOL = null;
+function openCmts(id){
+  CMT_POOL = POOLS.find(x=>x.id===id);
+  const all = [...CMT_POOL.cmts, ...(S.cmts[id]||[]).map(x=>({u:"Tú",x}))];
+  $("cmt-list").innerHTML = all.map((c,i)=>`<div class="cmt">${avatar(c.u,i+3)}<div><div class="who">${esc(c.u)}</div><div class="tx">${esc(c.x)}</div></div></div>`).join("");
+  openSheet("cmtsheet");
+}
+function sendCmt(){
+  const v = $("cmt-in").value.trim(); if(!v||!CMT_POOL) return;
+  (S.cmts[CMT_POOL.id] = S.cmts[CMT_POOL.id]||[]).push(v); save();
+  $("cmt-in").value = ""; track("comment",{id:CMT_POOL.id});
+  openCmts(CMT_POOL.id);
+  const sec = document.querySelector(`.pool[data-id="${CMT_POOL.id}"]`);
+  if(sec) sec.querySelectorAll(".rail .rbtn")[1].querySelector("span:last-child").textContent = CMT_POOL.cmts.length + S.cmts[CMT_POOL.id].length;
+}
+function esc(s){ const d = document.createElement("i"); d.textContent = s; return d.innerHTML; }
+function openExternal(url){
+  // window.open NO aplica noopener implícito; en el WebView del APK devuelve null
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if(!w){ location.href = url; } // fallback: intent handling de wa.me en WebView/in-app
+}
+function poolUrl(id){ return location.origin + location.pathname + "#p/" + id; } // en producción: https://vinko.fun/#p/<id>
+function sharePool(id){
+  const p = POOLS.find(x=>x.id===id);
+  const url = poolUrl(id);
+  const text = `"${p.q}" 👀 ¿Tú qué dices? Juega gratis: ${url}`;
+  openExternal("https://wa.me/?text="+encodeURIComponent(text));
+  if(!S.shares[id]){ S.shares[id]=true; bumpReto("s1"); }
+  save(); track("share",{id}); toast(t("toast.shared"));
+}
+
+/* ---------- apostar ---------- */
+let BET = {pool:null, opt:null};
+function openBet(id){
+  BET = {pool:POOLS.find(x=>x.id===id), opt:null};
+  const p = BET.pool;
+  $("bs-q").textContent = p.q;
+  $("bs-opts").innerHTML = p.opts.map((o,i)=>
+    `<button class="opt" data-i="${i}" onclick="pickOpt(${i})"><span class="bar" style="width:${pct(o.v,playersOf(p))}%"></span>
+     <span class="lab"><span>${esc(o.t)}</span><b>${pct(o.v,playersOf(p))}%</b></span></button>`).join("");
+  $("bs-entry").textContent = p.entry+" 🪙" + (p.flash?" ⚡×2":"");
+  $("bs-pot").textContent = potOf(p)+" 🪙";
+  updateBetBtn();
+  openSheet("betsheet");
+  track("bet_open",{id});
+}
+function pickOpt(i){
+  BET.opt = i;
+  document.querySelectorAll("#bs-opts .opt").forEach(el=>el.classList.toggle("sel", +el.dataset.i===i));
+  updateBetBtn();
+}
+function updateBetBtn(){
+  const p = BET.pool; if(!p) return;
+  const short = S.pts < p.entry;
+  const b = $("bs-go");
+  if(short){ b.textContent = t("bet.nopts"); b.disabled = true; }
+  else if(BET.opt===null){ b.textContent = t("bet.pick"); b.disabled = true; }
+  else { b.textContent = t("bet.cta")+" · "+p.entry+" 🪙"; b.disabled = false; }
+  const ad = $("bs-ad");
+  if(short && adsLeft()>0){ ad.style.display="block"; ad.textContent = t("bet.ad",{n:AD_RECHARGE_PTS}); }
+  else ad.style.display="none";
+}
+function confirmBet(){
+  const p = BET.pool; if(!p || BET.opt===null || S.pts<p.entry) return;
+  // re-validación temporal: nada de apostar en porras cerradas/resueltas ni doble tap
+  if(S.bets[p.id]!==undefined || p.resolved || p.closes<=Date.now()){
+    closeSheet("betsheet"); toast(t("feed.closed")); return;
+  }
+  S.pts -= p.entry;
+  p.opts[BET.opt].v += 1;
+  S.bets[p.id] = BET.opt;
+  S.plays += 1; S.xp += 20;
+  save(); paintCta(p); paintChips(); confetti();
+  const placedOpt = S.bets[p.id];
+  bumpReto("p3");
+  closeSheet("betsheet");
+  track("bet_placed",{id:p.id, opt:placedOpt, entry:p.entry, flash:!!p.flash});
+  // tras la primera apuesta, ofrecer (una sola vez) guardar el progreso — sin muro de registro
+  if(!S.auth && !S.authPrompted){ S.authPrompted = true; save(); setTimeout(openAuth, 1200); }
+}
+
+/* ---------- Supabase (producción; inerte hasta pegar la anon key) ---------- */
+const SUPA = {
+  url: "https://uarnpxjdccbidgzhhavc.supabase.co",
+  anon: "" // Pegar aquí la "anon public" key (Dashboard → Settings → API). Es pública por diseño: RLS protege los datos. JAMÁS la clave de servicio (la secreta).
+};
+const supaOn = () => !!(SUPA.url && SUPA.anon);
+const supaHeaders = tok => ({apikey:SUPA.anon, Authorization:"Bearer "+(tok||SUPA.anon), "Content-Type":"application/json"});
+const SUPA_OAUTH = {google:"google", apple:"apple", x:"twitter"}; // TikTok no es proveedor nativo: se queda en mock
+function supaSession(){
+  // vuelta del OAuth: GoTrue devuelve los tokens en el hash
+  const m = location.hash.match(/access_token=([^&]+)/);
+  if(!m || !supaOn()) return;
+  const tok = decodeURIComponent(m[1]);
+  history.replaceState(null, "", location.pathname); // nunca dejar tokens en la URL
+  fetch(SUPA.url+"/auth/v1/user", {headers:supaHeaders(tok)}).then(r=>r.json()).then(u=>{
+    if(!u || !u.id) return;
+    S.supa = {token:tok, id:u.id, email:u.email||null};
+    const prov = (u.app_metadata && u.app_metadata.provider) || "google";
+    PENDING_PROVIDER = prov==="twitter" ? "x" : prov;
+    save(); track("auth_oauth_return",{p:PENDING_PROVIDER});
+    if(!S.auth){ // falta la fecha de nacimiento (los proveedores no dan edad)
+      openSheet("authsheet");
+      $("auth-main").style.display = "none";
+      $("auth-dob-step").style.display = "flex";
+    }
+  }).catch(()=>{});
+}
+function flushEvents(){
+  // analítica → Supabase (tabla events, RLS insert-only); buffer local mientras tanto
+  if(!supaOn() || !S.supa || !S.analytics.length) return;
+  const batch = S.analytics.splice(0, 100).map(e=>({user_id:S.supa.id, ev:e.ev, props:e, client_ts:new Date(e.t).toISOString()}));
+  fetch(SUPA.url+"/rest/v1/events", {method:"POST", headers:supaHeaders(S.supa.token), body:JSON.stringify(batch)})
+    .then(r=>{ if(!r.ok) S.analytics.unshift(...batch.map(b=>b.props)); save(); })
+    .catch(()=>{ S.analytics.unshift(...batch.map(b=>b.props)); save(); });
+}
+
+/* ---------- registro social (mock si Supabase no está configurado) ---------- */
+const AUTH_PROVIDERS = {google:"Google", apple:"Apple", x:"X", tiktok:"TikTok"};
+let PENDING_PROVIDER = null;
+function openAuth(){
+  PENDING_PROVIDER = null;
+  $("auth-dob-step").style.display = "none";
+  $("auth-main").style.display = "flex";
+  openSheet("authsheet"); track("auth_open",{});
+}
+function authWith(p){
+  PENDING_PROVIDER = p; track("auth_provider_click",{p});
+  if(supaOn() && SUPA_OAUTH[p]){
+    // OAuth real vía GoTrue (sin SDK: cero dependencias). Vuelve con #access_token → supaSession().
+    location.href = SUPA.url + "/auth/v1/authorize?provider=" + SUPA_OAUTH[p]
+      + "&redirect_to=" + encodeURIComponent(location.origin + location.pathname);
+    return;
+  }
+  // mock (sin backend o proveedor no nativo): directo a la fecha de nacimiento
+  $("auth-main").style.display = "none";
+  $("auth-dob-step").style.display = "flex";
+  $("dob-in").focus();
+}
+function ageFrom(s){
+  const d = new Date(s+"T00:00:00"); if(isNaN(d)) return null;
+  const n = new Date();
+  let a = n.getFullYear()-d.getFullYear();
+  const m = n.getMonth()-d.getMonth();
+  if(m<0 || (m===0 && n.getDate()<d.getDate())) a--;
+  return a;
+}
+function authConfirm(){
+  const age = ageFrom($("dob-in").value);
+  if(age===null || age>120) return;
+  if(age<14){ toast(t("auth.under14")); track("auth_under14",{}); return; } // edad mínima de registro (regla de oro 8)
+  S.auth = {provider:PENDING_PROVIDER, dob:$("dob-in").value}; // la fecha solo vive en local, jamás en analítica
+  S.age18 = age>=18; // 14-17: registrado pero sin afiliación jamás; ≥18: gate pasado
+  if(supaOn() && S.supa){ // persistir en el perfil (el trigger SQL re-valida el mínimo de 14)
+    fetch(SUPA.url+"/rest/v1/profiles?id=eq."+S.supa.id, {method:"PATCH",
+      headers:supaHeaders(S.supa.token), body:JSON.stringify({birth_date:$("dob-in").value, lang:S.lang})}).catch(()=>{});
+  }
+  save(); closeSheet("authsheet");
+  renderFeed(); renderPerfil();
+  confetti(); toast(t("auth.done"));
+  track("auth_complete",{p:PENDING_PROVIDER, adult:S.age18}); // solo el tramo, sin fecha
+}
+function logout(){ S.auth = null; save(); renderPerfil(); track("auth_logout",{}); }
+function authAction(){ if(S.auth) logout(); else openAuth(); }
+
+/* ---------- afiliación (medición pasiva; jamás objetivo de mecánicas) ---------- */
+let AFTER_AGE = null;
+function affiliate(id){
+  if(S.age18===false) return; // menores: nunca
+  if(!S.age18){ AFTER_AGE = ()=>affiliate(id); openModal("agegate"); return; }
+  track("affiliate_click",{id}); // métrica de negocio, medición pasiva
+  toast("🔗 Operador licenciado DGOJ (demo) · +18 · "+t("feed.resp"));
+}
+function ageYes(){
+  S.age18 = true; save(); closeModal("agegate"); track("age_gate",{ok:true});
+  renderFeed(); renderPerfil(); const f = AFTER_AGE; AFTER_AGE = null; if(f) f();
+}
+function ageNo(){
+  S.age18 = false; save(); closeModal("agegate"); AFTER_AGE = null;
+  track("age_gate",{ok:false});
+  renderFeed(); renderPerfil(); // ocultar afiliación por completo
+  toast(t("age.minor"));
+}
+
+/* ---------- recarga por anuncio (regla de oro 2: límites hardcodeados) ---------- */
+function adsLeft(){
+  if(S.ads.day!==today()){ S.ads.day = today(); S.ads.used = 0; save(); }
+  return MAX_AD_RECHARGES - S.ads.used;
+}
+let AD_TIMER = null;
+function watchAd(){
+  if(adsLeft()<=0){ toast(t("ad.limit",{m:MAX_AD_RECHARGES})); return; }
+  closeSheet("betsheet"); openModal("admod");
+  $("ad-count").textContent = t("ad.count",{u:S.ads.used, m:MAX_AD_RECHARGES, p:AD_RECHARGE_PTS});
+  const b = $("ad-go"); b.disabled = true;
+  let s = 3;
+  b.textContent = t("ad.watch",{s});
+  clearInterval(AD_TIMER);
+  AD_TIMER = setInterval(()=>{
+    s--; if(s<=0){ clearInterval(AD_TIMER); b.disabled=false; b.textContent = t("ad.cta",{p:AD_RECHARGE_PTS}); }
+    else b.textContent = t("ad.watch",{s});
+  },1000);
+  track("ad_start",{used:S.ads.used});
+}
+function adCancel(){
+  clearInterval(AD_TIMER); closeModal("admod"); track("ad_cancel",{});
+  // sin consumir recarga: S.ads.used solo se incrementa en adDone
+}
+function adDone(){
+  if(adsLeft()<=0) return;
+  S.ads.used += 1; S.pts += AD_RECHARGE_PTS; save();
+  paintChips(); closeModal("admod"); confetti();
+  track("ad_recharge",{used:S.ads.used, pts:AD_RECHARGE_PTS});
+}
+
+/* ---------- racha diaria ---------- */
+function dailyOpen(){
+  const d = today();
+  if(S.dailyShown===d) return;
+  const y = yesterdayStr();
+  if(S.streak.last===y) S.streak.days += 1;
+  else if(S.streak.last!==d) S.streak.days = 1; // perder la racha resetea el multiplicador, no el saldo
+  S.streak.last = d; S.dailyShown = d;
+  const m = streakMult();
+  const gain = Math.round(DAILY_BASE*m);
+  S.pts += gain; S.xp += 10; save();
+  $("dm-title").textContent = t("daily.title",{n:gain});
+  $("dm-sub").textContent = t("daily.sub",{d:S.streak.days, m});
+  openModal("dailymod"); paintChips();
+  track("daily_reward",{day:S.streak.days, mult:m, pts:gain});
+}
+function streakMult(){ const d = S.streak.days; return d>=14?3 : d>=7?2 : d>=3?1.5 : 1; }
+
+/* ---------- retos diarios (solo capa gratuita; jamás dinero real) ---------- */
+const RETO_DEFS = {
+  p3:{goal:3, pts:50,  k:"reto.p3"},
+  c1:{goal:1, pts:75,  k:"reto.c1"},
+  a1:{goal:1, pts:100, k:"reto.a1"},
+  s1:{goal:1, pts:50,  k:"reto.s1"}
+};
+function initRetos(){
+  const d = today();
+  if(S.retos.date===d && S.retos.list.length) return;
+  const ids = Object.keys(RETO_DEFS);
+  const seed = new Date().getDate();
+  const pick = [0,1,2].map(i => ids[(seed+i)%ids.length]);
+  S.retos = {date:d, list: pick.map(id=>({id, prog:0, claimed:false}))};
+  save();
+}
+function bumpReto(id){
+  const r = S.retos.list.find(x=>x.id===id); if(!r||r.claimed) return;
+  const def = RETO_DEFS[id];
+  if(r.prog < def.goal){ r.prog += 1; save(); if(VIEW==="retos") renderRetos(); }
+}
+function claimReto(id){
+  const r = S.retos.list.find(x=>x.id===id); const def = RETO_DEFS[id];
+  if(!r || r.claimed || r.prog<def.goal) return;
+  r.claimed = true; S.pts += def.pts; S.xp += 15; save();
+  paintChips(); confetti(); toast(t("reto.claimed",{n:def.pts}));
+  renderRetos(); track("reto_claimed",{id, pts:def.pts});
+}
+function renderRetos(){
+  initRetos();
+  $("streak-line").textContent = t("streak.line",{n:S.streak.days});
+  $("streak-mult").textContent = t("streak.mult",{m:streakMult()}) + " · " + t("streak.freeze");
+  const cal = $("streakcal"); cal.innerHTML = "";
+  const names = {es:["L","M","X","J","V","S","D"],pt:["S","T","Q","Q","S","S","D"],en:["M","T","W","T","F","S","S"]}[S.lang]||["L","M","X","J","V","S","D"];
+  const dow = (new Date().getDay()+6)%7;
+  for(let i=0;i<7;i++){
+    const hit = i<=dow && (dow-i)<S.streak.days;
+    cal.innerHTML += `<div class="dayb ${hit?"hit":""}"><span class="f">${hit?"🔥":"·"}</span>${names[i]}</div>`;
+  }
+  $("retolist").innerHTML = S.retos.list.map(r=>{
+    const def = RETO_DEFS[r.id];
+    const done = r.prog>=def.goal;
+    return `<div class="card reto">
+      <div class="info"><div class="name">${t(def.k)}</div>
+        <div class="pbar"><i style="width:${pct(Math.min(r.prog,def.goal),def.goal)}%"></i></div>
+        <div class="muted">${Math.min(r.prog,def.goal)}/${def.goal}</div></div>
+      ${r.claimed ? `<span class="pts">${t("reto.done")}</span>`
+        : done ? `<button class="btn mini" onclick="claimReto('${r.id}')">${t("reto.claim")} +${def.pts}</button>`
+        : `<span class="pts">+${def.pts} 🪙</span>`}</div>`;
+  }).join("");
+  $("refs-status").textContent = t("refs.status",{i:S.refs.invited, v:S.refs.validated});
+}
+function inviteFriend(){
+  const text = "Únete a Vinko y échame una porra 🎯 Gratis con puntos: " + location.origin + location.pathname + "#r/tu";
+  openExternal("https://wa.me/?text="+encodeURIComponent(text));
+  S.refs.invited += 1; save(); renderRetos();
+  track("referral_invite",{invited:S.refs.invited});
+  toast(t("refs.shared"));
+}
+function creditReferralValidated(){
+  // Se dispara cuando un invitado valida (registro + 1 porra jugada). Sin backend
+  // no ocurre en la demo, pero el cap anti-granja queda implementado y testeable.
+  const d = today();
+  if(S.refs.day!==d){ S.refs.day = d; S.refs.rewardsToday = 0; }
+  if(S.refs.rewardsToday>=MAX_REF_REWARDS_DAY) return false; // máx. 10 recompensas/día
+  S.refs.rewardsToday += 1; S.refs.validated += 1;
+  S.pts += 300; S.xp += 30; save(); paintChips();
+  track("referral_validated",{validated:S.refs.validated});
+  return true;
+}
+
+/* ---------- reto 1v1: voz + contrincante + árbitro aceptado por ambos ---------- */
+const FRIENDS = [
+  {n:"Rober", prec:1410, i:0},
+  {n:"Marta", prec:1320, i:1},
+  {n:"Lucía", prec:1432, i:3},
+  {n:"Chema", prec:1105, i:2},
+  {n:"Claudia", prec:990, i:4},
+  {n:"Jorge", prec:870, i:5}
+];
+let DUEL = {rival:null, judge:null};
+let VOICE_USED = false;
+function crearMode(m){
+  $("seg-porra").classList.toggle("on", m==="porra");
+  $("seg-reto").classList.toggle("on", m==="reto");
+  $("crear-porra").style.display = m==="porra" ? "flex" : "none";
+  $("crear-reto").style.display = m==="reto" ? "flex" : "none";
+  if(m==="reto") renderPickers();
+  track("crear_mode",{m});
+}
+function renderPickers(){
+  $("rivallist").innerHTML = FRIENDS.map((f,i)=>
+    `<button class="frow ${DUEL.rival===i?"sel":""}" onclick="pickRival(${i})">${avatar(f.n,f.i)}<span class="fn">${f.n}</span><span class="fp">🎯 ${f.prec}</span>${DUEL.rival===i?"✅":""}</button>`).join("");
+  $("judgelist").innerHTML = FRIENDS.map((f,i)=>
+    i===DUEL.rival ? "" :
+    `<button class="frow ${DUEL.judge===i?"sel":""}" onclick="pickJudge(${i})">${avatar(f.n,f.i)}<span class="fn">${f.n}</span><span class="fp">🎯 ${f.prec}</span>${DUEL.judge===i?"⚖️":""}</button>`).join("");
+}
+function pickRival(i){ DUEL.rival = i; if(DUEL.judge===i) DUEL.judge = null; renderPickers(); track("duel_pick_rival",{}); }
+function pickJudge(i){ if(i===DUEL.rival){ toast(t("duel.errSame")); return; } DUEL.judge = i; renderPickers(); track("duel_pick_judge",{}); }
+function createDuel(){
+  const q = $("dq").value.trim();
+  if(!q || DUEL.rival===null || DUEL.judge===null){ toast(t("duel.err")); return; }
+  if(DUEL.rival===DUEL.judge){ toast(t("duel.errSame")); return; }
+  const entry = +$("dentry").value;
+  if(S.pts < entry){ toast(t("bet.nopts")); return; }
+  S.pts -= entry;
+  const d = {id:"d"+Date.now(), q, rival:FRIENDS[DUEL.rival].n, judge:FRIENDS[DUEL.judge].n, entry, state:"pending", t:Date.now()};
+  S.duels.unshift(d); S.xp += 25; save();
+  bumpReto("c1"); paintChips(); confetti();
+  toast(t("duel.sent",{r:d.rival}));
+  track("duel_create",{entry, voice:VOICE_USED}); VOICE_USED = false;
+  $("dq").value = ""; DUEL = {rival:null, judge:null}; renderPickers();
+  // demo: el contrincante acepta el reto y al árbitro a los pocos segundos
+  setTimeout(()=>{
+    d.state = "accepted"; save();
+    toast(t("duel.accepted",{r:d.rival, j:d.judge}));
+    if(VIEW==="grupos") renderGroups();
+    track("duel_accepted",{id:d.id});
+  }, 4500);
+  go("grupos");
+}
+function startVoice(target){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ toast(t("voz.no")); return; } // fallback: teclado
+  const btn = $(target+"-mic"); btn.classList.add("rec");
+  const r = new SR();
+  r.lang = S.lang==="pt" ? "pt-BR" : S.lang==="en" ? "en-US" : "es-ES";
+  r.interimResults = false; r.maxAlternatives = 1;
+  r.onresult = e => {
+    const tx = e.results[0][0].transcript.trim();
+    const el = $(target);
+    el.value = ((el.value ? el.value+" " : "") + tx).slice(0, el.maxLength>0 ? el.maxLength : 200);
+    VOICE_USED = true;
+  };
+  r.onend = () => btn.classList.remove("rec");
+  r.onerror = () => { btn.classList.remove("rec"); toast(t("voz.err")); };
+  try{ r.start(); track("voice_start",{target}); }catch(e){ btn.classList.remove("rec"); }
+}
+
+/* ---------- crear porra ---------- */
+let REC_OK = false;
+let REC_URL = null; // objectURL del vídeo grabado (solo esta sesión; no persiste)
+function createPool(){
+  const q = $("nq").value.trim(), o1 = $("no1").value.trim(), o2 = $("no2").value.trim();
+  if(!q||!o1||!o2){ toast(t("crear.err")); return; }
+  const hrs = +$("ncloses").value;
+  const hadVideo = REC_OK; // capturar ANTES del reset: la analítica debe ser fiable
+  const p = {
+    id:"u"+Date.now(), cat: hadVideo?"🎥":"🎲", grad:"linear-gradient(135deg,#1f2a10,#5a7a1e,#1f2a10)",
+    sport:false, author:{n:"Tú",h:"@tu",lvl:levelOf(S.xp),i:8},
+    q, opts:[{t:o1,v:1},{t:o2,v:1}], entry:+$("nentry").value,
+    closes:Date.now()+hrs*H, likes:0, flash:hrs===1, resolved:null, cmts:[], mine:true
+  };
+  if(hadVideo && REC_URL){ p.vs = REC_URL; REC_URL = null; } // vídeo propio: solo esta sesión
+  POOLS.unshift(p); S.myPools.unshift(p); S.xp += 25; // objeto completo: sobrevive al reload
+  renderFeed(false); save();
+  bumpReto("c1");
+  $("nq").value = $("no1").value = $("no2").value = ""; REC_OK = false; $("recbtn").classList.remove("ok");
+  go("feed"); $("feed").scrollTo({top:0});
+  confetti(); toast(t("crear.ok",{n:25}));
+  track("pool_created",{id:p.id, entry:p.entry, flash:p.flash, video:hadVideo});
+}
+
+/* ---------- grabadora (negociación de códec cross-device; jamás VP9 fijo) ---------- */
+function pickMime(){
+  const cands = ["video/webm;codecs=vp9","video/webm;codecs=vp8","video/webm","video/mp4;codecs=h264","video/mp4"];
+  if(!window.MediaRecorder) return null;
+  for(const c of cands){ try{ if(MediaRecorder.isTypeSupported(c)) return c; }catch(e){} }
+  return null;
+}
+let REC = {stream:null, rec:null, on:false, gen:0};
+async function openRec(){
+  openModal("recmod");
+  $("rec-go").textContent = t("rec.start");
+  const my = ++REC.gen; // token de generación: evita cámara huérfana si cierran durante el await
+  try{
+    if(REC.stream){ REC.stream.getTracks().forEach(t=>t.stop()); REC.stream = null; }
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"user"}, audio:true});
+    if(my!==REC.gen || !$("recmod").classList.contains("open")){
+      stream.getTracks().forEach(t=>t.stop()); return; // el modal ya se cerró: liberar
+    }
+    REC.stream = stream;
+    $("camprev").srcObject = REC.stream;
+    const m = pickMime();
+    $("rec-fmt").textContent = m ? t("rec.fmt",{f:m}) : t("rec.nocam");
+  }catch(e){
+    $("rec-fmt").textContent = t("rec.nocam");
+  }
+}
+function recToggle(){
+  if(!REC.stream){ closeRec(); return; }
+  if(!REC.on){
+    const mime = pickMime(); if(!mime){ toast(t("rec.nocam")); return; }
+    try{
+      REC.rec = new MediaRecorder(REC.stream, {mimeType:mime});
+      REC.chunks = [];
+      REC.rec.ondataavailable = e => { if(e.data && e.data.size) REC.chunks.push(e.data); };
+      REC.rec.onstop = () => {
+        if(REC.chunks.length){
+          if(REC_URL) URL.revokeObjectURL(REC_URL);
+          REC_URL = URL.createObjectURL(new Blob(REC.chunks, {type:mime}));
+        }
+      };
+      REC.rec.start(); REC.on = true;
+      $("rec-go").textContent = t("rec.stop");
+    }catch(e){ toast(t("rec.nocam")); }
+  } else {
+    try{ REC.rec.stop(); }catch(e){}
+    REC.on = false; REC_OK = true;
+    $("recbtn").classList.add("ok");
+    toast(t("rec.saved")); track("video_recorded",{});
+    closeRec();
+  }
+}
+function closeRec(){
+  REC.gen++; // invalida cualquier getUserMedia en vuelo
+  if(REC.stream){ REC.stream.getTracks().forEach(t=>t.stop()); REC.stream = null; }
+  REC.on = false; closeModal("recmod");
+}
+
+/* ---------- grupos privados ---------- */
+function duelsHtml(){
+  if(!S.duels.length) return "";
+  return `<h3 class="vtitle" style="font-size:16px;margin-top:2px">${t("duel.list")}</h3>` + S.duels.map(d=>`
+    <div class="card">
+      <b>⚔️ ${esc(d.q)}</b>
+      <div class="muted" style="margin:6px 0 4px">vs ${esc(d.rival)} · ${t("duel.pot",{n:d.entry*2})} · ${t("duel.judgeLbl",{j:esc(d.judge)})}</div>
+      <div class="duelst" style="color:${d.state==="pending"?"var(--gold)":"var(--ok)"}">${
+        d.state==="resolved" ? t("duel.wonCard",{n:d.entry*2, j:esc(d.judge)})
+        : d.state==="accepted" ? t("duel.ok")+" · "+t("duel.resolve")
+        : t("duel.waiting",{r:esc(d.rival)})}</div>
+    </div>`).join("");
+}
+function renderGroups(){
+  $("gdetail").style.display = "none"; $("glist").style.display = "block";
+  $("groups").innerHTML = duelsHtml() + GROUPS.map(g=>`
+    <button class="card gitem" style="width:100%;text-align:left" onclick="openGroup('${g.id}')">
+      <span class="gava">${g.ic}</span>
+      <span class="gi"><span class="gn">${g.name}</span><br><span class="muted">${t("grupos.members",{n:g.members.length})}${g.money?" · 💶 +18":""}</span></span>
+      <span style="color:var(--tx2)">›</span></button>`).join("");
+}
+function openGroup(id){
+  const g = GROUPS.find(x=>x.id===id);
+  track("group_view",{id});
+  const rank = [...g.members].sort((a,b)=>b.prec-a.prec);
+  let html = `
+    <button class="muted" onclick="renderGroups()" style="margin:8px 0 4px">${t("grupos.back")}</button>
+    <h2 class="vtitle">${g.ic} ${g.name}</h2>
+    <div class="card"><b>${t("grupos.rank")}</b><div class="muted" style="margin-bottom:8px">${t("grupos.rankNote")}</div>
+      ${rank.map((m,i)=>`<div class="trow ${m.n==="Tú"?"me":""}"><span class="rk">${i+1}</span><span class="nm">${avatar(m.n,i)} ${m.n}</span><span class="sc">🎯 ${m.prec}</span></div>`).join("")}
+    </div>`;
+  if(g.money){
+    if(S.age18){
+      html += `<div class="card ledger"><b>${t("grupos.debts")}</b>
+        <div class="muted" style="margin-bottom:4px">${t("grupos.judge",{n:g.money.judge})} · ${t("grupos.debtNote")}</div>
+        ${g.money.ledger.map((l,i)=>`<div class="trow"><span class="nm"><span>${t("grupos.owes",{a:l.from,n:l.amt,b:l.to})}</span>
+          <span class="st ${l.state==="paid"?"paid":"pend"}">${l.state==="paid"?t("grupos.paid"):t("grupos.pend")}</span></span>
+          ${l.state==="pend" ? `<button class="btn mini" onclick="payLink()">${t("grupos.pay")}</button>` : ""}</div>`).join("")}
+      </div>`;
+    } else {
+      html += `<div class="card"><span class="badge18">+18</span> <span class="muted">${t("grupos.money18")}</span>
+        <div style="height:8px"></div><button class="btn mini" onclick="AFTER_AGE=()=>openGroup('${id}');openModal('agegate')">${t("age.yes")}</button></div>`;
+    }
+  }
+  html += `<p class="muted">${t("grupos.legal")}</p>`;
+  $("glist").style.display = "none";
+  const d = $("gdetail"); d.style.display = "block"; d.innerHTML = html;
+}
+function payLink(){ track("p2p_paylink",{}); toast(t("grupos.paylink")); }
+
+/* ---------- liga y premios (por ranking de PRECISIÓN, jamás por saldo) ---------- */
+function renderLiga(){
+  track("liga_view",{});
+  const rows = LIGA_NAMES.map((n,i)=>({n, prec: 1540 - i*27 - (i%4)*9}));
+  rows.push({n:t("liga.you"), prec:S.prec, me:true});
+  rows.sort((a,b)=>b.prec-a.prec);
+  const myPos = rows.findIndex(r=>r.me)+1;
+  $("liga-div").textContent = t("liga.div",{d:LIGA_DIV, p:myPos, n:rows.length});
+  $("prizelist").innerHTML = PRIZES.map(pr=>`
+    <div class="prize"><span style="font-size:26px">${pr.ic}</span>
+      <span class="pos">${t(pr.posK)}</span>
+      <span class="nm">${pr.name}<br><span class="sp">${t("liga.sponsor",{s:pr.sponsor})}</span></span></div>`).join("<div class='sep'></div>");
+  $("standings").innerHTML = rows.map((r,i)=>{
+    const zone = i<10?"up" : i>=rows.length-5?"down":"";
+    return `<div class="trow ${zone} ${r.me?"me":""}"><span class="rk">${i+1}</span>
+      <span class="nm">${avatar(r.n,i)} ${r.me?"<b>"+r.n+"</b>":r.n}</span><span class="sc">🎯 ${r.prec}</span></div>`;
+  }).join("");
+}
+
+/* ---------- perfil ---------- */
+function renderPerfil(){
+  $("me-av").textContent = "TÚ"; $("me-av").style.background = AV_COLORS[8];
+  $("me-name").textContent = "@tu";
+  $("me-lvl").textContent = t("lvl."+levelOf(S.xp));
+  $("me-sub").textContent = S.auth ? t("auth.with",{p:AUTH_PROVIDERS[S.auth.provider]||""}) : t("auth.guestlbl");
+  $("authbtn").textContent = S.auth ? t("auth.logout") : t("auth.login");
+  const acc = S.plays>0 ? pct(S.hits, S.plays) : 0;
+  $("pstats").innerHTML = `
+    <div class="card"><b>🎯 ${S.prec}</b><small>${t("perfil.prec")}</small></div>
+    <div class="card"><b>${S.hits}/${S.plays}</b><small>${t("perfil.hits")} · ${acc}%</small></div>
+    <div class="card"><b>🔥 ${S.streak.days}</b><small>${t("perfil.streakS")}</small></div>
+    <div class="card"><b>🪙 ${S.pts}</b><small>${t("perfil.pts")}</small></div>`;
+  $("langsel").value = S.lang;
+  $("sw-notif").classList.toggle("on", S.notif);
+  $("sw-notif").setAttribute("aria-checked", String(S.notif));
+  $("age-state").textContent = S.age18===true ? t("set.age.yes") : t("set.age.no");
+  const mine = POOLS.filter(p=>S.bets[p.id]!==undefined || p.mine);
+  $("mygrid").innerHTML = mine.slice(0,9).map(p=>{
+    const r = p.resolved ? (S.bets[p.id]===p.resolved.winner?"🏆":"✖️") : "⏳";
+    return `<div class="g3" style="background-image:${p.grad}"><span class="r">${r}</span>${esc(p.q.slice(0,42))}</div>`;
+  }).join("");
+}
+function toggleSettings(){ const s = $("settings"); s.style.display = s.style.display==="none"?"block":"none"; }
+function setLang(l){ S.lang = l; save(); track("lang_change",{l}); applyI18n(); renderFeed(); renderRetos(); renderPerfil(); if(VIEW==="premios")renderLiga(); if(VIEW==="grupos")renderGroups(); }
+function toggleNotif(){
+  S.notif = !S.notif; save(); $("sw-notif").classList.toggle("on", S.notif);
+  $("sw-notif").setAttribute("aria-checked", String(S.notif));
+  toast(S.notif ? t("toast.notifon") : t("toast.notifoff"));
+  track("notif_optin",{on:S.notif}); // opt-in explícito (RGPD)
+}
+function resetDemo(){ localStorage.removeItem("vinko_s"); location.reload(); }
+
+/* ---------- sheets / modals ---------- */
+function openSheet(id){ $(id).classList.add("open"); }
+function closeSheet(id){ $(id).classList.remove("open"); if(id==="betsheet") BET = {pool:null, opt:null}; }
+function openModal(id){ $(id).classList.add("open"); }
+function closeModal(id){ $(id).classList.remove("open"); }
+
+/* ---------- chips ---------- */
+function paintChips(){
+  $("c-pts").textContent = S.pts;
+  $("c-streak").textContent = S.streak.days;
+  $("c-prec").textContent = S.prec;
+}
+
+/* ---------- deep-links: #p/<id> abre la porra · #r/<code> aterrizaje de invitado ---------- */
+function routeHash(){
+  let m = location.hash.match(/^#p\/([A-Za-z0-9_-]+)/);
+  if(m){
+    go("feed");
+    const sec = document.querySelector(`.pool[data-id="${m[1]}"]`);
+    if(sec){ sec.scrollIntoView({block:"start"}); track("deeplink_pool",{id:m[1]}); }
+    return;
+  }
+  m = location.hash.match(/^#r\/([A-Za-z0-9_-]+)/);
+  if(m){ toast(t("refs.landed",{u:"@"+m[1]})); track("referral_landing",{code:m[1]}); }
+}
+window.addEventListener("hashchange", routeHash);
+
+/* ---------- loop del creador (§7.2): +25 🪙 por participante, cap 500/porra ---------- */
+function creditCreatorBonus(p){
+  const got = S.creatorBonus[p.id]||0;
+  if(got>=500) return; // cap por porra
+  S.creatorBonus[p.id] = got+25; S.pts += 25; S.xp += 5; save(); paintChips();
+}
+/* DEMO: actividad simulada para que el prototipo se sienta vivo (en producción: Realtime) */
+const BOT_NAMES = ["Nerea","Hugo","Vera","Leo","Aitana","Bruno"];
+const BOT_COMMENTS = ["Yo lo veo 😂","Apostado 🔥","Ni de broma jaja","¡Vamos!","Esto lo gano yo","Madre mía 😂😂"];
+function simulateActivity(){
+  if(document.hidden) return;
+  const mine = POOLS.filter(p=>p.mine && !p.resolved);
+  if(mine.length && Math.random()<0.75){
+    const p = mine[Math.floor(Math.random()*mine.length)];
+    p.opts[Math.floor(Math.random()*p.opts.length)].v += 1;
+    creditCreatorBonus(p);
+    if(Math.random()<0.4) p.cmts.push({u:BOT_NAMES[Math.floor(Math.random()*BOT_NAMES.length)], x:BOT_COMMENTS[Math.floor(Math.random()*BOT_COMMENTS.length)]});
+    paintCta(p);
+    toast(t("feed.joined",{n:25}));
+    track("sim_join",{id:p.id});
+  } else {
+    // vida ambiental silenciosa: likes subiendo en la porra visible
+    const sec = [...document.querySelectorAll(".pool")].find(s=>!s.classList.contains("off"));
+    if(sec){ const p = POOLS.find(x=>x.id===sec.dataset.id); if(p){ p.likes += 1+Math.floor(Math.random()*3); paintRail(p); } }
+  }
+}
+
+/* ---------- resolución de retos 1v1: el árbitro decide (demo: siempre ganas) ---------- */
+function resolveDuels(){
+  S.duels.forEach(d=>{
+    if(d.state==="pending" && Date.now()-d.t > 8000){ d.state = "accepted"; save(); } // catch-up si el timer murió por recarga
+    if(d.state==="accepted" && Date.now()-d.t > 45000){
+      d.state = "resolved"; d.won = true;
+      S.pts += d.entry*2; S.plays += 1; S.hits += 1; S.prec += 100; S.xp += 40; save();
+      paintChips(); confetti();
+      toast(t("duel.won",{j:d.judge, n:d.entry*2}));
+      if(VIEW==="grupos") renderGroups();
+      track("duel_resolved",{id:d.id, won:true});
+    }
+  });
+}
+
+/* ---------- resolución (demo): porras cerradas pagan y puntúan ---------- */
+function resolvePools(){
+  const changed = [];
+  POOLS.forEach(p=>{
+    if(!p.resolved && p.closes <= Date.now()){ p.resolved = {winner:0}; changed.push(p.id); }
+    if(p.resolved && S.bets[p.id]!==undefined && !S.paid[p.id]){
+      const won = S.bets[p.id]===p.resolved.winner;
+      if(won){
+        const mult = p.flash ? 2 : 1; // ⚡ puntos dobles: SOLO 🪙, jamás la PRECISIÓN (§7.1)
+        const share = Math.round(potOf(p) / Math.max(1,p.opts[p.resolved.winner].v)) * mult;
+        // precisión ponderada por dificultad: acertar contra la mayoría vale más
+        const total = playersOf(p), mine = p.opts[p.resolved.winner].v;
+        const weight = 1 + (1 - mine/Math.max(1,total));
+        const precGain = Math.round(100*weight);
+        S.pts += share; S.hits += 1; S.prec += precGain; S.xp += 40;
+        S.paid[p.id] = {share, prec:precGain};
+        bumpReto("a1");
+        track("pool_won",{id:p.id, share, flash:!!p.flash});
+      } else {
+        S.paid[p.id] = {share:0, prec:0};
+        track("pool_lost",{id:p.id});
+      }
+      if(!changed.includes(p.id)) changed.push(p.id);
+      save();
+    }
+  });
+  return changed;
+}
+
+/* ---------- boot ---------- */
+function boot(){
+  // restaurar porras propias persistidas (objetos completos en S.myPools)
+  S.myPools.forEach(p=>{
+    if(!p || !p.id || POOLS.find(x=>x.id===p.id)) return;
+    if(p.vs && p.vs.startsWith("blob:")) delete p.vs; // los objectURL mueren con la sesión
+    POOLS.unshift(p);
+  });
+  applyI18n();
+  resolvePools();
+  renderFeed(false);
+  paintChips();
+  renderRetos();
+  dailyOpen();
+  track("app_open",{lang:S.lang});
+  if("serviceWorker" in navigator && location.protocol.startsWith("http")){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+  setInterval(tick, 30000);
+  setInterval(simulateActivity, 22000); // DEMO: actividad viva
+  supaSession(); // vuelta de OAuth (limpia el hash de tokens ANTES del router)
+  routeHash();   // deep-link de entrada (#p/<id> o #r/<code>)
+}
+function tick(){
+  if(document.hidden) return; // sin trabajo en background
+  flushEvents();
+  resolveDuels();
+  const changed = resolvePools();
+  changed.forEach(id=>{
+    const p = POOLS.find(x=>x.id===id); if(!p) return;
+    paintCta(p);
+    if(BET.pool && BET.pool.id===id) closeSheet("betsheet"); // la porra del sheet acaba de cerrar
+  });
+  if(changed.length) paintChips();
+  // solo el countdown cambia con el tiempo: textContent, sin reconstruir innerHTML
+  document.querySelectorAll(".pool").forEach(sec=>{
+    const p = POOLS.find(x=>x.id===sec.dataset.id); if(!p) return;
+    const el = sec.querySelector(".left");
+    if(el) el.textContent = p.resolved ? t("feed.closed") : t("feed.closes",{t:fmtLeft(p.closes-Date.now())});
+  });
+}
+boot();
+</script>
+</body>
+</html>
