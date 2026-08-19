@@ -1431,7 +1431,9 @@ function resolveDuels(){
     if(d.state==="pending" && Date.now()-d.t > 8000){ d.state = "accepted"; save(); } // catch-up si el timer murió por recarga
     if(d.state==="accepted" && Date.now()-d.t > 45000){
       d.state = "resolved"; d.won = true;
-      S.pts += d.entry*2; S.plays += 1; S.hits += 1; S.prec += 100; S.xp += 40; save();
+      // anti-colusión: los 1v1 NO puntúan en la precisión global (la que da premios) —
+      // dos amigos con árbitro cómplice podrían inflarla. Solo bote y stats personales.
+      S.pts += d.entry*2; S.plays += 1; S.hits += 1; S.xp += 40; save();
       paintChips(); confetti();
       toast(t("duel.won",{j:d.judge, n:d.entry*2}));
       if(VIEW==="grupos") renderGroups();

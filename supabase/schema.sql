@@ -255,8 +255,10 @@ begin
   if v.state <> 'accepted' then raise exception 'VINKO_BAD_STATE'; end if;
   if p_winner not in (v.creator, v.rival) then raise exception 'VINKO_BAD_WINNER'; end if;
   update duels set state = 'resolved', winner = p_winner where id = p_duel;
+  -- ANTI-COLUSIÓN: los 1v1 no suman PRECISIÓN global (la que reparte premios, regla de
+  -- oro 3): dos amigos con árbitro cómplice la inflarían. Solo bote, aciertos y XP.
   update profiles set pts = pts + v.entry * 2, hits = hits + 1, plays = plays + 1,
-                      prec = prec + 100, xp = xp + 40
+                      xp = xp + 40
     where id = p_winner;
   update profiles set plays = plays + 1
     where id = case when p_winner = v.creator then v.rival else v.creator end;

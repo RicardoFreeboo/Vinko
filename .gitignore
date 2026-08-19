@@ -6,3 +6,4 @@ docs/
 jobmap.txt
 vinko-web-v1.zip
 *.log
+.claude/settings.local.json
