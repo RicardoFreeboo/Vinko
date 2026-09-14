@@ -15,3 +15,5 @@ node_modules/
 .env.local
 .env*.local
 shots/
+out/
+vinko-static.zip

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Gate } from "@/components/Gate";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-dvh antialiased [font-family:system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif]">
-        {children}
+        <Gate>{children}</Gate>
       </body>
     </html>
   );
