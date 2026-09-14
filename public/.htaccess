@@ -1,0 +1,23 @@
+# Vinko — hosting compartido (Apache/LiteSpeed). Export estático de Next.js.
+Options -Indexes
+
+# Next genera las miniaturas OG SIN extensión (archivo "opengraph-image").
+# Forzar image/png para que el scraper de WhatsApp/Facebook las lea como imagen.
+<FilesMatch "^opengraph-image$">
+  ForceType image/png
+</FilesMatch>
+
+# Alfa privada: no indexar en buscadores (LEGAL_LOCK).
+<IfModule mod_headers.c>
+  Header set X-Robots-Tag "noindex, nofollow"
+</IfModule>
+
+# Cache razonable para estáticos de Next.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/png "access plus 7 days"
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+</IfModule>
+
+ErrorDocument 404 /404.html

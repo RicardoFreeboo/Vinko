@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPorraBySlug } from "@/lib/porras";
+import { TEMPLATES } from "@/lib/templates";
+import { EDITORIAL } from "@/lib/editorial";
 import { Logo, VMark } from "@/components/Logo";
 import { t } from "@/lib/i18n";
 
-// Métrica sagrada: SSR <2s en Android medio 4G. Título y opciones son HTML
-// usable sin JS (server component puro, cero código de cliente, cero fuentes
-// externas). Estética real de Vinko: verde-negro, verde/oro, mono en datos.
-export const revalidate = 60;
+// Export estático: prerenderiza todas las porras conocidas (plantillas +
+// editoriales @vinko). HTML de título y opciones usable sin JS.
+export const dynamicParams = false;
+export function generateStaticParams() {
+  return [...TEMPLATES, ...EDITORIAL].map((p) => ({ slug: p.slug }));
+}
 
 type Props = { params: Promise<{ slug: string }> };
 

@@ -23,9 +23,18 @@ type Seed = {
   cat: string;
 };
 
-// Vídeos IA: null hasta generarlos con Higgsfield (como en apk4) y dejarlos en
-// /public/v/<slug>.webm. Mientras, /p muestra el placeholder "La IA está creando…".
-const VIDEO: Record<string, string | null> = {};
+// Vídeos IA generados con Higgsfield (Kling 3.0 Turbo, 9:16, como en apk4),
+// convertidos a WebM en /public/v/<slug>.webm. Sin vídeo → placeholder.
+const VIDEO: Record<string, string | null> = {
+  "clasico-liga": "/v/clasico-liga.webm",
+  "alonso-podio": "/v/alonso-podio.webm",
+  "alcaraz-final": "/v/alcaraz-final.webm",
+  "btc-fin-de-mes": "/v/btc-fin-de-mes.webm",
+  "smi-2027": "/v/smi-2027.webm",
+  "lluvia-madrid-finde": "/v/lluvia-madrid-finde.webm",
+  "reality-favorito": "/v/reality-favorito.webm",
+  "cancion-verano-num1": "/v/cancion-verano-num1.webm",
+};
 
 function toPorra(s: Seed): Porra {
   return {

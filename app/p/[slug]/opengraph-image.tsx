@@ -1,6 +1,14 @@
 import { ImageResponse } from "next/og";
 import { getPorraBySlug } from "@/lib/porras";
+import { TEMPLATES } from "@/lib/templates";
+import { EDITORIAL } from "@/lib/editorial";
 import { t } from "@/lib/i18n";
+
+// Export estático: una PNG por porra conocida.
+export const dynamicParams = false;
+export function generateStaticParams() {
+  return [...TEMPLATES, ...EDITORIAL].map((p) => ({ slug: p.slug }));
+}
 
 // Miniatura de WhatsApp con la identidad REAL de Vinko: verde-negro terminal,
 // logo bocadillo+check+corona, verde/oro, mono. 1200×630.
