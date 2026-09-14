@@ -1,3 +1,6 @@
+-- ⚠️ LEGADO (14-sep-2026): este esquema pre-alfa NO se aplica. El esquema
+-- vigente del ALPHA FREEZE vive en supabase/migrations/ (0001–0003).
+-- Se conserva como referencia de diseño (duelos, rachas, ligas: CONGELADO).
 -- ============================================================================
 -- VINKO — esquema v1 (Supabase / Postgres)
 -- Pegar en: Dashboard → SQL Editor → New query → Run
