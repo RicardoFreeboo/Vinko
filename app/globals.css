@@ -1,16 +1,57 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   Vinko — identidad visual REAL (extraída de vinko4.apk, la canónica).
+   Verde-negro terminal, verde brillante + oro, texto crema, mono para números.
+   system-ui + monospace a propósito: cero fuentes externas → sirve la métrica
+   sagrada (<2s SSR en Android medio 4G).
+   ============================================================================ */
 :root {
-  --bg: #0b0b12;
-  --card: #16151f;
-  --line: #282639;
-  --tx: #f0eef6;
-  --tx2: #a09db4;
-  --acc: #7c4dff;
-  --acc2: #00e0b8;
+  --ink: #0c1011;
+  --ink2: #141a1b;
+  --ink3: #1d2627;
+  --win: #1fe07a;
+  --windeep: #11b863;
+  --gold: #ffc23d;
+  --golddeep: #d99b1e;
+  --cream: #f4f1e9;
+  --muted: #8ba398;
+  --muted2: #5d716b;
+  --red: #ff6b6b;
+  --line: rgba(244, 241, 233, 0.1);
+  --disp: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
 }
 
+html {
+  background: var(--ink);
+  color-scheme: dark;
+}
 body {
-  background: var(--bg);
-  color: var(--tx);
+  background: var(--ink);
+  color: var(--cream);
+  font-family: var(--disp);
+  -webkit-font-smoothing: antialiased;
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.eyebrow {
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--win);
+}
+/* fondo ambiental sutil: el degradado verde/oro del APK */
+.amb {
+  background:
+    radial-gradient(120% 80% at 50% -10%, rgba(31, 224, 122, 0.08), transparent 60%),
+    radial-gradient(120% 80% at 50% 110%, rgba(255, 194, 61, 0.06), transparent 60%),
+    var(--ink);
+}
+:focus-visible {
+  outline: 2px solid var(--win);
+  outline-offset: 2px;
 }

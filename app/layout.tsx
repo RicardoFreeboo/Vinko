@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vinko.fun";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: { default: t("brand"), template: `%s — ${t("brand")}` },
   description: t("tagline"),
   // Staging no indexable mientras LEGAL_LOCK (refuerzo de la cabecera global).

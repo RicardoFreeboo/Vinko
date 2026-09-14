@@ -1,10 +1,12 @@
 {
   "brand": "vinko",
   "tagline": "Porra social con puntos virtuales",
+  "motto": "CALL IT · NAIL IT · OWN IT",
   "lock.title": "Alfa privada",
   "lock.body": "Vinko está en pruebas con un grupo cerrado. Si tienes un enlace de porra, ábrelo directamente.",
   "login.title": "Muy pronto",
   "login.body": "El acceso con Google y email llega en el siguiente paso del alfa.",
+  "login.back": "← Volver",
   "p.badgeExample": "Ejemplo",
   "p.closes": "Cierra: {date}",
   "p.resolved": "Resuelta",

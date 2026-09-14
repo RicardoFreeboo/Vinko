@@ -1,10 +1,12 @@
 {
   "brand": "vinko",
   "tagline": "Social prediction pool with virtual points",
+  "motto": "CALL IT · NAIL IT · OWN IT",
   "lock.title": "Private alpha",
   "lock.body": "Vinko is being tested with a closed group. If you have a pool link, open it directly.",
   "login.title": "Coming soon",
   "login.body": "Sign-in with Google and email arrives in the next alpha step.",
+  "login.back": "← Back",
   "p.badgeExample": "Example",
   "p.closes": "Closes: {date}",
   "p.resolved": "Resolved",
