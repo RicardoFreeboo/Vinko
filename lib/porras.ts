@@ -3,6 +3,7 @@
 // existe aún, cae a las plantillas locales (mismo contenido que la seed 0004).
 import { createClient } from "@supabase/supabase-js";
 import { templateBySlug } from "@/lib/templates";
+import { editorialBySlug } from "@/lib/editorial";
 
 export type PorraOption = { id: string; idx: number; label: string };
 export type Porra = {
@@ -15,6 +16,8 @@ export type Porra = {
   closes_at: string;
   winning_option_id: string | null;
   options: PorraOption[];
+  video?: string | null; // /v/<slug>.webm si la IA ya lo generó; si no, placeholder
+  official?: boolean; // creada por el perfil oficial de Vinko (source=editorial)
 };
 
 function supa() {
@@ -41,5 +44,7 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
       return { ...data, options } as Porra;
     }
   }
-  return templateBySlug(slug);
+  // Fallback SSR sin backend: plantillas de ejemplo y porras editoriales
+  // (creadas por el perfil oficial de Vinko) — sirven /p/[slug] y su OG.
+  return templateBySlug(slug) ?? editorialBySlug(slug);
 }

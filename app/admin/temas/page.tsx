@@ -1,9 +1,29 @@
-import { EmptyState } from "@/components/admin/ui";
+import { TemasBoard } from "@/components/admin/TemasBoard";
+import { EDITORIAL, PROPOSALS } from "@/lib/editorial";
 import { t } from "@/lib/i18n";
 
-// PASO 5c — Temas editoriales / IA trending. El cron propone; aquí se decide.
-// NUNCA publica solo. Sin propuestas en día 0.
+// PASO 5c — Temas editoriales / IA trending. El perfil oficial de @vinko propone
+// porras de temas candentes de España; Ricardo selecciona y aprueba aquí. El cron
+// NUNCA publica solo. Publicar → porra source=editorial (fuera de K-factor).
+const LABEL_KEYS = [
+  "admin.temas.pending", "admin.temas.published", "admin.temas.count",
+  "admin.temas.approved", "admin.temas.discarded", "admin.temas.emptyPending",
+  "admin.temas.publish", "admin.temas.edit", "admin.temas.discard",
+  "admin.temas.video.ready", "admin.temas.video.pending", "admin.temas.view",
+  "admin.temas.live",
+];
+
 export default function AdminTemas() {
+  const labels: Record<string, string> = {};
+  for (const k of LABEL_KEYS) labels[k] = t(k);
+
+  const published = EDITORIAL.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    cat: p.source === "editorial" ? "@vinko" : "",
+    hasVideo: !!p.video,
+  }));
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -12,30 +32,7 @@ export default function AdminTemas() {
           {t("admin.temas.how")}
         </p>
       </div>
-
-      <div className="grid grid-cols-[repeat(4,auto)] gap-x-6 gap-y-2 overflow-x-auto rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] p-4 text-[12px]">
-        {["title", "options", "source", "status"].map((c) => (
-          <span key={c} className="eyebrow text-[10px] whitespace-nowrap">
-            {t(`admin.temas.col.${c}`)}
-          </span>
-        ))}
-      </div>
-      <EmptyState text={t("admin.temas.empty")} />
-
-      <div className="flex flex-wrap gap-2">
-        {["publish", "edit", "discard"].map((a, i) => (
-          <span
-            key={a}
-            className={`mono rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.1em] ${
-              i === 0
-                ? "border-[var(--win)] text-[var(--win)]"
-                : "border-[var(--line)] text-[var(--muted)]"
-            }`}
-          >
-            {t(`admin.temas.${a}`)}
-          </span>
-        ))}
-      </div>
+      <TemasBoard labels={labels} proposals={PROPOSALS} published={published} />
     </div>
   );
 }

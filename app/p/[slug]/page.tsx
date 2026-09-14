@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getPorraBySlug } from "@/lib/porras";
-import { Logo } from "@/components/Logo";
+import { Logo, VMark } from "@/components/Logo";
 import { t } from "@/lib/i18n";
 
 // Métrica sagrada: SSR <2s en Android medio 4G. Título y opciones son HTML
@@ -66,12 +66,36 @@ export default async function PorraPage({ params }: Props) {
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-8 pt-6">
       <header className="flex items-center justify-between">
         <Logo mark={28} word={20} />
-        {porra.is_template && (
+        {porra.is_template ? (
           <span className="mono rounded-full border border-[var(--win)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--win)]">
             {t("p.badgeExample")}
           </span>
-        )}
+        ) : porra.official ? (
+          <span className="mono rounded-full bg-[var(--win)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--ink)]">
+            {t("p.badgeOfficial")}
+          </span>
+        ) : null}
       </header>
+
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
+        {porra.video ? (
+          <video
+            src={porra.video}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2">
+            <VMark size={38} />
+            <span className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted)]">
+              {t("p.aiMaking")}
+            </span>
+          </div>
+        )}
+      </div>
 
       <p className="mono text-xs uppercase tracking-[0.1em] text-[var(--muted)]">
         {resolved ? t("p.resolved") : t("p.closes", { date: fmtDate(porra.closes_at) })}
