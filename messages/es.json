@@ -1,0 +1,19 @@
+{
+  "brand": "vinko",
+  "tagline": "Porra social con puntos virtuales",
+  "lock.title": "Alfa privada",
+  "lock.body": "Vinko está en pruebas con un grupo cerrado. Si tienes un enlace de porra, ábrelo directamente.",
+  "login.title": "Muy pronto",
+  "login.body": "El acceso con Google y email llega en el siguiente paso del alfa.",
+  "p.badgeExample": "Ejemplo",
+  "p.closes": "Cierra: {date}",
+  "p.resolved": "Resuelta",
+  "p.options": "Opciones",
+  "p.join": "Únete y haz tu pick",
+  "p.judge": "El juez es quien crea la porra.",
+  "p.pointsNote": "Puntos virtuales: no se compran ni se canjean por dinero.",
+  "p.notAvailable": "Esta porra no está disponible.",
+  "p.backHome": "Ir a la portada",
+  "og.description": "Porra social con puntos virtuales. Entra y haz tu pick.",
+  "og.footer": "vinko.fun · porra social · puntos virtuales"
+}

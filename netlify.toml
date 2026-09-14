@@ -1,0 +1,4 @@
+# Vinko alfa — Netlify detecta Next.js automáticamente (Next Runtime v5).
+# Variables de entorno del sitio: ver .env.example (LEGAL_LOCK=true, ADS_ENABLED=false).
+[build]
+command = "npm run build"

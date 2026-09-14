@@ -1,0 +1,19 @@
+{
+  "brand": "vinko",
+  "tagline": "Social prediction pool with virtual points",
+  "lock.title": "Private alpha",
+  "lock.body": "Vinko is being tested with a closed group. If you have a pool link, open it directly.",
+  "login.title": "Coming soon",
+  "login.body": "Sign-in with Google and email arrives in the next alpha step.",
+  "p.badgeExample": "Example",
+  "p.closes": "Closes: {date}",
+  "p.resolved": "Resolved",
+  "p.options": "Options",
+  "p.join": "Join and make your pick",
+  "p.judge": "The judge is whoever creates the pool.",
+  "p.pointsNote": "Virtual points: they can't be bought or exchanged for money.",
+  "p.notAvailable": "This pool is not available.",
+  "p.backHome": "Go to the home page",
+  "og.description": "Social prediction pool with virtual points. Join and make your pick.",
+  "og.footer": "vinko.fun · social pool · virtual points"
+}

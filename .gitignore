@@ -7,3 +7,11 @@ jobmap.txt
 vinko-web-v1.zip
 *.log
 .claude/settings.local.json
+
+# Next.js / Node (alfa)
+node_modules/
+.next/
+.netlify/
+.env.local
+.env*.local
+shots/
