@@ -150,6 +150,10 @@ export default async function PorraPage({ params }: Props) {
         </p>
         <p className="text-xs text-[var(--muted)]">{t("p.judge")}</p>
         <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>
+        <nav className="mt-1 flex gap-3 text-[11px] text-[var(--muted2)]">
+          <Link href="/privacidad" className="underline">{t("legal.privacy.title")}</Link>
+          <Link href="/terminos" className="underline">{t("legal.terms.title")}</Link>
+        </nav>
       </footer>
     </main>
   );

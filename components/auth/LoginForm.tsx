@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { t } from "@/lib/i18n";
@@ -89,6 +90,10 @@ export function LoginForm({ next }: { next: string }) {
 
       {err && <p className="text-xs text-[var(--red)]">{err}</p>}
       <p className="text-[11px] leading-relaxed text-[var(--muted2)]">{t("login.terms")}</p>
+      <nav className="flex gap-3 text-[11px] text-[var(--muted2)]">
+        <Link href="/privacidad" className="underline">{t("legal.privacy.title")}</Link>
+        <Link href="/terminos" className="underline">{t("legal.terms.title")}</Link>
+      </nav>
     </main>
   );
 }
