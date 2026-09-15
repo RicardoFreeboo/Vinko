@@ -165,8 +165,8 @@ function Scene({ pending, clearPending, reduced }: {
   );
 }
 
-export default function FlowScene({ pending, clearPending, reduced }: {
-  pending: Activity[]; clearPending: () => void; reduced: boolean;
+export default function FlowScene({ pending, clearPending, reduced, onContextLost }: {
+  pending: Activity[]; clearPending: () => void; reduced: boolean; onContextLost?: () => void;
 }) {
   return (
     <Canvas
@@ -175,6 +175,12 @@ export default function FlowScene({ pending, clearPending, reduced }: {
       camera={{ position: [0, 0, 14], fov: 45 }}
       style={{ width: "100%", height: "100%" }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
+      onCreated={({ gl }) => {
+        gl.domElement.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault();
+          onContextLost?.(); // caer al grafo estático si el contexto se pierde
+        });
+      }}
     >
       <Scene pending={pending} clearPending={clearPending} reduced={reduced} />
     </Canvas>
