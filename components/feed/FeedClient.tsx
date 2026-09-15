@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { StoriesViewer } from "./StoriesViewer";
 import { FastVideo } from "@/components/FastVideo";
 import { FeedAd } from "@/components/ads/FeedAd";
 import { VinkoCoin } from "@/components/VinkoCoin";
+import { StakePicker } from "@/components/StakePicker";
 import { VMark } from "@/components/Logo";
 import { capture } from "@/lib/analytics";
 import type { FeedPorra } from "@/lib/feed";
@@ -22,13 +23,32 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
 }) {
   const [picks, setPicks] = useState(initialPicks);
   const [viewer, setViewer] = useState<number | null>(null);
+  // Arrastrar las historias con el ratón en escritorio: overflow-x-auto solo
+  // responde al dedo/rueda, no a click-y-arrastrar.
+  const [stake, setStake] = useState(10); // Vinkos que se ponen por pronóstico
+  const rail = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; left: number } | null>(null);
+  const moved = useRef(false);
+  function railDown(e: React.PointerEvent) {
+    const el = rail.current; if (!el) return;
+    drag.current = { x: e.clientX, left: el.scrollLeft };
+    moved.current = false;
+  }
+  function railMove(e: React.PointerEvent) {
+    const el = rail.current, d = drag.current;
+    if (!el || !d) return;
+    const dx = e.clientX - d.x;
+    if (Math.abs(dx) > 4) moved.current = true;
+    el.scrollLeft = d.left - dx;
+  }
+  function railUp() { drag.current = null; }
   const stories = porras.filter((p) => p.video);
 
   async function onPick(porraId: string, optionId: string): Promise<string | null> {
     if (!loggedIn) { window.location.href = "/login?next=/hoy"; return "no_auth"; }
     const sb = supabaseBrowser();
     if (!sb) return "no_backend";
-    const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: optionId });
+    const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: optionId, p_stake: stake });
     if (error) return error.message;
     capture("pick_made", { is_seed: false });
     setPicks((m) => ({ ...m, [porraId]: optionId }));
@@ -41,9 +61,11 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
       {stories.length > 0 && (
         <section className="flex flex-col gap-2">
           <h2 className="text-lg font-black text-[var(--cream)]">{t("home.stories")}</h2>
-          <div className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div ref={rail} onPointerDown={railDown} onPointerMove={railMove}
+            onPointerUp={railUp} onPointerLeave={railUp}
+            className="-mx-5 flex cursor-grab snap-x snap-mandatory select-none gap-3 overflow-x-auto px-5 pb-1 active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {stories.map((p, k) => (
-              <button key={p.id} onClick={() => setViewer(porras.indexOf(p))}
+              <button key={p.id} onClick={() => { if (moved.current) return; setViewer(porras.indexOf(p)); }}
                 className="relative aspect-[9/16] w-[124px] shrink-0 snap-start overflow-hidden rounded-[16px] border-2"
                 style={{ borderColor: picks[p.id] ? "var(--win)" : "var(--gold)" }}>
                 <FastVideo src={p.video!} className="absolute inset-0 h-full w-full object-cover" />
@@ -80,7 +102,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
       </section>
 
       {viewer !== null && (
-        <StoriesViewer porras={porras} start={viewer} picks={picks} loggedIn={loggedIn}
+        <StoriesViewer porras={porras} start={viewer} picks={picks} loggedIn={loggedIn} stake={stake} onStake={setStake}
           onClose={() => setViewer(null)} onPick={onPick} />
       )}
     </>
@@ -111,6 +133,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
         </button>
         <div className="flex flex-col gap-2.5 p-4">
           <h3 className="text-[16px] font-black leading-tight text-[var(--cream)] [text-wrap:balance]">{p.title}</h3>
+          {!pick && <StakePicker value={stake} onChange={setStake} />}
           <div className="flex flex-col gap-1.5">
             {p.options.map((o) => {
               const chosen = pick === o.id;
@@ -120,7 +143,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
                   style={{ borderColor: chosen ? "var(--win)" : "var(--line)", background: chosen ? "rgba(31,224,122,0.12)" : "transparent" }}>
                   {o.label}
                   {chosen ? <span className="text-[var(--win)]">✓</span>
-                    : <span className="mono flex items-center gap-1 text-[12px] text-[var(--gold)]"><VinkoCoin size={14} />10</span>}
+                    : <span className="mono flex items-center gap-1 text-[12px] text-[var(--gold)]"><VinkoCoin size={14} />{stake}</span>}
                 </button>
               );
             })}

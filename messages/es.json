@@ -306,6 +306,7 @@
   "tienda.bought": "¡Conseguido! ✓",
 
   "pick.spend": "Elige y gasta 10 Vinkos",
+  "pick.stake": "Pones",
   "pick.meter": "El termómetro",
   "pick.yours": "tu pick",
   "pick.locked": "Tu pick no se cambia (salvo Cambiazo).",
@@ -401,6 +402,8 @@
   "home.share": "Compartir →",
   "stories.done": "¡Pronóstico hecho! Te avisamos al resolverse.",
   "stories.swipe": "Desliza para la siguiente →",
+  "stories.prev": "Anterior",
+  "stories.next": "Siguiente",
 
   "admin.health.check.vercel": "Vercel · GET /",
   "admin.health.check.dominio": "Dominio vinko.fun · DNS Hostinger",

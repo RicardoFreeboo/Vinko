@@ -27,8 +27,18 @@ const UNSAFE = /(asesin|matar\b|mata\b|homicid|apu.alar|tiroteo|masacre|terror|a
 const POLITICA = /(\bpsoe\b|\bpp\b|\bvox\b|\bsumar\b|\bpodemos\b|\berc\b|\bjunts\b|\bbildu\b|s[áa]nchez|feij[óo]o|abascal|ayuso|puigdemont|moncloa|congreso de los diputados|\bsenado\b|elecciones|ministr\w+|gobierno de espa[ñn]a|parlamento|consejo de europa|bruselas|comisi[óo]n europea|eurodiputad|investidura|moci[óo]n de censura|amnist[íi]a|refer[ée]ndum|migrante|inmigra|deportaci|geopol[íi]tic|\bguerra\b|\bejército\b|militar)/i;
 // Menores NUNCA como sujeto (§0).
 const MENORES = /(\bmenor(es)? de edad\b|\bni[ñn]o(s)?\b|\bni[ñn]a(s)?\b|\badolescent|\binfantil\b|\bcolegio\b|\binstituto\b)/i;
-// Opciones de relleno que devuelve a veces el modelo ("Equipo 1", "Opción 2"…).
-const PLACEHOLDER = /^(equipo|opci[óo]n|jugador|pareja|concursante|candidat[oa]|persona|participante|team)\s*\d+$/i;
+// Opciones de relleno ("Equipo 1", "Participante A", "Opción II"…). Antes sólo
+// se cazaban dígitos y se colaban las de letra.
+const PLACEHOLDER = /^(equipo|opci[óo]n|jugador|pareja|concursante|candidat[oa]|persona|participante|team|player|contestant|nombre)\s*([a-z0-9]|[ivx]{1,3})$/i;
+
+// Si TODAS las opciones empiezan por la misma palabra ("Participante A/B/C"),
+// son relleno aunque el patrón anterior no las cace.
+function mismoPrefijo(ops: string[]): boolean {
+  if (ops.length < 2) return false;
+  const first = (s: string) => norm(s).split(" ")[0] ?? "";
+  const p = first(ops[0]);
+  return p.length > 2 && ops.every((o) => first(o) === p);
+}
 
 function norm(s: string): string {
   return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
@@ -66,19 +76,26 @@ function decodeTitle(s: string): string {
 // Parser tolerante: los <title> de 20minutos vienen con salto de línea antes del
 // CDATA y la regex anterior no casaba NADA (esa fuente aportaba cero señales).
 // Se leen los <item> para no ingerir el <title> del canal ("Daily Search Trends").
-function parseFeed(xml: string): string[] {
-  let raw = [...xml.matchAll(/<item\b[\s\S]*?<title>([\s\S]*?)<\/title>/g)].map((m) => m[1]);
-  if (!raw.length) raw = [...xml.matchAll(/<title>([\s\S]*?)<\/title>/g)].map((m) => m[1]).slice(1);
-  const out: string[] = [];
+type Item = { t: string; d: string };
+function parseFeed(xml: string): Item[] {
+  // Se leen los <item>: así nunca entra el <title> del canal ("Daily Search
+  // Trends") y además se captura la <description>, que es donde vienen los
+  // NOMBRES de los participantes y las FECHAS del evento.
+  const blocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/g)].map((m) => m[0]);
+  const out: Item[] = [];
   const seen = new Set<string>();
-  for (const r of raw) {
+  for (const b of blocks) {
+    const tm = b.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i);
+    if (!tm) continue;
     // Google News añade " - Medio" al final del titular
-    const t = decodeTitle(r).replace(/\s+[-–|]\s+[^-–|]{2,40}$/, "").trim();
+    const t = decodeTitle(tm[1]).replace(/\s+[-–|]\s+[^-–|]{2,40}$/, "").trim();
+    const dm = b.match(/<description\b[^>]*>([\s\S]*?)<\/description>/i);
+    const d = dm ? decodeTitle(dm[1]).slice(0, 400) : "";
     const k = norm(t);
     if (!k || seen.has(k)) continue;
     if (t.length < 12 || t.length > 140) continue;
     seen.add(k);
-    out.push(t);
+    out.push({ t, d });
   }
   return out;
 }
@@ -107,7 +124,10 @@ async function insertSignal(admin: any, seen: Set<string>, t: string, meta: Reco
   const k = norm(t);
   if (seen.has(k)) return false;
   if (!looksLikeEvent(t)) return false;
-  if (vetoed(t)) return false; // se descarta en la INGESTA, no se encola basura
+  // Se veta sobre titular + contexto: la política venía en la descripción
+  // ("PP y Vox…") mientras el titular parecía neutro.
+  const ctx = String((meta.raw as Record<string, unknown> | undefined)?.contexto ?? "");
+  if (vetoed(`${t} ${ctx}`)) return false; // descarte en la INGESTA, no se encola basura
   const { error } = await admin.from("signals").insert({
     topic: t, status: "new", velocity: 60, ...meta,
   });
@@ -129,12 +149,11 @@ async function sweepEntities(admin: any, seen: Set<string>, max: number): Promis
     if (n >= max) break;
     const q = (e.palabras_clave?.[0] ?? e.nombre) as string;
     try {
-      const titles = parseFeed(await getFeed(gnews(q))).slice(0, 3);
-      for (const t of titles) {
+      for (const it of parseFeed(await getFeed(gnews(q))).slice(0, 3)) {
         if (n >= max) break;
-        if (await insertSignal(admin, seen, t, {
+        if (await insertSignal(admin, seen, it.t, {
           category: e.categoria, source: "gnews", score: 70,
-          raw: { entidad: e.nombre, consulta: q },
+          raw: { entidad: e.nombre, consulta: q, contexto: it.d },
         })) n++;
       }
     } catch { /* fuente caída: seguimos */ }
@@ -154,9 +173,11 @@ async function sweepNews(admin: any, seen: Set<string>, max: number): Promise<nu
   for (const s of SRC) {
     if (n >= max) break;
     try {
-      for (const t of parseFeed(await getFeed(s.url)).slice(0, 5)) {
+      for (const it of parseFeed(await getFeed(s.url)).slice(0, 5)) {
         if (n >= max) break;
-        if (await insertSignal(admin, seen, t, { category: s.cat, source: "news", score: 55 })) n++;
+        if (await insertSignal(admin, seen, it.t, {
+          category: s.cat, source: "news", score: 55, raw: { contexto: it.d },
+        })) n++;
       }
     } catch { /* seguimos */ }
   }
@@ -169,7 +190,9 @@ REGLAS ABSOLUTAS (si incumples alguna, devuelve invalida=true):
 - Léxico prohibido: apuesta, apostar, bet, cuota, odds, casa de apuestas, bote, jackpot, casino, ganar dinero. Usa: porra, pronóstico, predicción, puntos.
 - RESOLUBLE: debe existir un desenlace objetivo y público. Escribe criterio_de_resolucion diciendo con qué fuente se declara el ganador. Si el desenlace no se puede verificar, invalida=true.
 - fecha_cierre SIEMPRE anterior al desenlace, en ISO, y como mucho a 30 días vista.
-- Opciones CONCRETAS y excluyentes (nombres reales). Prohibido "Equipo 1", "Opción 2" o rellenos genéricos: si no sabes los nombres reales, invalida=true.
+- Opciones CONCRETAS: nombres propios REALES que aparezcan en el titular o en el campo "contexto" que recibes. Prohibido inventar y prohibido cualquier relleno tipo "Equipo 1", "Participante A", "Opción B", "Jugador 2". Si en el material no hay nombres reales suficientes para 2 opciones, invalida=true. Es preferible una porra binaria con dos desenlaces concretos ("Sí, antes del domingo" / "No") que una lista de relleno.
+- fecha_cierre: dedúcela del material (día del partido, de la gala, de la jornada). Si no hay fecha exacta, ESTIMA con criterio —la próxima jornada, gala o partido suele caer en los próximos 7 días— y pon una fecha anterior al desenlace. Solo invalida=true si el desenlace no ocurrirá dentro de los próximos 30 días o no se puede saber nunca.
+- El criterio_de_resolucion debe nombrar la fuente que lo declara (web oficial, acta, clasificación, comunicado, audiencias).
 - NADA de política partidista, partidos, elecciones, gobiernos ni geopolítica: invalida=true.
 - NUNCA menores como sujeto: invalida=true.
 - SIN DIFAMACIÓN: la porra pregunta por un hecho público que ocurrirá y se declarará objetivamente. Jamás por acusaciones, delitos, rumores o la vida privada de nadie: invalida=true.
@@ -197,7 +220,8 @@ async function withHaiku(key: string, signal: Record<string, unknown>) {
 
 // Motivo por el que una candidata NO sirve. null = se puede encolar.
 function rejectReason(c: {
-  pregunta?: string; opciones?: string[]; criterio_de_resolucion?: string; invalida?: boolean;
+  pregunta?: string; opciones?: string[]; criterio_de_resolucion?: string;
+  fecha_cierre?: string; invalida?: boolean;
 }): string | null {
   if (c.invalida) return "invalida";
   const p = c.pregunta ?? "";
@@ -206,8 +230,18 @@ function rejectReason(c: {
   if (!p || p.length < 12 || p.length > 140) return "pregunta";
   if (ops.length < 2 || ops.length > 6) return "opciones";
   if (ops.some((o) => !o || PLACEHOLDER.test(o.trim()))) return "opciones_relleno";
+  if (mismoPrefijo(ops)) return "opciones_relleno";
   if (new Set(ops.map(norm)).size !== ops.length) return "opciones_repetidas";
   if (!crit || crit.length < 25) return "sin_resolucion";
+  // El criterio debe decir CON QUÉ se declara el ganador, no una frase vacía.
+  if (!/(seg[uú]n|publica|anuncia|emite|declara|resultado oficial|acta|clasificaci[óo]n|web oficial|comunicado)/i.test(crit)) {
+    return "criterio_generico";
+  }
+  // FECHA DE CIERRE verificable: sin fecha creíble no se sabe cuándo vence.
+  const ts = Date.parse(String(c.fecha_cierre ?? ""));
+  if (!ts || Number.isNaN(ts)) return "sin_fecha";
+  if (ts < Date.now() + 3 * 3600_000) return "fecha_pasada";
+  if (ts > Date.now() + 60 * 86400_000) return "fecha_lejana";
   const v = vetoed([p, ...ops, crit].join(" "));
   if (v) return v;
   return null;
@@ -266,9 +300,10 @@ Deno.serve(async (req) => {
     const v = vetoed(topic);
     if (v) return json({ created: 0, error: "tema_vetado", motivo: v });
     try {
-      for (const t of parseFeed(await getFeed(gnews(topic))).slice(0, 5)) {
-        if (await insertSignal(admin, seen, t, {
-          category: "busqueda", source: "search", score: 80, raw: { consulta: topic },
+      for (const it of parseFeed(await getFeed(gnews(topic))).slice(0, 5)) {
+        if (await insertSignal(admin, seen, it.t, {
+          category: "busqueda", source: "search", score: 80,
+          raw: { consulta: topic, contexto: it.d },
         })) ingested++;
       }
     } catch { /* red caída */ }
@@ -276,8 +311,9 @@ Deno.serve(async (req) => {
       return json({ created: 0, sin_noticias: true, mensaje: `Sin noticias recientes utilizables sobre "${topic}".` });
     }
   } else {
-    ingested += await sweepEntities(admin, seen, Math.ceil(limit * 0.7));
-    ingested += await sweepNews(admin, seen, limit - ingested);
+    // SOLO el catálogo: la red general de titulares metía política (Ceuta, el
+    // Rey), deportes irrelevantes (cricket) y listículos sin desenlace.
+    ingested += await sweepEntities(admin, seen, limit);
   }
   await admin.from("agent_runs").insert({ kind: topic ? "search" : "sweep", topic: topic || null });
 
