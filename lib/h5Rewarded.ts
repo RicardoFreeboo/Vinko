@@ -16,7 +16,7 @@ import { ADSENSE_CLIENT } from "@/lib/ads";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 declare global {
   interface Window {
-    adsbygoogle?: any[];
+    adsbygoogle?: unknown[];
     adBreak?: (o: any) => void;
     adConfig?: (o: any) => void;
   }
@@ -42,7 +42,7 @@ function loadApi(): Promise<boolean> {
       try {
         window.adsbygoogle = window.adsbygoogle || [];
         // adBreak y adConfig son la misma cola de adsbygoogle
-        window.adBreak = window.adConfig = function (o: any) { (window.adsbygoogle as any[]).push(o); };
+        window.adBreak = window.adConfig = function (o: any) { (window.adsbygoogle as unknown[]).push(o); };
         window.adConfig({ sound: "on", preloadAdBreaks: "on" });
         resolve(true);
       } catch { resolve(false); }
