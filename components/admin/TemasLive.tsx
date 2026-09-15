@@ -18,7 +18,7 @@ type Proposal = {
 };
 
 const FLAG_TONE: Record<string, "red" | "gold" | "muted"> = {
-  lexico: "red", cuotas: "red", invalida: "red",
+  lexico: "red", cuotas: "red", invalida: "red", seguridad: "red",
   sin_resolucion: "gold", pregunta: "gold", opciones: "gold",
   sin_haiku: "muted",
 };
@@ -73,7 +73,10 @@ export function TemasLive({ initial }: { initial: Proposal[] }) {
       setList((l) => l.filter((x) => x.id !== p.id));
       setMsg({ kind: "ok", text: t("admin.temas.approved") });
     } else {
-      setMsg({ kind: "err", text: error.message.includes("NO_RESOLUTION") ? t("admin.temas.needCriteria") : t("admin.temas.agentErr") });
+      const m = error.message.includes("VINKO_UNSAFE") ? t("admin.temas.unsafe")
+        : error.message.includes("NO_RESOLUTION") ? t("admin.temas.needCriteria")
+        : t("admin.temas.agentErr");
+      setMsg({ kind: "err", text: m });
     }
   }
 

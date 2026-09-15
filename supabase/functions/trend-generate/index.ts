@@ -14,6 +14,7 @@ const BANNED = [
   /\bwallet\b/i, /\bcash\b/i, /ganar dinero/i, /dinero real/i,
 ];
 const ODDS = /(\bodds\b|\bcuota|\bspread\b|\bpayout\b|\bhandicap\b|\bmoneyline\b|over\/under|\bbookmaker|\btipster|\b[1-9]\.[0-9]{2}\b)/i;
+const UNSAFE = /(asesin|matar\b|homicid|apu.alar|tiroteo|masacre|terror|atentad|suicid|autoles|descuartiz|linch|pederast|pedofil|abuso infantil|porno|pornograf|prostituci|zoofil|violaci|coca.na|hero.na|metanfetam|fentanil|narcotr|traficar|arma de fuego|explosiv|bomba|trata de personas|genocid|nazi|incita.*odio|violent)/i;
 
 function flagsFor(c: { pregunta: string; opciones: string[]; criterio_de_resolucion?: string; fecha_cierre?: string }): string[] {
   const flags: string[] = [];
@@ -21,6 +22,7 @@ function flagsFor(c: { pregunta: string; opciones: string[]; criterio_de_resoluc
   const blob = [c.pregunta, ...(c.opciones ?? []), crit].join(" ");
   if (BANNED.some((r) => r.test(blob))) flags.push("lexico");
   if (ODDS.test(blob)) flags.push("cuotas");
+  if (UNSAFE.test(blob)) flags.push("seguridad");
   if (!crit || crit.length < 5) flags.push("sin_resolucion");
   if (!c.pregunta || c.pregunta.length < 5 || c.pregunta.length > 120) flags.push("pregunta");
   if (!c.opciones || c.opciones.length < 2 || c.opciones.length > 6) flags.push("opciones");

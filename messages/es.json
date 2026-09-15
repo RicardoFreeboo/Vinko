@@ -360,6 +360,8 @@
   "admin.temas.flag.pregunta": "revisar pregunta",
   "admin.temas.flag.opciones": "revisar opciones",
   "admin.temas.flag.sin_haiku": "plantilla (sin IA)",
+  "admin.temas.flag.seguridad": "⛔ inseguro",
+  "admin.temas.unsafe": "Contenido no permitido (seguridad). No se puede publicar.",
 
   "nav.crear": "Crear",
   "home.create": "Crear una porra",

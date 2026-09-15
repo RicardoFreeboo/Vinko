@@ -360,6 +360,8 @@
   "admin.temas.flag.pregunta": "check question",
   "admin.temas.flag.opciones": "check options",
   "admin.temas.flag.sin_haiku": "template (no AI)",
+  "admin.temas.flag.seguridad": "⛔ unsafe",
+  "admin.temas.unsafe": "Not-allowed content (safety). Can't publish.",
 
   "nav.crear": "Create",
   "home.create": "Create a pool",
