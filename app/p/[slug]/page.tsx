@@ -139,7 +139,7 @@ export default async function PorraPage({ params }: Props) {
       </section>
 
       <Link
-        href="/login"
+        href={`/login?next=/p/${porra.slug}`}
         className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)]"
       >
         ⚡ {t("p.join")}
