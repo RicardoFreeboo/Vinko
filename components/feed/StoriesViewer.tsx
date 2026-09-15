@@ -58,7 +58,7 @@ export function StoriesViewer({
 
   async function pick(optionId: string) {
     if (!p || busy || myPick) return;
-    if (!loggedIn) { window.location.href = `/login?next=/hoy`; return; }
+    if (!loggedIn) { window.location.href = `/login?next=/feed`; return; }
     setBusy(true); setErr(null);
     const e = await onPick(p.id, optionId);
     setBusy(false);

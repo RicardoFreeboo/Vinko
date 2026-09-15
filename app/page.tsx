@@ -4,5 +4,5 @@ import { redirect } from "next/navigation";
 // Gate del código diario (para enseñar a inversores), que envuelve todo desde
 // el layout. /hoy ya muestra el CTA de entrar si no hay sesión.
 export default function Home() {
-  redirect("/hoy");
+  redirect("/feed");
 }

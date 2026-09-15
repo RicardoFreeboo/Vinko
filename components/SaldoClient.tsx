@@ -88,12 +88,12 @@ export function SaldoClient({
             onGranted={(g) => onGranted("R1", g)} onError={onError} />
         )}
 
-        <EarnRow icon="🎁" title={t("saldo.earn.daily")} value="≤500" href="/hoy" />
-        <EarnRow icon="🎯" title={t("saldo.earn.pick")} value="+150" href="/hoy" />
+        <EarnRow icon="🎁" title={t("saldo.earn.daily")} value="≤500" href="/saldo" />
+        <EarnRow icon="🎯" title={t("saldo.earn.pick")} value="+150" href="/feed" />
         <EarnRow icon="✏️" title={t("saldo.earn.create")} value="+Nivel" href="/nueva" />
         <EarnRow icon="🤝" title={t("saldo.earn.invite")} value="+200" href="/grupos" />
-        <EarnRow icon="📲" title={t("saldo.earn.share")} value="+50" href="/hoy" />
-        <EarnRow icon="🔥" title={t("saldo.earn.streak")} value="🏆" href="/hoy" />
+        <EarnRow icon="📲" title={t("saldo.earn.share")} value="+50" href="/feed" />
+        <EarnRow icon="🔥" title={t("saldo.earn.streak")} value="🏆" href="/saldo" />
       </section>
 
       {msg && (

@@ -45,7 +45,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
   const stories = porras.filter((p) => p.video);
 
   async function onPick(porraId: string, optionId: string): Promise<string | null> {
-    if (!loggedIn) { window.location.href = "/login?next=/hoy"; return "no_auth"; }
+    if (!loggedIn) { window.location.href = "/login?next=/feed"; return "no_auth"; }
     const sb = supabaseBrowser();
     if (!sb) return "no_backend";
     const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: optionId, p_stake: stake });

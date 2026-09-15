@@ -7,12 +7,12 @@ import { t } from "@/lib/i18n";
 
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
 // limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
-// (header de Hoy). El nav queda limpio con las 5 secciones.
+// (header del Feed). Orden: Feed · Perfil · Crear · Grupos · Liga · Vinkos.
 const TABS = [
-  { href: "/hoy", key: "nav.hoy", icon: "◉", primary: false },
   { href: "/feed", key: "nav.feed", icon: "▦", primary: false },
-  { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
+  { href: "/perfil", key: "nav.perfil", icon: "◉", primary: false },
   { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
+  { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
   { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
   { href: "/saldo", key: "nav.saldo", icon: "🪙", primary: false },
 ] as const;

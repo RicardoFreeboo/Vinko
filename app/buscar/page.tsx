@@ -15,8 +15,8 @@ export default async function Buscar() {
   return (
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-4 px-5 pb-28 pt-6">
       <header className="flex items-center justify-between">
-        <Link href="/hoy"><Logo mark={28} word={20} /></Link>
-        <Link href="/hoy" className="mono text-xs text-[var(--muted)]">← {t("legal.back")}</Link>
+        <Link href="/feed"><Logo mark={28} word={20} /></Link>
+        <Link href="/feed" className="mono text-xs text-[var(--muted)]">← {t("legal.back")}</Link>
       </header>
       <h1 className="text-xl font-black text-[var(--cream)]">{t("buscar.title")}</h1>
       <BuscarClient />

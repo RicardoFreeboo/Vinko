@@ -15,7 +15,7 @@ declare global {
 const HOUSE = [
   { emoji: "🤝", key: "invite", href: "/grupos" },
   { emoji: "✏️", key: "create", href: "/nueva" },
-  { emoji: "🔥", key: "streak", href: "/hoy" },
+  { emoji: "🔥", key: "streak", href: "/saldo" },
 ] as const;
 
 export function FeedAd({ seed = 0 }: { seed?: number }) {
