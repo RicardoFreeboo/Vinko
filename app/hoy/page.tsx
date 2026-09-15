@@ -78,6 +78,11 @@ export default async function Hoy() {
           {session ? (
             <>
               <Link href={`/u/${session.handle}`} className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
+              {/* BUSCAR perfiles — estilo Instagram */}
+              <Link href="/buscar" aria-label={t("home.search")}
+                className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--ink2)] text-[16px] leading-none">
+                🔍
+              </Link>
               {/* NOTIFICACIONES — campana en la esquina, estilo app */}
               <Link href="/buzon" aria-label={t("home.notifications")}
                 className="relative grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--ink2)] text-[17px] leading-none">

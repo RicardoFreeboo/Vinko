@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { PushPrePrompt, InstallHint } from "@/components/PushPrePrompt";
+import { WeekStreak } from "@/components/WeekStreak";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 
@@ -68,20 +69,8 @@ export function HoyClient({
 
   return (
     <>
-      {/* racha (§3.4): visible siempre, con escudos */}
-      <section className="flex items-center justify-between rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3">
-        <div>
-          <div className="text-2xl font-black text-[var(--gold)]">🔥 {streakDays}</div>
-          <div className="text-[11px] text-[var(--muted)]">{t("hoy.streak")}</div>
-        </div>
-        <div className="text-right">
-          <div className="mono text-sm font-bold text-[var(--cream)]">
-            {"🛡".repeat(shields) || "—"}
-          </div>
-          <div className="text-[11px] text-[var(--muted)]">{t("hoy.shields")}</div>
-          <div className="mt-0.5 text-[10px] text-[var(--muted2)]">{t("hoy.best", { n: String(streakBest) })}</div>
-        </div>
-      </section>
+      {/* racha SEMANAL (§3.4): días de la semana, fuego al completar, premio al final */}
+      <WeekStreak streakDays={streakDays} streakBest={streakBest} shields={shields} />
 
       {/* bonus diario (escalera de 7, §3.8) */}
       {!bonusDone ? (
