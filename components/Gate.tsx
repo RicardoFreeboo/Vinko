@@ -7,12 +7,21 @@ import { t } from "@/lib/i18n";
 
 const KEY = "vinko_gate";
 
-// Candado de acceso por código diario. /secret queda SIEMPRE abierto (es donde
-// el fundador lee el código del día). El resto de la app pide el código, que
-// caduca a medianoche de Madrid.
+// Candado de acceso por código diario sobre la app privada del alfa.
+//
+// Rutas SIEMPRE abiertas (sin código):
+//  · "/"                  portada pública — Google exige poder ver de qué va la
+//                         app sin login para verificar el dominio del OAuth.
+//  · /privacidad /terminos legales — Google las rastrea.
+//  · /p/…                 porras compartidas: si esto se tapa, el enlace de
+//                         WhatsApp muere y con él la viralidad (métrica sagrada).
+//  · /login /auth /bienvenida  para poder entrar desde un enlace compartido.
+//  · /secret              donde el fundador lee el código del día.
+const ABIERTAS = ["/secret", "/privacidad", "/terminos", "/p/", "/login", "/auth", "/bienvenida"];
+
 export function Gate({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const bypass = path?.startsWith("/secret");
+  const bypass = path === "/" || ABIERTAS.some((r) => path?.startsWith(r));
   const [ok, setOk] = useState(false);
   const [ready, setReady] = useState(false);
   const [input, setInput] = useState("");
