@@ -52,6 +52,9 @@ export default async function AdminMetricas() {
         <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
           <MetricCard value={n("points_out")} label={t("admin.kpi.emitted")} accent="var(--gold)" />
           <MetricCard value={n("points_burn")} label={t("admin.kpi.burned")} accent="var(--win)" />
+          <MetricCard value={n("ads_shown")} label={t("admin.kpi.adsShown")} accent="var(--win)" />
+          <MetricCard value={`${c.ad_revenue_eur ?? 0} €`} label={t("admin.kpi.adRevenue")} accent="var(--gold)"
+            hint={t("admin.kpi.adRevenueHint")} />
           <MetricCard value={n("signals")} label={t("admin.kpi.signals")} accent="var(--win)" />
           <MetricCard value={n("buffer_days")} label={t("admin.kpi.buffer")}
             accent={(c.buffer_days ?? 0) < 7 ? "var(--red)" : "var(--win)"} />

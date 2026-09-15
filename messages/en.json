@@ -359,5 +359,32 @@
   "admin.temas.flag.sin_resolucion": "no criteria",
   "admin.temas.flag.pregunta": "check question",
   "admin.temas.flag.opciones": "check options",
-  "admin.temas.flag.sin_haiku": "template (no AI)"
+  "admin.temas.flag.sin_haiku": "template (no AI)",
+
+  "nav.crear": "Create",
+  "home.create": "Create a pool",
+  "home.feed": "Open pools",
+  "home.feedEmpty": "No open pools yet. Create the first one.",
+  "home.featured": "Featured",
+  "home.closes": "Closes {date}",
+  "home.play": "Play →",
+  "home.loginCta": "Sign in",
+  "home.loginCard": "Sign in with Google to play the Daily Pick, build your streak and earn coins.",
+
+  "admin.health.check.vercel": "Vercel · GET /",
+  "admin.health.check.dominio": "Domain vinko.fun · Hostinger DNS",
+  "admin.health.check.github": "GitHub · main repo + CI",
+  "admin.health.check.anthropic": "Anthropic · agent (Haiku)",
+  "admin.temas.needAdmin": "Sign in with your admin account (Google) to use the agent.",
+  "admin.mod.watch": "Watched categories (content safety)",
+  "admin.mod.note": "These terms trigger human review and removal, not silent blocking. For child exploitation a specialized provider (hash-matching) is added on top; this list is the first text layer.",
+  "admin.mod.cat.violencia": "Violence and death",
+  "admin.mod.cat.menores": "Minors (exploitation)",
+  "admin.mod.cat.sexual": "Explicit sexual content",
+  "admin.mod.cat.drogas": "Drugs",
+  "admin.mod.cat.ilegal": "Illegal activity",
+  "admin.mod.cat.odio": "Hate",
+  "admin.kpi.adsShown": "Ads shown",
+  "admin.kpi.adRevenue": "Ad revenue",
+  "admin.kpi.adRevenueHint": "€0 until a paying programmatic provider is live; current rewarded is house-ad."
 }

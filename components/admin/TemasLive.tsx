@@ -51,7 +51,8 @@ export function TemasLive({ initial }: { initial: Proposal[] }) {
         body: JSON.stringify(withTopic ? { topic: topic.trim() } : { limit: 5 }),
       });
       const j = await res.json().catch(() => ({}));
-      if (j.cooldown) setMsg({ kind: "err", text: t("admin.temas.cooldown") });
+      if (res.status === 403) setMsg({ kind: "err", text: t("admin.temas.needAdmin") });
+      else if (j.cooldown) setMsg({ kind: "err", text: t("admin.temas.cooldown") });
       else if (typeof j.created === "number") {
         setMsg({ kind: "ok", text: t("admin.temas.generated", { n: String(j.created) }) });
         setTopic("");

@@ -52,6 +52,51 @@ async function withHaiku(key: string, signal: Record<string, unknown>) {
   return JSON.parse(match ? match[0] : "{}");
 }
 
+// Conectores GRATUITOS de la lista blanca (sin claves): Google Trends España
+// (RSS) + titulares de deporte/actualidad. Solo señal pública agregada; nada de
+// casas ni comparadores (el trigger odds_tainted rechaza lo contaminado).
+// deno-lint-ignore no-explicit-any
+async function sweepFreeSources(admin: any): Promise<number> {
+  const SOURCES = [
+    { url: "https://trends.google.com/trending/rss?geo=ES", source: "google_trends", cat: "tendencias" },
+    { url: "https://e00-marca.uecdn.es/rss/portada.xml", source: "news", cat: "deporte" },
+    { url: "https://www.20minutos.es/rss/", source: "news", cat: "actualidad" },
+  ];
+  // no repetir temas ya vistos esta semana
+  const { data: seen } = await admin.from("signals").select("topic")
+    .gt("created_at", new Date(Date.now() - 7 * 86400000).toISOString()).limit(500);
+  const seenSet = new Set((seen ?? []).map((s: { topic: string }) => s.topic.toLowerCase()));
+
+  let inserted = 0;
+  for (const src of SOURCES) {
+    if (inserted >= 12) break;
+    try {
+      const ctrl = new AbortController();
+      const to = setTimeout(() => ctrl.abort(), 6000);
+      const res = await fetch(src.url, {
+        signal: ctrl.signal,
+        headers: { "user-agent": "Mozilla/5.0 (VinkoAgent)" },
+      });
+      clearTimeout(to);
+      const xml = await res.text();
+      const titles = [...xml.matchAll(/<title>(?:<!\[CDATA\[)?([^<\]]{8,110})(?:\]\]>)?<\/title>/g)]
+        .map((m) => m[1].trim())
+        .filter((t) => t && !/^(google trends|marca|20minutos|rss)/i.test(t))
+        .slice(0, 6);
+      for (const t of titles) {
+        if (inserted >= 12) break;
+        if (seenSet.has(t.toLowerCase())) continue;
+        const { error } = await admin.from("signals").insert({
+          topic: t, category: src.cat, source: src.source, status: "new", velocity: 60,
+        });
+        if (!error) { inserted++; seenSet.add(t.toLowerCase()); }
+        // error = veto de cuotas u otro: se descarta y seguimos (§0)
+      }
+    } catch { /* fuente caída: degradación elegante, seguimos con el resto */ }
+  }
+  return inserted;
+}
+
 function templated(signal: Record<string, unknown>) {
   const topic = String(signal.topic ?? "");
   return {
@@ -110,13 +155,17 @@ Deno.serve(async (req) => {
     await admin.from("signals").insert({
       topic, category: "busqueda", source: "search", status: "new", velocity: 70,
     });
+  } else {
+    // barrido (§C): scrapear señal REAL de fuentes gratuitas de la lista blanca
+    // (Google Trends ES + titulares). El trigger de la BD veta cuotas (§0).
+    await sweepFreeSources(admin);
   }
   await admin.from("agent_runs").insert({ kind: topic ? "search" : "sweep", topic: topic || null });
 
   const q = admin.from("signals").select("*").in("status", ["new", "scored"]);
   const { data: signals } = topic
     ? await q.eq("source", "search").order("created_at", { ascending: false }).limit(3)
-    : await q.order("score", { ascending: false, nullsFirst: false }).limit(limit);
+    : await q.eq("status", "new").order("created_at", { ascending: false }).limit(limit);
 
   let created = 0, flagged = 0;
   for (const s of signals ?? []) {

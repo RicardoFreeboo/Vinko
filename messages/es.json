@@ -359,5 +359,32 @@
   "admin.temas.flag.sin_resolucion": "sin criterio",
   "admin.temas.flag.pregunta": "revisar pregunta",
   "admin.temas.flag.opciones": "revisar opciones",
-  "admin.temas.flag.sin_haiku": "plantilla (sin IA)"
+  "admin.temas.flag.sin_haiku": "plantilla (sin IA)",
+
+  "nav.crear": "Crear",
+  "home.create": "Crear una porra",
+  "home.feed": "Porras abiertas",
+  "home.feedEmpty": "Todavía no hay porras abiertas. Crea la primera.",
+  "home.featured": "Destacada",
+  "home.closes": "Cierra {date}",
+  "home.play": "Jugar →",
+  "home.loginCta": "Entrar",
+  "home.loginCard": "Entra con Google para jugar el pique del día, sumar racha y ganar monedas.",
+
+  "admin.health.check.vercel": "Vercel · GET /",
+  "admin.health.check.dominio": "Dominio vinko.fun · DNS Hostinger",
+  "admin.health.check.github": "GitHub · repo main + CI",
+  "admin.health.check.anthropic": "Anthropic · agente (Haiku)",
+  "admin.temas.needAdmin": "Entra con tu cuenta de admin (Google) para usar el agente.",
+  "admin.mod.watch": "Categorías vigiladas (seguridad de contenido)",
+  "admin.mod.note": "Estos términos disparan revisión humana y retirada, no bloqueo silencioso. Para explotación infantil se añade además un proveedor especializado (hash-matching); esta lista es la primera capa por texto.",
+  "admin.mod.cat.violencia": "Violencia y muerte",
+  "admin.mod.cat.menores": "Menores (explotación)",
+  "admin.mod.cat.sexual": "Contenido sexual explícito",
+  "admin.mod.cat.drogas": "Drogas",
+  "admin.mod.cat.ilegal": "Actividad ilegal",
+  "admin.mod.cat.odio": "Odio",
+  "admin.kpi.adsShown": "Anuncios mostrados",
+  "admin.kpi.adRevenue": "Ingresos por anuncios",
+  "admin.kpi.adRevenueHint": "0 € hasta que haya proveedor programático que pague; el rewarded actual es house-ad."
 }

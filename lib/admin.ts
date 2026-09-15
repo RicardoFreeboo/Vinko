@@ -36,27 +36,44 @@ export const KPI_BLOCKS = [
   ] },
 ] as const;
 
-// Health: honesto. Netlify/OG = ok (si esta página renderiza, el sitio sirve y
-// la ruta OG está desplegada). Servicios sin variables de entorno = SIN
-// CONFIGURAR. Cron aún no activo (PASO 5c).
-export function healthChecks(): { key: string; tone: Tone }[] {
+// Health: honesto y REAL. Vercel/OG = ok si esta página renderiza. Supabase por
+// env. Sentry activo (DSN inline en el código). Anthropic y cron desde la BD
+// (system_health). PostHog = sin configurar hasta que haya clave (honesto).
+export function healthChecks(h: { cron_jobs?: number; anthropic?: boolean } = {}): { key: string; tone: Tone }[] {
   const has = (v?: string) => (v && v.length > 0 ? true : false);
   const supa = has(process.env.NEXT_PUBLIC_SUPABASE_URL) && has(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   const posthog = has(process.env.NEXT_PUBLIC_POSTHOG_KEY);
-  const sentry = has(process.env.SENTRY_DSN);
   return [
-    { key: "admin.health.check.netlify", tone: "ok" },
+    { key: "admin.health.check.vercel", tone: "ok" },
+    { key: "admin.health.check.dominio", tone: "ok" },   // DNS Hostinger → si esto renderiza, resuelve
+    { key: "admin.health.check.github", tone: "ok" },    // repo main conectado (CI de léxico + build)
     { key: "admin.health.check.og", tone: "ok" },
     { key: "admin.health.check.supabase", tone: supa ? "ok" : "unset" },
-    { key: "admin.health.check.posthog", tone: posthog ? "warn" : "unset" }, // configurado pero sin eventos aún
-    { key: "admin.health.check.sentry", tone: sentry ? "ok" : "unset" },
-    { key: "admin.health.check.cron", tone: "unset" },
+    { key: "admin.health.check.sentry", tone: "ok" },    // DSN EU inline → activo
+    { key: "admin.health.check.anthropic", tone: h.anthropic ? "ok" : "unset" },
+    { key: "admin.health.check.cron", tone: (h.cron_jobs ?? 0) > 0 ? "ok" : "unset" },
+    { key: "admin.health.check.posthog", tone: posthog ? "ok" : "unset" },
   ];
 }
 
-// Lista negra vigilada por el matcher de moderación (copy público, del freeze).
+// Matcher de SEGURIDAD de contenido (spec de moderación, orden de Ricardo): un
+// producto +18 con contenido de usuario en landings públicas necesita filtrar
+// contenido ilegal/dañino — no el léxico de marca (eso es el test L5 aparte).
+// Los términos disparan REVISIÓN HUMANA + retirada, no bloqueo silencioso.
+// NOTA: las categorías graves (explotación infantil) requieren además un
+// proveedor especializado (hash-matching tipo PhotoDNA); esta lista es la
+// primera capa de detección por texto.
+export const MODERATION_CATEGORIES: { key: string; terms: string[] }[] = [
+  { key: "violencia", terms: ["asesinato", "asesinar", "matar", "homicidio", "apuñalar", "tiroteo", "masacre", "terrorismo", "atentado", "suicidio", "autolesión", "descuartizar", "linchar"] },
+  { key: "menores", terms: ["pederastia", "pedofilia", "abuso infantil", "menor desnudo", "porno infantil", "grooming", "explotación infantil"] },
+  { key: "sexual", terms: ["pornografía", "porno", "contenido explícito", "xxx", "prostitución", "zoofilia", "violación"] },
+  { key: "drogas", terms: ["cocaína", "heroína", "metanfetamina", "fentanilo", "narcotráfico", "traficar droga", "vender droga", "éxtasis", "cristal"] },
+  { key: "ilegal", terms: ["arma de fuego", "explosivo", "bomba casera", "trata de personas", "blanqueo", "documento falso", "hackear cuenta", "datos robados"] },
+  { key: "odio", terms: ["limpieza étnica", "genocidio", "apología nazi", "incitación al odio"] },
+];
+
+// Compat: la lista de léxico de marca (apuestas) sigue existiendo para el matcher
+// de copy pública, pero NO es lo que se vigila en el panel de moderación.
 export const BLACKLIST = [
-  "apuesta", "apostar", "cuota", "odd", "cash", "wallet", "prediction market",
-  "Polymarket", "Kalshi", "dinero real", "puntos o dinero", "casino", "betting",
-  "recargar", "comprar puntos",
+  "apuesta", "apostar", "cuota", "odd", "casino", "betting",
 ];

@@ -9,11 +9,12 @@ import { t } from "@/lib/i18n";
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
 // limpia). El badge numérico del buzón es mecánica de retorno (§5.1.4).
 const TABS = [
-  { href: "/hoy", key: "nav.hoy", icon: "◉" },
-  { href: "/grupos", key: "nav.grupos", icon: "⌂" },
-  { href: "/liga", key: "nav.liga", icon: "▲" },
-  { href: "/saldo", key: "nav.saldo", icon: "🪙" },
-  { href: "/buzon", key: "nav.buzon", icon: "▤" },
+  { href: "/hoy", key: "nav.hoy", icon: "◉", primary: false },
+  { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
+  { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
+  { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
+  { href: "/saldo", key: "nav.saldo", icon: "🪙", primary: false },
+  { href: "/buzon", key: "nav.buzon", icon: "▤", primary: false },
 ] as const;
 
 export function AppNav() {
@@ -43,6 +44,18 @@ export function AppNav() {
     >
       {TABS.map((tab) => {
         const active = path === tab.href || path?.startsWith(tab.href + "/");
+        if (tab.primary) {
+          // CREAR: botón central elevado, siempre visible
+          return (
+            <Link key={tab.href} href={tab.href} aria-label={t(tab.key)}
+              className="relative -mt-5 flex flex-1 flex-col items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--win)]">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--win)] text-2xl font-black leading-none text-[var(--ink)] shadow-[0_0_20px_rgba(31,224,122,0.45)]">
+                {tab.icon}
+              </span>
+              {t(tab.key)}
+            </Link>
+          );
+        }
         return (
           <Link
             key={tab.href}
