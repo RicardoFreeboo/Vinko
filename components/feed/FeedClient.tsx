@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { StoriesViewer } from "./StoriesViewer";
+import { FastVideo } from "@/components/FastVideo";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { VMark } from "@/components/Logo";
 import { capture } from "@/lib/analytics";
@@ -44,7 +45,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
               <button key={p.id} onClick={() => setViewer(porras.indexOf(p))}
                 className="relative aspect-[9/16] w-[124px] shrink-0 snap-start overflow-hidden rounded-[16px] border-2"
                 style={{ borderColor: picks[p.id] ? "var(--win)" : "var(--gold)" }}>
-                <video src={p.video!} autoPlay muted loop playsInline preload="metadata" className="absolute inset-0 h-full w-full object-cover" />
+                <FastVideo src={p.video!} className="absolute inset-0 h-full w-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/25" />
                 <div className="absolute inset-x-0 bottom-0 p-2">
                   <p className="line-clamp-3 text-left text-[11px] font-black leading-tight text-white">{p.title}</p>
@@ -94,7 +95,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
       <div className="overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
         <button onClick={onOpen} className="relative block aspect-[16/10] w-full bg-[var(--ink3)]">
           {p.video ? (
-            <video src={p.video} autoPlay muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
+            <FastVideo src={p.video} className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2"><VMark size={32} /><span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{t("p.aiMaking")}</span></div>
           )}

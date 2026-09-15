@@ -1,40 +1,27 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { supabaseBrowser } from "@/lib/supabase/client";
+import { useEffect } from "react";
 import { ensurePushSubscription } from "@/lib/push";
 import { t } from "@/lib/i18n";
 
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
-// limpia). El badge numérico del buzón es mecánica de retorno (§5.1.4).
+// limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
+// (header de Hoy). El nav queda limpio con las 5 secciones.
 const TABS = [
   { href: "/hoy", key: "nav.hoy", icon: "◉", primary: false },
   { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
   { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
   { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
   { href: "/saldo", key: "nav.saldo", icon: "🪙", primary: false },
-  { href: "/buzon", key: "nav.buzon", icon: "▤", primary: false },
 ] as const;
 
 export function AppNav() {
   const path = usePathname();
-  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     // Revalidar la suscripción push en CADA apertura (iOS la cancela solo, §5.1)
     void ensurePushSubscription();
-    const sb = supabaseBrowser();
-    if (!sb) return;
-    sb.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return;
-      const { count } = await sb
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .is("read_at", null);
-      setUnread(count ?? 0);
-    });
   }, [path]);
 
   return (
@@ -66,11 +53,6 @@ export function AppNav() {
           >
             <span aria-hidden className="text-base leading-none">{tab.icon}</span>
             {t(tab.key)}
-            {tab.href === "/buzon" && unread > 0 && (
-              <span className="absolute right-[22%] top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--red)] px-1 text-[9px] font-black text-white">
-                {unread > 9 ? "9+" : unread}
-              </span>
-            )}
           </Link>
         );
       })}

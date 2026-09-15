@@ -373,6 +373,7 @@
   "home.loginCta": "Sign in",
   "home.loginCard": "Sign in with Google to play the Daily Pick, build your streak and earn Vinkos.",
   "home.stories": "Stories",
+  "home.notifications": "Notifications",
   "home.open": "Open",
   "home.share": "Share →",
   "stories.done": "Pick made! We'll ping you when it resolves.",
@@ -456,5 +457,13 @@
   "u.createdSection": "Pools created",
   "u.playedSection": "Pools played",
   "u.noCreated": "No pools created yet.",
-  "u.noPlayed": "No pools played yet."
+  "u.noPlayed": "No pools played yet.",
+  "social.whoPicked": "Who's backing what",
+  "social.comments": "Comments",
+  "social.first": "Be the first to weigh in.",
+  "social.voted": "backs {o}",
+  "social.placeholder": "Weigh in… who's sure about this?",
+  "social.send": "Send",
+  "social.unsafe": "That comment doesn't pass the filter. Tone it down.",
+  "social.err": "Couldn't post. Try again."
 }

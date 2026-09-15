@@ -5,6 +5,8 @@ import { TEMPLATES } from "@/lib/templates";
 import { EDITORIAL } from "@/lib/editorial";
 import { Logo, VMark } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
+import { FastVideo } from "@/components/FastVideo";
+import { PorraSocial } from "@/components/PorraSocial";
 import { t } from "@/lib/i18n";
 
 // Prerenderiza las porras conocidas (plantillas + editoriales @vinko) y sirve
@@ -84,14 +86,7 @@ export default async function PorraPage({ params }: Props) {
 
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
         {porra.video ? (
-          <video
-            src={porra.video}
-            autoPlay
-            muted
-            loop
-            playsInline
-            className="h-full w-full object-cover"
-          />
+          <FastVideo src={porra.video} speed={1.5} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2">
             <VMark size={38} />
@@ -146,6 +141,8 @@ export default async function PorraPage({ params }: Props) {
         status={porra.status}
         isTemplate={porra.is_template}
       />
+
+      {!porra.is_template && <PorraSocial porraId={porra.id} slug={porra.slug} />}
 
       <footer className="mt-auto flex flex-col gap-1.5 pt-6">
         <p className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted2)]">

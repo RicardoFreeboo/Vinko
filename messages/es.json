@@ -373,6 +373,7 @@
   "home.loginCta": "Entrar",
   "home.loginCard": "Entra con Google para jugar el pique del día, sumar racha y ganar Vinkos.",
   "home.stories": "Historias",
+  "home.notifications": "Notificaciones",
   "home.open": "Abrir",
   "home.share": "Compartir →",
   "stories.done": "¡Pronóstico hecho! Te avisamos al resolverse.",
@@ -456,5 +457,13 @@
   "u.createdSection": "Porras creadas",
   "u.playedSection": "Porras jugadas",
   "u.noCreated": "Aún no ha creado ninguna porra.",
-  "u.noPlayed": "Aún no ha jugado ninguna porra."
+  "u.noPlayed": "Aún no ha jugado ninguna porra.",
+  "social.whoPicked": "Quién va con qué",
+  "social.comments": "Comentarios",
+  "social.first": "Sé el primero en mojarte.",
+  "social.voted": "va con {o}",
+  "social.placeholder": "Mójate… ¿quién lo tiene claro?",
+  "social.send": "Enviar",
+  "social.unsafe": "Ese comentario no pasa el filtro. Suavízalo.",
+  "social.err": "No se pudo publicar. Prueba otra vez."
 }

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { VMark } from "@/components/Logo";
+import { FastVideo } from "@/components/FastVideo";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import type { FeedPorra } from "@/lib/feed";
 import { t } from "@/lib/i18n";
@@ -68,7 +69,7 @@ export function StoriesViewer({
         style={{ transform: `translateX(${dx * 0.4}px)`, transition: dx ? "none" : "transform .25s" }}>
         {/* fondo: vídeo o placeholder */}
         {p.video ? (
-          <video key={p.slug} src={p.video} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
+          <FastVideo key={p.slug} src={p.video} speed={1.5} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-[var(--ink)]"><VMark size={64} /></div>
         )}

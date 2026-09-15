@@ -35,14 +35,17 @@ export default async function Hoy() {
   let myAnswer: number | null = null;
   let prev: { question: string; options: string[]; correct_idx: number | null;
     answer: { option_idx: number; correct: boolean | null; pts: number; score: number } | null } | null = null;
+  let unread = 0;
 
   if (session && sb) {
-    const [{ data: p }, { data: d }, { data: pv }] = await Promise.all([
+    const [{ data: p }, { data: d }, { data: pv }, { count: unreadCount }] = await Promise.all([
       sb.from("profiles").select("points, xp, marcador_total, streak_days, streak_best, streak_shields, daily_bonus_last, daily_bonus_step").eq("id", session.id).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", today).eq("lang", "es").in("status", ["open", "resolved"]).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", yesterday).eq("lang", "es").eq("status", "resolved").maybeSingle(),
+      sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", session.id).is("read_at", null),
     ]);
     profile = (p as Profile | null) ?? null;
+    unread = unreadCount ?? 0;
     if (d) {
       daily = { id: d.id, question: d.question, options: d.options as string[], status: d.status, correct_idx: d.correct_idx };
       const { data: a } = await sb.from("daily_pick_answers").select("option_idx").eq("day_id", d.id).eq("user_id", session.id).maybeSingle();
@@ -65,7 +68,7 @@ export default async function Hoy() {
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-28 pt-6">
       <header className="flex items-center justify-between">
         <Logo mark={28} word={20} />
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {/* RACHA arriba, como en la primera versión */}
           {profile && (
             <span className="flex items-center gap-1 rounded-full border border-[var(--gold)]/50 bg-[var(--gold)]/10 px-2.5 py-1 text-[13px] font-black text-[var(--gold)]">
@@ -73,7 +76,19 @@ export default async function Hoy() {
             </span>
           )}
           {session ? (
-            <Link href={`/u/${session.handle}`} className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
+            <>
+              <Link href={`/u/${session.handle}`} className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
+              {/* NOTIFICACIONES — campana en la esquina, estilo app */}
+              <Link href="/buzon" aria-label={t("home.notifications")}
+                className="relative grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--ink2)] text-[17px] leading-none">
+                🔔
+                {unread > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--red)] px-1 text-[9px] font-black text-white">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
+            </>
           ) : (
             <Link href="/login?next=/hoy" className="rounded-full bg-[var(--win)] px-3.5 py-1.5 text-[12px] font-black text-[var(--ink)]">
               {t("home.loginCta")}
