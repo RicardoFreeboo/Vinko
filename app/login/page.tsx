@@ -12,5 +12,5 @@ export default async function Login({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  return <LoginForm next={next ?? "/saldo"} />;
+  return <LoginForm next={next ?? "/hoy"} />;
 }

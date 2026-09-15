@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get("next") ?? "/hoy";
 
   const sb = await supabaseServer();
   if (!sb) return NextResponse.redirect(`${origin}/login`);
@@ -33,5 +33,5 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${origin}/bienvenida?next=${encodeURIComponent(next)}`);
     }
   }
-  return NextResponse.redirect(`${origin}${next.startsWith("/") ? next : "/"}`);
+  return NextResponse.redirect(`${origin}${next.startsWith("/") ? next : "/hoy"}`);
 }

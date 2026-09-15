@@ -10,5 +10,5 @@ export default async function Bienvenida({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  return <AgeForm next={next ?? "/"} />;
+  return <AgeForm next={next ?? "/hoy"} />;
 }
