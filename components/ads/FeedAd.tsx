@@ -36,13 +36,15 @@ export function FeedAd({ seed = 0 }: { seed?: number }) {
     if (!ADS_ENABLED || !ADSENSE_FEED_SLOT || pushed.current) return;
     pushed.current = true;
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* noop */ }
+    // Sondeo RÁPIDO: si Google no sirve, el hueco debe rellenarse en ~1-2 s.
+    // Con 8 s se veía un vacío embarazoso al hacer scroll.
     let tries = 0;
     const iv = setInterval(() => {
       tries += 1;
       const status = insRef.current?.getAttribute("data-ad-status");
       if (status === "filled") { clearInterval(iv); return; }
-      if (status === "unfilled" || tries >= 16) { clearInterval(iv); setFallback(true); }
-    }, 500);
+      if (status === "unfilled" || tries >= 8) { clearInterval(iv); setFallback(true); }
+    }, 250);
     return () => clearInterval(iv);
   }, []);
 
@@ -53,20 +55,27 @@ export function FeedAd({ seed = 0 }: { seed?: number }) {
     const h = HOUSE[i];
     return (
       <Link href={h.href}
-        className="relative block overflow-hidden rounded-[16px] border border-[var(--gold)]/40 bg-gradient-to-br from-[var(--ink2)] to-[var(--ink3)] p-4">
-        <span className="mono absolute right-3 top-3 rounded-full border border-[var(--muted2)]/50 px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--muted2)]">
-          {t("ad.label")}
-        </span>
-        <div className="flex items-center gap-3 pr-16">
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-[12px] bg-[var(--gold)]/15 text-2xl">{h.emoji}</span>
-          <div className="min-w-0">
-            <p className="text-[15px] font-black leading-tight text-[var(--cream)]">{t(`ad.house.${h.key}.title`)}</p>
-            <p className="text-[12px] text-[var(--muted)]">{t(`ad.house.${h.key}.sub`)}</p>
-          </div>
+        className="block overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
+        {/* etiqueta arriba, como cualquier hueco publicitario */}
+        <div className="flex items-center justify-between px-3 pt-2">
+          <span className="mono text-[9px] uppercase tracking-[0.16em] text-[var(--muted2)]">{t("ad.house")}</span>
+          <span className="mono rounded-full border border-[var(--muted2)]/50 px-2 py-0.5 text-[9px] uppercase tracking-[0.14em] text-[var(--muted2)]">
+            {t("ad.label")}
+          </span>
         </div>
-        <span className="mt-3 flex items-center justify-center rounded-[10px] bg-[var(--gold)] py-2 text-[13px] font-black text-[var(--ink)]">
-          {t(`ad.house.${h.key}.cta`)}
-        </span>
+        {/* creativo */}
+        <div className="relative mt-2 flex aspect-[16/9] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[var(--gold)]/25 via-[var(--ink3)] to-[var(--win)]/20">
+          <span className="text-[56px] leading-none drop-shadow-[0_4px_14px_rgba(0,0,0,0.5)]">{h.emoji}</span>
+        </div>
+        <div className="flex flex-col gap-2.5 p-4">
+          <div>
+            <p className="text-[16px] font-black leading-tight text-[var(--cream)]">{t(`ad.house.${h.key}.title`)}</p>
+            <p className="mt-0.5 text-[12px] text-[var(--muted)]">{t(`ad.house.${h.key}.sub`)}</p>
+          </div>
+          <span className="flex items-center justify-center rounded-[10px] bg-[var(--gold)] py-2.5 text-[13px] font-black text-[var(--ink)]">
+            {t(`ad.house.${h.key}.cta`)}
+          </span>
+        </div>
       </Link>
     );
   }
