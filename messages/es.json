@@ -341,5 +341,23 @@
   "flujo.node.anuncio": "Anuncio",
   "flujo.node.monedas": "Monedas",
   "flujo.node.tienda": "Tienda",
-  "flujo.node.jugadores": "Jugadores"
+  "flujo.node.jugadores": "Jugadores",
+
+  "admin.temas.refresh": "🔄 Buscar porras nuevas",
+  "admin.temas.searching": "Buscando…",
+  "admin.temas.searchPh": "Busca un tema (ej: Isla de las Tentaciones)",
+  "admin.temas.searchBtn": "Buscar tema",
+  "admin.temas.cooldown": "Espera unos segundos antes de volver a buscar.",
+  "admin.temas.generated": "{n} candidatas nuevas en la cola ✓",
+  "admin.temas.agentErr": "No se pudo completar. Inténtalo otra vez.",
+  "admin.temas.emptyQueue": "Cola vacía. Pulsa «Buscar porras nuevas» o busca un tema concreto.",
+  "admin.temas.criteria": "Criterio de resolución",
+  "admin.temas.needCriteria": "Falta el criterio de resolución para publicar.",
+  "admin.temas.flag.lexico": "léxico ⚠",
+  "admin.temas.flag.cuotas": "operador ⚠",
+  "admin.temas.flag.invalida": "inválida ⚠",
+  "admin.temas.flag.sin_resolucion": "sin criterio",
+  "admin.temas.flag.pregunta": "revisar pregunta",
+  "admin.temas.flag.opciones": "revisar opciones",
+  "admin.temas.flag.sin_haiku": "plantilla (sin IA)"
 }

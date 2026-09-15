@@ -1,38 +1,37 @@
-import { TemasBoard } from "@/components/admin/TemasBoard";
-import { EDITORIAL, PROPOSALS } from "@/lib/editorial";
+import { supabaseServer } from "@/lib/supabase/server";
+import { TemasLive } from "@/components/admin/TemasLive";
 import { t } from "@/lib/i18n";
 
-// PASO 5c — Temas editoriales / IA trending. El perfil oficial de @vinko propone
-// porras de temas candentes de España; Ricardo selecciona y aprueba aquí. El cron
+export const dynamic = "force-dynamic";
+
+// Cola del agente de tendencias (spec agente + ajustes C/D). Lee las candidatas
+// REALES de topic_proposals; el humano aprueba/tira. El botón "Buscar porras
+// nuevas" y el buscador de tema disparan trend-generate (con cooldown). El cron
 // NUNCA publica solo. Publicar → porra source=editorial (fuera de K-factor).
-const LABEL_KEYS = [
-  "admin.temas.pending", "admin.temas.published", "admin.temas.count",
-  "admin.temas.approved", "admin.temas.discarded", "admin.temas.emptyPending",
-  "admin.temas.publish", "admin.temas.edit", "admin.temas.discard",
-  "admin.temas.video.ready", "admin.temas.video.pending", "admin.temas.view",
-  "admin.temas.live",
-];
-
-export default function AdminTemas() {
-  const labels: Record<string, string> = {};
-  for (const k of LABEL_KEYS) labels[k] = t(k);
-
-  const published = EDITORIAL.map((p) => ({
-    slug: p.slug,
-    title: p.title,
-    cat: p.source === "editorial" ? "@vinko" : "",
-    hasVideo: !!p.video,
-  }));
+export default async function AdminTemas() {
+  const sb = await supabaseServer();
+  let queue: unknown[] = [];
+  if (sb) {
+    const { data } = await sb
+      .from("topic_proposals")
+      .select("id, title, options, category, resolution_criteria, closes_at, score, flags, kind, status")
+      .eq("status", "pending_review")
+      .order("created_at", { ascending: false })
+      .limit(40);
+    queue = data ?? [];
+  }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div>
-        <h1 className="text-xl font-black tracking-tight">{t("admin.temas.title")}</h1>
-        <p className="mt-2 max-w-[72ch] text-[13px] leading-relaxed text-[var(--muted)]">
+        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display), system-ui" }}>
+          {t("admin.temas.title")}
+        </h1>
+        <p className="mt-2 max-w-[72ch] text-[13px] leading-relaxed text-[rgba(244,241,233,0.55)]">
           {t("admin.temas.how")}
         </p>
       </div>
-      <TemasBoard labels={labels} proposals={PROPOSALS} published={published} />
+      <TemasLive initial={queue as never} />
     </div>
   );
 }

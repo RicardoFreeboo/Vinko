@@ -341,5 +341,23 @@
   "flujo.node.anuncio": "Ad",
   "flujo.node.monedas": "Coins",
   "flujo.node.tienda": "Store",
-  "flujo.node.jugadores": "Players"
+  "flujo.node.jugadores": "Players",
+
+  "admin.temas.refresh": "🔄 Find new pools",
+  "admin.temas.searching": "Searching…",
+  "admin.temas.searchPh": "Search a topic (e.g. Love Island)",
+  "admin.temas.searchBtn": "Search topic",
+  "admin.temas.cooldown": "Wait a few seconds before searching again.",
+  "admin.temas.generated": "{n} new candidates in the queue ✓",
+  "admin.temas.agentErr": "Couldn't complete. Try again.",
+  "admin.temas.emptyQueue": "Queue empty. Hit “Find new pools” or search a specific topic.",
+  "admin.temas.criteria": "Resolution criteria",
+  "admin.temas.needCriteria": "Missing resolution criteria to publish.",
+  "admin.temas.flag.lexico": "lexicon ⚠",
+  "admin.temas.flag.cuotas": "operator ⚠",
+  "admin.temas.flag.invalida": "invalid ⚠",
+  "admin.temas.flag.sin_resolucion": "no criteria",
+  "admin.temas.flag.pregunta": "check question",
+  "admin.temas.flag.opciones": "check options",
+  "admin.temas.flag.sin_haiku": "template (no AI)"
 }

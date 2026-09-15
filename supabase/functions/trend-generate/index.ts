@@ -65,21 +65,58 @@ function templated(signal: Record<string, unknown>) {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "authorization, content-type",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+      },
+    });
+  }
   if (req.method !== "POST") return json({ error: "method" }, 405);
-  const secret = Deno.env.get("CRON_SECRET") ?? "";
-  if (!secret || req.headers.get("x-cron-secret") !== secret) return json({ error: "forbidden" }, 403);
 
   const url = Deno.env.get("SUPABASE_URL")!;
+  const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const anthropic = Deno.env.get("ANTHROPIC_API_KEY") ?? "";
   const admin = createClient(url, service);
 
-  let limit = 5;
-  try { limit = (await req.json()).limit ?? 5; } catch { /* noop */ }
+  const body = await req.json().catch(() => ({}));
+  const limit = body.limit ?? 5;
+  const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, 120) : "";
 
-  const { data: signals } = await admin
-    .from("signals").select("*").in("status", ["new", "scored"])
-    .order("score", { ascending: false, nullsFirst: false }).limit(limit);
+  // Auth: cron secret (pg_cron) O JWT de admin (botón del panel, C/D).
+  const secret = Deno.env.get("CRON_SECRET") ?? "";
+  const isCron = secret && req.headers.get("x-cron-secret") === secret;
+  let isAdmin = false;
+  if (!isCron) {
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user } } = await userClient.auth.getUser();
+    if (user) {
+      const { data: prof } = await admin.from("profiles").select("role").eq("id", user.id).maybeSingle();
+      isAdmin = prof?.role === "admin";
+    }
+    if (!isAdmin) return json({ error: "forbidden" }, 403);
+    // cooldown solo para disparos manuales (§C/D): imposible desde dos clics
+    const { data: recent } = await admin.from("agent_runs")
+      .select("id").gt("created_at", new Date(Date.now() - 60000).toISOString()).limit(1);
+    if (recent && recent.length) return json({ cooldown: true });
+  }
+
+  // búsqueda dirigida (§D): el topic entra como señal antes de generar
+  if (topic) {
+    await admin.from("signals").insert({
+      topic, category: "busqueda", source: "search", status: "new", velocity: 70,
+    });
+  }
+  await admin.from("agent_runs").insert({ kind: topic ? "search" : "sweep", topic: topic || null });
+
+  const q = admin.from("signals").select("*").in("status", ["new", "scored"]);
+  const { data: signals } = topic
+    ? await q.eq("source", "search").order("created_at", { ascending: false }).limit(3)
+    : await q.order("score", { ascending: false, nullsFirst: false }).limit(limit);
 
   let created = 0, flagged = 0;
   for (const s of signals ?? []) {
@@ -115,5 +152,12 @@ Deno.serve(async (req) => {
 });
 
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "authorization, content-type",
+    },
+  });
 }
