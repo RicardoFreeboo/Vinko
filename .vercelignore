@@ -1,0 +1,16 @@
+# Qué NO sube a Vercel. Con este archivo, Vercel IGNORA .gitignore y usa esto.
+# Confidencial fuera de Vercel (aunque public/dossier SÍ sube: no está aquí):
+.git
+.next
+node_modules
+out
+.vercel
+legacy-web-v1
+docs
+supabase
+scripts
+CLAUDE.md
+jobmap.txt
+*.zip
+.env
+.env.*
