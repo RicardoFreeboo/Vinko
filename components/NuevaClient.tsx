@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MediaCapture } from "@/components/MediaCapture";
+import { VoiceToPorra } from "@/components/VoiceToPorra";
 import { Confetti } from "@/components/Confetti";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
@@ -99,6 +100,13 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
 
   return (
     <>
+      {/* DICTAR: la voz rellena la pregunta y las opciones (apk4) */}
+      <VoiceToPorra onFilled={(q, o) => {
+        setTitle(q);
+        setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
+        setErr(null);
+      }} />
+
       <Field label={t("nueva.q")}>
         <input value={title} onChange={(e) => { setTitle(e.target.value); setErr(null); }} placeholder={t("nueva.qPh")}
           className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)]" />

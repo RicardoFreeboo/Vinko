@@ -439,5 +439,14 @@
   "media.remove": "Quitar",
   "media.noPerm": "No pude acceder a la cámara/micro. Revisa los permisos.",
   "media.err": "No se pudo subir. Prueba otra vez.",
-  "media.note": "Opcional · máx. 15s. Se revisa antes de hacerse público."
+  "media.note": "Opcional · máx. 15s. Se revisa antes de hacerse público.",
+  "voice.cta": "Dictar la porra",
+  "voice.note": "Di qué porra quieres y qué opciones (ej: «¿Quién gana la final, Marta o Juan?») y relleno los campos solos.",
+  "voice.stop": "Parar y crear campos",
+  "voice.speaking": "Te escucho… habla.",
+  "voice.thinking": "Montando tu porra…",
+  "voice.noSupport": "Tu navegador no permite dictar. Escríbela o graba el audio abajo.",
+  "voice.err": "No te pude escuchar. Prueba otra vez.",
+  "voice.short": "Muy corto. Di la pregunta y las opciones.",
+  "voice.invalid": "No me quedó clara. Repítela: la pregunta y las opciones."
 }

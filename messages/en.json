@@ -439,5 +439,14 @@
   "media.remove": "Remove",
   "media.noPerm": "Couldn't access camera/mic. Check permissions.",
   "media.err": "Couldn't upload. Try again.",
-  "media.note": "Optional · max 15s. Reviewed before going public."
+  "media.note": "Optional · max 15s. Reviewed before going public.",
+  "voice.cta": "Dictate the pool",
+  "voice.note": "Say the pool you want and the options (e.g. “Who wins the final, Marta or Juan?”) and I'll fill the fields.",
+  "voice.stop": "Stop and fill fields",
+  "voice.speaking": "Listening… go ahead.",
+  "voice.thinking": "Building your pool…",
+  "voice.noSupport": "Your browser can't dictate. Type it or record the audio below.",
+  "voice.err": "Couldn't hear you. Try again.",
+  "voice.short": "Too short. Say the question and options.",
+  "voice.invalid": "Didn't get it. Repeat: the question and the options."
 }

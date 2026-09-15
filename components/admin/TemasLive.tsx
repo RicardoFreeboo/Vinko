@@ -1,7 +1,6 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabaseBrowser } from "@/lib/supabase/client";
 import { GlassCard, ScoreRing, Chip } from "@/components/backstage/ui";
 import { t } from "@/lib/i18n";
 
@@ -38,20 +37,15 @@ export function TemasLive({ initial }: { initial: Proposal[] }) {
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   async function runAgent(withTopic: boolean) {
-    const sb = supabaseBrowser();
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!sb || !url) return;
     if (withTopic && !topic.trim()) return;
     setBusy(withTopic ? "search" : "sweep"); setMsg(null);
-    const { data: { session } } = await sb.auth.getSession();
     try {
-      const res = await fetch(`${url}/functions/v1/trend-generate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token ?? ""}` },
-        body: JSON.stringify(withTopic ? { topic: topic.trim() } : { limit: 5 }),
+      const res = await fetch("/api/admin/trend", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(withTopic ? { topic: topic.trim() } : {}),
       });
       const j = await res.json().catch(() => ({}));
-      if (res.status === 403) setMsg({ kind: "err", text: t("admin.temas.needAdmin") });
+      if (res.status === 401 || res.status === 403) setMsg({ kind: "err", text: t("admin.temas.needAdmin") });
       else if (j.cooldown) setMsg({ kind: "err", text: t("admin.temas.cooldown") });
       else if (typeof j.created === "number") {
         setMsg({ kind: "ok", text: t("admin.temas.generated", { n: String(j.created) }) });
@@ -66,24 +60,29 @@ export function TemasLive({ initial }: { initial: Proposal[] }) {
   }
 
   async function approve(p: Proposal) {
-    const sb = supabaseBrowser();
-    if (!sb) return;
-    const { error } = await sb.rpc("publish_proposal", { p_id: p.id, p_slug: slugify(p.title) });
-    if (!error) {
+    const res = await fetch("/api/admin/proposal", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "publish", id: p.id, slug: slugify(p.title) }),
+    });
+    const j = await res.json().catch(() => ({}));
+    if (res.ok && j.ok) {
       setList((l) => l.filter((x) => x.id !== p.id));
       setMsg({ kind: "ok", text: t("admin.temas.approved") });
+      router.refresh();
     } else {
-      const m = error.message.includes("VINKO_UNSAFE") ? t("admin.temas.unsafe")
-        : error.message.includes("NO_RESOLUTION") ? t("admin.temas.needCriteria")
+      const em = String(j.error ?? "");
+      const m = em.includes("VINKO_UNSAFE") ? t("admin.temas.unsafe")
+        : em.includes("NO_RESOLUTION") ? t("admin.temas.needCriteria")
         : t("admin.temas.agentErr");
       setMsg({ kind: "err", text: m });
     }
   }
 
   async function discard(p: Proposal) {
-    const sb = supabaseBrowser();
-    if (!sb) return;
-    await sb.from("topic_proposals").update({ status: "discarded" }).eq("id", p.id);
+    await fetch("/api/admin/proposal", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "discard", id: p.id }),
+    });
     setList((l) => l.filter((x) => x.id !== p.id));
   }
 
