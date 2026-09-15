@@ -226,6 +226,16 @@
   "saldo.adultOnly": "Ganar Vinkos viendo un anuncio es solo +18.",
 
   "ad.house": "promoción de Vinko",
+  "ad.label": "Anuncio",
+  "ad.house.invite.title": "Trae a un amigo",
+  "ad.house.invite.sub": "Ganáis 200 Vinkos cada uno",
+  "ad.house.invite.cta": "Invitar",
+  "ad.house.create.title": "Crea tu propia porra",
+  "ad.house.create.sub": "En 30 segundos y que la juegue quien tú quieras",
+  "ad.house.create.cta": "Crear ahora",
+  "ad.house.streak.title": "No pierdas tu racha",
+  "ad.house.streak.sub": "Cada día suma multiplicador de Vinkos",
+  "ad.house.streak.cta": "Ver mi racha",
 
   "push.pre.title": "¿Te avisamos de lo tuyo?",
   "push.pre.body": "Te escribimos cuando se resuelva tu porra y cuando alguien te supere. Nada de spam.",

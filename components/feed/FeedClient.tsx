@@ -4,6 +4,7 @@ import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { StoriesViewer } from "./StoriesViewer";
 import { FastVideo } from "@/components/FastVideo";
+import { FeedAd } from "@/components/ads/FeedAd";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { VMark } from "@/components/Logo";
 import { capture } from "@/lib/analytics";
@@ -66,9 +67,15 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
         {porras.length === 0 ? (
           <p className="text-sm text-[var(--muted)]">{t("home.feedEmpty")}</p>
         ) : (
-          porras.map((p, k) => (
-            <FeedCard key={p.id} p={p} pick={picks[p.id]} onOpen={() => setViewer(k)} onPick={onPick} loggedIn={loggedIn} />
-          ))
+          porras.flatMap((p, k) => {
+            const card = (
+              <FeedCard key={p.id} p={p} pick={picks[p.id]} onOpen={() => setViewer(k)} onPick={onPick} loggedIn={loggedIn} />
+            );
+            // 1 anuncio cada 5 tarjetas, nunca el último (§ FeedAdAdapter)
+            return (k + 1) % 5 === 0 && k < porras.length - 1
+              ? [card, <FeedAd key={`ad-${k}`} seed={Math.floor(k / 5)} />]
+              : [card];
+          })
         )}
       </section>
 

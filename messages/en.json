@@ -226,6 +226,16 @@
   "saldo.adultOnly": "Earning Vinkos by watching an ad is 18+ only.",
 
   "ad.house": "Vinko promo",
+  "ad.label": "Ad",
+  "ad.house.invite.title": "Bring a friend",
+  "ad.house.invite.sub": "You both get 200 Vinkos",
+  "ad.house.invite.cta": "Invite",
+  "ad.house.create.title": "Create your own pool",
+  "ad.house.create.sub": "In 30 seconds, for whoever you want",
+  "ad.house.create.cta": "Create now",
+  "ad.house.streak.title": "Don't lose your streak",
+  "ad.house.streak.sub": "Each day adds a Vinkos multiplier",
+  "ad.house.streak.cta": "See my streak",
 
   "push.pre.title": "Want a heads-up on your stuff?",
   "push.pre.body": "We ping you when your pool resolves and when someone passes you. No spam.",
