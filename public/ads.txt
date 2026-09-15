@@ -1,5 +1,2 @@
-# Vinko — ads.txt (AdSense)
-# IMPORTANTE: sustituye el pub-XXXX de abajo por TU ID de editor real de AdSense
-# (AdSense → Cuenta → Configuración → Información de la cuenta → ID de editor).
-# Si este ID no es el tuyo, AdSense dirá "ads.txt no contiene tu ID de editor".
+# Vinko — ads.txt (AdSense). Publisher ID verificado el 15-sep-2026.
 google.com, pub-7388549278894123, DIRECT, f08c47fec0942fa0
