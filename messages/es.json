@@ -162,6 +162,7 @@
   "admin.live.title": "Actividad en vivo",
   "admin.live.sub": "Eventos reales del loop (is_seed=false). Plantillas y editorial quedan fuera.",
   "admin.live.empty": "Nadie ahora.",
+  "admin.live.pending": "Preparando el feed en vivo (falta aplicar la migración).",
   "admin.live.col.time": "Hora",
   "admin.live.col.event": "Evento",
   "admin.live.col.who": "Quién",

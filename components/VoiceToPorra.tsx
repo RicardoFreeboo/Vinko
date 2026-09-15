@@ -13,6 +13,9 @@ export function VoiceToPorra({ onFilled }: { onFilled: (question: string, option
   const [err, setErr] = useState<string | null>(null);
   const rec = useRef<any>(null);
   const finalText = useRef("");
+  // OJO: no se puede leer `state` dentro de onend/onerror — el closure lo captura
+  // congelado en "idle" y finish() no se llamaba nunca (la voz no rellenaba nada).
+  const listening = useRef(false);
 
   const SR = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
 
@@ -30,9 +33,14 @@ export function VoiceToPorra({ onFilled }: { onFilled: (question: string, option
       }
       setTranscript((finalText.current + interim).trim());
     };
-    r.onerror = () => { setErr(t("voice.err")); setState("idle"); };
-    r.onend = () => { if (state === "listening") finish(); };
+    r.onerror = () => { listening.current = false; setErr(t("voice.err")); setState("idle"); };
+    r.onend = () => {
+      if (!listening.current) return;
+      listening.current = false;
+      void finish();
+    };
     rec.current = r;
+    listening.current = true;
     setState("listening");
     r.start();
   }

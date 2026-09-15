@@ -162,6 +162,7 @@
   "admin.live.title": "Live activity",
   "admin.live.sub": "Real loop events (is_seed=false). Templates and editorial excluded.",
   "admin.live.empty": "Nobody right now.",
+  "admin.live.pending": "Preparing the live feed (migration pending).",
   "admin.live.col.time": "Time",
   "admin.live.col.event": "Event",
   "admin.live.col.who": "Who",

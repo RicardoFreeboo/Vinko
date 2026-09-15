@@ -1,8 +1,11 @@
-import { EmptyState } from "@/components/admin/ui";
+import { LiveFeed } from "@/components/admin/LiveFeed";
 import { t } from "@/lib/i18n";
 
-// PASO 5d — Feed LIVE de actividad real del loop (is_seed=false). Plantillas y
-// editorial fuera. Día 0: "Nadie ahora." — no se inventan filas.
+// PASO 5d — Feed LIVE de actividad real del loop. Lee picks/porras/recompensas
+// de personas reales desde la base (RPC admin_live_feed) y refresca cada 10 s.
+// Antes esto era una maqueta estática que SIEMPRE decía "Nadie ahora.".
+export const dynamic = "force-dynamic";
+
 export default function AdminLive() {
   return (
     <div className="flex flex-col gap-6">
@@ -12,15 +15,7 @@ export default function AdminLive() {
           {t("admin.live.sub")}
         </p>
       </div>
-
-      <div className="grid grid-cols-[repeat(4,auto)] gap-x-6 gap-y-2 overflow-x-auto rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] p-4 text-[12px]">
-        {["time", "event", "who", "porra"].map((c) => (
-          <span key={c} className="eyebrow text-[10px] whitespace-nowrap">
-            {t(`admin.live.col.${c}`)}
-          </span>
-        ))}
-      </div>
-      <EmptyState text={t("admin.live.empty")} />
+      <LiveFeed />
     </div>
   );
 }
