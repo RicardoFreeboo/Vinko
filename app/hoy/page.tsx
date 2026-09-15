@@ -2,9 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getFeed } from "@/lib/feed";
 import { HoyClient } from "@/components/HoyClient";
-import { FeedClient } from "@/components/feed/FeedClient";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
@@ -22,7 +20,7 @@ function madridDay(offset = 0): string {
 }
 
 export default async function Hoy() {
-  const [session, feed] = await Promise.all([getSession(), getFeed()]);
+  const session = await getSession();
   const sb = await supabaseServer();
   const today = madridDay(), yesterday = madridDay(-1);
 
@@ -55,13 +53,6 @@ export default async function Hoy() {
       const { data: a } = await sb.from("daily_pick_answers").select("option_idx, correct, pts, score").eq("day_id", pv.id).eq("user_id", session.id).maybeSingle();
       prev = { question: pv.question, options: pv.options as string[], correct_idx: pv.correct_idx, answer: a ?? null };
     }
-  }
-
-  // picks del usuario sobre el feed → para marcar lo ya apostado
-  const feedPicks: Record<string, string> = {};
-  if (session && sb && feed.length) {
-    const { data } = await sb.from("picks").select("porra_id, option_id").eq("user_id", session.id).in("porra_id", feed.map((f) => f.id));
-    for (const pk of data ?? []) feedPicks[pk.porra_id] = pk.option_id;
   }
 
   return (
@@ -129,8 +120,14 @@ export default async function Hoy() {
         </div>
       )}
 
-      {/* HISTORIAS + FEED con apuesta inline (apk4) */}
-      <FeedClient porras={feed} initialPicks={feedPicks} loggedIn={!!session} />
+      {/* acceso directo al feed de porras (su pestaña propia) */}
+      <Link href="/feed" className="flex items-center justify-between rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3.5">
+        <span className="flex items-center gap-2.5">
+          <span className="text-lg leading-none">▦</span>
+          <span className="text-[15px] font-black text-[var(--cream)]">{t("hoy.toFeed")}</span>
+        </span>
+        <span className="text-[var(--win)]">→</span>
+      </Link>
 
       <AppNav />
     </main>

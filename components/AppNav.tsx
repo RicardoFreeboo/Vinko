@@ -10,6 +10,7 @@ import { t } from "@/lib/i18n";
 // (header de Hoy). El nav queda limpio con las 5 secciones.
 const TABS = [
   { href: "/hoy", key: "nav.hoy", icon: "◉", primary: false },
+  { href: "/feed", key: "nav.feed", icon: "▦", primary: false },
   { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
   { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
   { href: "/liga", key: "nav.liga", icon: "▲", primary: false },

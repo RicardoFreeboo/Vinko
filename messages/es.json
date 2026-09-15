@@ -174,6 +174,9 @@
 
   "nav.label": "Navegación",
   "nav.hoy": "Hoy",
+  "nav.feed": "Feed",
+  "feed.title": "Feed",
+  "hoy.toFeed": "Ver el feed de porras",
   "nav.grupos": "Grupos",
   "nav.liga": "Liga",
   "nav.saldo": "Vinkos",
