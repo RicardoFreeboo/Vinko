@@ -33,7 +33,7 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
     const { data } = await client
       .from("porras")
       .select(
-        "id, slug, title, is_template, source, status, closes_at, winning_option_id, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
+        "id, slug, title, is_template, source, status, closes_at, winning_option_id, media_url, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
       )
       .eq("slug", slug)
       .maybeSingle();
@@ -41,13 +41,14 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
       const options = (data.porra_options ?? [])
         .slice()
         .sort((a: PorraOption, b: PorraOption) => a.idx - b.idx);
-      // Las editoriales viven en DB (jugables) pero el vídeo IA y la marca
-      // oficial vienen del catálogo local.
+      // Vídeo: primero el subido a Storage (media_url), luego el catálogo local
+      // (seeds). Las editoriales viven en DB (jugables) y su marca oficial sale
+      // de source=editorial.
       const local = editorialBySlug(slug);
       return {
         ...data,
         options,
-        video: local?.video ?? null,
+        video: (data.media_url as string | null) ?? local?.video ?? null,
         official: data.source === "editorial",
       } as Porra;
     }
