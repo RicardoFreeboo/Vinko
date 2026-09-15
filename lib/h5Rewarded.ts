@@ -25,6 +25,9 @@ declare global {
 export type H5Result = "granted" | "dismissed" | "sin_anuncio" | "no_disponible";
 
 let loading: Promise<boolean> | null = null;
+// Si Google no responde (cuenta sin H5 habilitado), no volvemos a esperar en
+// toda la sesión: se cae directo al patrocinador / vídeo propio.
+let h5Muerto = false;
 
 // Carga bajo demanda: nada de scripts de anuncios en /p/[slug].
 function loadApi(): Promise<boolean> {
@@ -53,7 +56,8 @@ function loadApi(): Promise<boolean> {
   return loading;
 }
 
-export async function showH5Rewarded(timeoutMs = 10000): Promise<H5Result> {
+export async function showH5Rewarded(timeoutMs = 2500): Promise<H5Result> {
+  if (h5Muerto) return "no_disponible";
   const ok = await loadApi();
   if (!ok || typeof window.adBreak !== "function") return "no_disponible";
 
@@ -61,7 +65,7 @@ export async function showH5Rewarded(timeoutMs = 10000): Promise<H5Result> {
     let settled = false;
     let viewed = false;
     const finish = (r: H5Result) => { if (!settled) { settled = true; resolve(r); } };
-    const guard = setTimeout(() => finish("sin_anuncio"), timeoutMs);
+    const guard = setTimeout(() => { h5Muerto = true; finish("sin_anuncio"); }, timeoutMs);
 
     try {
       window.adBreak!({
