@@ -6,9 +6,9 @@ import { EDITORIAL } from "@/lib/editorial";
 import { Logo, VMark } from "@/components/Logo";
 import { t } from "@/lib/i18n";
 
-// Export estático: prerenderiza todas las porras conocidas (plantillas +
-// editoriales @vinko). HTML de título y opciones usable sin JS.
-export const dynamicParams = false;
+// Prerenderiza las porras conocidas (plantillas + editoriales @vinko) y sirve
+// bajo demanda las de usuarios cuando exista backend. HTML usable sin JS.
+export const dynamicParams = true;
 export function generateStaticParams() {
   return [...TEMPLATES, ...EDITORIAL].map((p) => ({ slug: p.slug }));
 }

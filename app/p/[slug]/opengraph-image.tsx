@@ -4,8 +4,8 @@ import { TEMPLATES } from "@/lib/templates";
 import { EDITORIAL } from "@/lib/editorial";
 import { t } from "@/lib/i18n";
 
-// Export estático: una PNG por porra conocida.
-export const dynamicParams = false;
+// Una PNG por porra conocida; el resto se generan bajo demanda.
+export const dynamicParams = true;
 export function generateStaticParams() {
   return [...TEMPLATES, ...EDITORIAL].map((p) => ({ slug: p.slug }));
 }

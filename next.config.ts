@@ -1,13 +1,16 @@
 import type { NextConfig } from "next";
 
-// Demo en hosting compartido (Hostinger, sin Node): export estático.
-// /p/[slug] y sus OG se prerenderizan para todas las porras conocidas
-// (plantillas + editoriales @vinko). El login/loop real necesita Node (fase
-// siguiente); aquí queda como showcase navegable. noindex vía <meta> (layout).
+// Vercel: SSR completo (login, loop, OG dinámica, scraper server). Alfa privada:
+// noindex por cabecera + <meta> (layout) + candado /secret.
 const nextConfig: NextConfig = {
-  output: "export",
-  trailingSlash: true,
-  images: { unoptimized: true },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
