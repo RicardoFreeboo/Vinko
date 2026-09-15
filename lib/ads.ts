@@ -13,4 +13,7 @@ export const REWARD_CAP_PER_DAY = 5;
 // Google Ad Manager (GPT rewarded web). Ese id se pondrá aquí cuando exista.
 export const ADSENSE_CLIENT =
   process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-7388549278894123";
+// Unidad "Vinko feed" (Display responsive) — 1 hueco cada 5 tarjetas en Hoy.
+export const ADSENSE_FEED_SLOT =
+  process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT ?? "5485973348";
 export const GAM_REWARDED_UNIT = process.env.NEXT_PUBLIC_GAM_REWARDED_UNIT ?? "";
