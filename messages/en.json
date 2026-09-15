@@ -370,6 +370,7 @@
   "home.play": "Play →",
   "home.loginCta": "Sign in",
   "home.loginCard": "Sign in with Google to play the Daily Pick, build your streak and earn coins.",
+  "home.stories": "Stories",
 
   "admin.health.check.vercel": "Vercel · GET /",
   "admin.health.check.dominio": "Domain vinko.fun · Hostinger DNS",
@@ -386,5 +387,30 @@
   "admin.mod.cat.odio": "Hate",
   "admin.kpi.adsShown": "Ads shown",
   "admin.kpi.adRevenue": "Ad revenue",
-  "admin.kpi.adRevenueHint": "€0 until a paying programmatic provider is live; current rewarded is house-ad."
+  "admin.kpi.adRevenueHint": "€0 until a paying programmatic provider is live; current rewarded is house-ad.",
+
+  "saldo.coinsHint": "to play",
+  "saldo.levelHint": "grows forever",
+  "saldo.skillHint": "wins · league",
+  "saldo.recharge": "🎁 Collect your free coins",
+  "saldo.rechargeSub": "They pile up on their own every few hours",
+  "saldo.earn.daily": "Daily gift",
+  "saldo.earn.pick": "Play the Daily Pick",
+  "saldo.earn.create": "Create a pool",
+  "saldo.earn.invite": "Invite a friend",
+  "saldo.earn.share": "Share on WhatsApp",
+  "saldo.earn.streak": "Complete the weekly streak",
+
+  "nueva.close.1h": "1 hour",
+  "nueva.close.24h": "24 hours",
+  "nueva.close.1w": "1 week",
+  "nueva.close.custom": "📅 Exact date",
+  "nueva.badDate": "Pick a closing date.",
+  "nueva.badArb": "Enter the arbiter's username.",
+  "nueva.arbNotFound": "Can't find that user. Check the @username.",
+  "nueva.arbiter": "Arbiter (who decides the result)",
+  "nueva.arbMe": "I decide",
+  "nueva.arbFriend": "A friend",
+  "nueva.arbPh": "@arbiter username",
+  "nueva.arbHint": "They'll get an invite and must accept being the arbiter."
 }

@@ -28,7 +28,7 @@ export async function getFeed(limit = 24): Promise<FeedPorra[]> {
   }
   const { data } = await sb
     .from("porras")
-    .select("id, slug, title, source, closes_at, featured_until, porra_options ( id, idx, label )")
+    .select("id, slug, title, source, closes_at, featured_until, porra_options!porra_options_porra_id_fkey ( id, idx, label )")
     .eq("status", "open")
     .eq("is_template", false)
     .gt("closes_at", new Date().toISOString())

@@ -33,7 +33,7 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
     const { data } = await client
       .from("porras")
       .select(
-        "id, slug, title, is_template, source, status, closes_at, winning_option_id, porra_options ( id, idx, label )",
+        "id, slug, title, is_template, source, status, closes_at, winning_option_id, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
       )
       .eq("slug", slug)
       .maybeSingle();

@@ -370,6 +370,7 @@
   "home.play": "Jugar →",
   "home.loginCta": "Entrar",
   "home.loginCard": "Entra con Google para jugar el pique del día, sumar racha y ganar monedas.",
+  "home.stories": "Historias",
 
   "admin.health.check.vercel": "Vercel · GET /",
   "admin.health.check.dominio": "Dominio vinko.fun · DNS Hostinger",
@@ -386,5 +387,30 @@
   "admin.mod.cat.odio": "Odio",
   "admin.kpi.adsShown": "Anuncios mostrados",
   "admin.kpi.adRevenue": "Ingresos por anuncios",
-  "admin.kpi.adRevenueHint": "0 € hasta que haya proveedor programático que pague; el rewarded actual es house-ad."
+  "admin.kpi.adRevenueHint": "0 € hasta que haya proveedor programático que pague; el rewarded actual es house-ad.",
+
+  "saldo.coinsHint": "para jugar",
+  "saldo.levelHint": "sube para siempre",
+  "saldo.skillHint": "aciertos · liga",
+  "saldo.recharge": "🎁 Recoge tus monedas gratis",
+  "saldo.rechargeSub": "Se acumulan solas cada pocas horas",
+  "saldo.earn.daily": "Regalo diario",
+  "saldo.earn.pick": "Juega el pique del día",
+  "saldo.earn.create": "Crea una porra",
+  "saldo.earn.invite": "Invita a un amigo",
+  "saldo.earn.share": "Comparte por WhatsApp",
+  "saldo.earn.streak": "Completa la racha semanal",
+
+  "nueva.close.1h": "1 hora",
+  "nueva.close.24h": "24 horas",
+  "nueva.close.1w": "1 semana",
+  "nueva.close.custom": "📅 Fecha exacta",
+  "nueva.badDate": "Elige una fecha de cierre.",
+  "nueva.badArb": "Pon el usuario del árbitro.",
+  "nueva.arbNotFound": "No encuentro a ese usuario. Revisa el @usuario.",
+  "nueva.arbiter": "Árbitro (quién decide el resultado)",
+  "nueva.arbMe": "Yo decido",
+  "nueva.arbFriend": "Un amigo",
+  "nueva.arbPh": "@usuario del árbitro",
+  "nueva.arbHint": "Le llegará una invitación y tendrá que aceptar ser árbitro."
 }

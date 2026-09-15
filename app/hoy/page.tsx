@@ -5,6 +5,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { getFeed } from "@/lib/feed";
 import { HoyClient } from "@/components/HoyClient";
 import { PorraCard } from "@/components/PorraCard";
+import { StoriesRail } from "@/components/StoriesRail";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { t } from "@/lib/i18n";
@@ -94,7 +95,10 @@ export default async function Hoy() {
         </div>
       )}
 
-      {/* FEED de porras con vídeo */}
+      {/* HISTORIAS — carrusel horizontal de porras con vídeo (apk4) */}
+      <StoriesRail porras={feed} />
+
+      {/* FEED de porras */}
       <section className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-black text-[var(--cream)]">{t("home.feed")}</h2>
