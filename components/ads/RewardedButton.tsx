@@ -11,15 +11,19 @@ import { t } from "@/lib/i18n";
 export function RewardedButton({
   isAdult,
   onClaimed,
+  force = false,
 }: {
   isAdult: boolean;
   onClaimed?: (impressionId: string) => void;
+  force?: boolean;
 }) {
   const [watching, setWatching] = useState(false);
   const [left, setLeft] = useState(3);
 
-  // Regla del freeze: oculto en público mientras dure el candado legal.
-  if (LEGAL_LOCK || !isAdult) return null;
+  // Regla del freeze: oculto en público mientras dure el candado legal, SALVO
+  // superficies que Ricardo autorizó explícitamente (force) — p. ej. /saldo,
+  // tras login. El +18 declarado se sigue exigiendo siempre.
+  if ((LEGAL_LOCK && !force) || !isAdult) return null;
 
   async function watch() {
     setWatching(true);
