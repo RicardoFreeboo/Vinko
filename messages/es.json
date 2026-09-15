@@ -434,6 +434,7 @@
   "media.recVoice": "Grabar voz",
   "media.upload": "Subir archivo",
   "media.recording": "Grabando… {s}s",
+  "media.live": "EN DIRECTO",
   "media.stop": "Parar",
   "media.uploading": "Subiendo…",
   "media.ready": "Listo ✓",

@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { t } from "@/lib/i18n";
 
@@ -21,6 +21,15 @@ export function MediaCapture({ userId, onMedia }: {
   const chunks = useRef<Blob[]>([]);
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const liveVideo = useRef<HTMLVideoElement>(null);
+
+  // Enseña la cámara EN VIVO mientras grabas (no a ciegas): engancha el stream al
+  // <video> de previsualización en cuanto aparece.
+  useEffect(() => {
+    if (rec === "video" && liveVideo.current && stream.current) {
+      liveVideo.current.srcObject = stream.current;
+    }
+  }, [rec]);
 
   function pickMime(video: boolean): string {
     const c = video
@@ -94,23 +103,45 @@ export function MediaCapture({ userId, onMedia }: {
     );
   }
 
+  // GRABANDO: se ve la cámara en directo (o el micro pulsante), con el punto
+  // rojo y la cuenta atrás encima, y el botón de parar.
+  if (rec) {
+    return (
+      <div className="rounded-[12px] border-2 border-[var(--red)] bg-black p-2">
+        {rec === "video" ? (
+          <div className="relative overflow-hidden rounded-[10px] bg-black">
+            <video ref={liveVideo} autoPlay muted playsInline
+              style={{ transform: "scaleX(-1)" }}
+              className="mx-auto max-h-[52vh] w-full object-cover" />
+            <span className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[12px] font-black text-white backdrop-blur">
+              <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-[var(--red)]" /> {t("media.live")} · {left}s
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-3 py-7">
+            <span className="grid h-16 w-16 animate-pulse place-items-center rounded-full bg-[var(--red)]/20 text-3xl">🎤</span>
+            <span className="text-[13px] font-black text-white">{t("media.recording", { s: String(left) })}</span>
+          </div>
+        )}
+        <button onClick={stop} className="mt-2 flex w-full items-center justify-center gap-2 rounded-[10px] bg-[var(--red)] px-3 py-3 text-sm font-black text-white">
+          ⏹ {t("media.stop")}
+        </button>
+        {err && <p className="mt-1 text-xs text-[var(--red)]">{err}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-[12px] border border-dashed border-[var(--line)] bg-[var(--ink2)] p-3">
-      {rec ? (
-        <button onClick={stop} className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-[var(--red)] px-3 py-3 text-sm font-black text-white">
-          ⏺ {t("media.recording", { s: String(left) })} · {t("media.stop")}
-        </button>
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          <Btn onClick={() => startRec("video")} icon="📹" label={t("media.recVideo")} />
-          <Btn onClick={() => startRec("audio")} icon="🎤" label={t("media.recVoice")} />
-          <label className="flex cursor-pointer flex-col items-center gap-1 rounded-[10px] border border-[var(--line)] px-2 py-3 text-center">
-            <span className="text-xl leading-none">📁</span>
-            <span className="text-[11px] font-bold text-[var(--cream)]">{t("media.upload")}</span>
-            <input type="file" accept="video/*,image/*,audio/*" onChange={onFile} className="hidden" />
-          </label>
-        </div>
-      )}
+      <div className="grid grid-cols-3 gap-2">
+        <Btn onClick={() => startRec("video")} icon="📹" label={t("media.recVideo")} />
+        <Btn onClick={() => startRec("audio")} icon="🎤" label={t("media.recVoice")} />
+        <label className="flex cursor-pointer flex-col items-center gap-1 rounded-[10px] border border-[var(--line)] px-2 py-3 text-center">
+          <span className="text-xl leading-none">📁</span>
+          <span className="text-[11px] font-bold text-[var(--cream)]">{t("media.upload")}</span>
+          <input type="file" accept="video/*,image/*,audio/*" onChange={onFile} className="hidden" />
+        </label>
+      </div>
       {err && <p className="mt-2 text-xs text-[var(--red)]">{err}</p>}
       <p className="mt-2 text-[10px] text-[var(--muted2)]">{t("media.note")}</p>
     </div>

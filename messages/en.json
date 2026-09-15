@@ -434,6 +434,7 @@
   "media.recVoice": "Record voice",
   "media.upload": "Upload file",
   "media.recording": "Recording… {s}s",
+  "media.live": "LIVE",
   "media.stop": "Stop",
   "media.uploading": "Uploading…",
   "media.ready": "Ready ✓",
