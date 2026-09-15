@@ -4,6 +4,8 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { capture } from "@/lib/analytics";
 import { VMark } from "@/components/Logo";
 import { showRewarded } from "@/lib/gamRewarded";
+import { showH5Rewarded } from "@/lib/h5Rewarded";
+import { RewardedVideo, type Creative } from "@/components/ads/RewardedVideo";
 import { t } from "@/lib/i18n";
 
 // RewardedSlot (§4.2): UNA abstracción con cascada de tres proveedores.
@@ -47,6 +49,7 @@ export function RewardedSlot({
   const [state, setState] = useState<"idle" | "watching" | "hidden">("idle");
   const [left, setLeft] = useState(3);
   const [creativo] = useState(() => CREATIVOS[Math.floor(Date.now() / 1000) % CREATIVOS.length]);
+  const [video, setVideo] = useState<Creative | null>(null);
   const started = useRef(false);
 
   if (state === "hidden" || sessionFails >= 2) return null;
@@ -60,6 +63,35 @@ export function RewardedSlot({
     // configurada; 2) si no hay unidad o no rellena → house ad visible.
     // La recompensa se concede igual: nunca se castiga al usuario por que no
     // haya inventario.
+    // 1) GOOGLE H5 Games Ads (Ad Placement API): rewarded REAL de AdSense en
+    //    web. Si la cuenta aún no está habilitada, responde sin anuncio y
+    //    seguimos con el patrocinador / vídeo propio.
+    const h5 = await showH5Rewarded();
+    if (h5 === "granted") {
+      capture("ad_completed", { is_seed: false, slot, provider: "h5" });
+      started.current = false;
+      await claim();
+      return;
+    }
+    if (h5 === "dismissed") {
+      capture("ad_failed", { is_seed: false, slot, reason: "cerrado" });
+      started.current = false;
+      return;
+    }
+
+    // 2) PATROCINADOR (o vídeo propio): creativo de vídeo a pantalla completa.
+    const sb0 = supabaseBrowser();
+    if (sb0) {
+      const { data: c } = await sb0.rpc("get_rewarded_creative");
+      const cr = c as Creative | null;
+      if (cr?.video_url) {
+        capture("ad_started", { is_seed: false, slot, provider: cr.kind });
+        setVideo(cr);
+        return; // sigue en onDone/onCancel del reproductor
+      }
+    }
+
+    // 3) Google Ad Manager (cuando haya unidad rewarded propia).
     const real = await showRewarded();
     if (real === "granted") {
       capture("ad_completed", { is_seed: false, slot, provider: "gam" });
@@ -85,6 +117,18 @@ export function RewardedSlot({
     setState("idle");
     started.current = false;
     await claim();
+  }
+
+  async function videoDone() {
+    capture("ad_completed", { is_seed: false, slot, provider: video?.kind ?? "house" });
+    setVideo(null);
+    started.current = false;
+    await claim();
+  }
+  function videoCancel() {
+    capture("ad_failed", { is_seed: false, slot, reason: "cerrado" });
+    setVideo(null);
+    started.current = false;
   }
 
   // El crédito SIEMPRE lo hace el servidor (Edge Function → grant_ad_reward_v2).
@@ -131,6 +175,7 @@ export function RewardedSlot({
 
   return (
     <>
+      {video && <RewardedVideo creative={video} onDone={videoDone} onCancel={videoCancel} />}
       {state === "watching" && (
         <div className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-5 bg-[var(--ink)]/97 px-8 backdrop-blur">
           <span className="mono rounded-full border border-[var(--muted2)]/50 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.14em] text-[var(--muted2)]">

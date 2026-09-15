@@ -36,6 +36,8 @@
   "ad.rewarded.cta": "Ver un anuncio y ganar {n} puntos virtuales",
   "ad.rewarded.note": "No se compran ni se canjean por dinero.",
   "ad.watching": "Viendo anuncio… {s}s",
+  "ad.sponsored": "Patrocinado",
+  "ad.rewardReady": "¡Recompensa lista!",
   "ad.stub": "modo test (sin proveedor)",
   "saldo.title": "Tu saldo",
   "saldo.points": "puntos virtuales",

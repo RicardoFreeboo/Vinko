@@ -36,6 +36,8 @@
   "ad.rewarded.cta": "Watch an ad and earn {n} virtual points",
   "ad.rewarded.note": "They can't be bought or exchanged for money.",
   "ad.watching": "Watching ad… {s}s",
+  "ad.sponsored": "Sponsored",
+  "ad.rewardReady": "Reward ready!",
   "ad.stub": "test mode (no provider)",
   "saldo.title": "Your balance",
   "saldo.points": "virtual points",
