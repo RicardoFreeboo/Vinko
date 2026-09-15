@@ -18,7 +18,12 @@ export const metadata: Metadata = {
   description: t("tagline"),
   // Staging no indexable mientras LEGAL_LOCK (refuerzo de la cabecera global).
   robots: { index: false, follow: false },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "Vinko", statusBarStyle: "black-translucent" },
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
 };
+
+export const viewport = { themeColor: "#0c1011" };
 
 export default function RootLayout({
   children,

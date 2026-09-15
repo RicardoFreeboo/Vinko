@@ -41,7 +41,15 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
       const options = (data.porra_options ?? [])
         .slice()
         .sort((a: PorraOption, b: PorraOption) => a.idx - b.idx);
-      return { ...data, options } as Porra;
+      // Las editoriales viven en DB (jugables) pero el vídeo IA y la marca
+      // oficial vienen del catálogo local.
+      const local = editorialBySlug(slug);
+      return {
+        ...data,
+        options,
+        video: local?.video ?? null,
+        official: data.source === "editorial",
+      } as Porra;
     }
   }
   // Fallback SSR sin backend: plantillas de ejemplo y porras editoriales

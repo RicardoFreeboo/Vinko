@@ -1,44 +1,53 @@
-// ============================================================================
-// Vinko alfa — helper único de PostHog (EU).
-// ALPHA FREEZE: todo capture() lleva `is_seed: boolean` OBLIGATORIO — por tipo
-// y en runtime. Este helper NO define ni renombra la taxonomía de eventos
-// (los 18 llegan por parámetro desde el código que los dispara). El cubo
-// FUTURO (feed vídeo, follow, redeem, affiliate, capa2) está OFF: no dispararlo.
-// GDPR: sin autocapture, sin pageviews automáticos, persistencia en memoria
-// (cero cookies) hasta que exista la base legal prevista.
-// ============================================================================
-import posthog from 'posthog-js'
+"use client";
+// Analítica (taxonomía §6.1 del spec + regla del freeze: TODO capture() lleva
+// is_seed). Sin NEXT_PUBLIC_POSTHOG_KEY es un no-op silencioso — jamás rompe
+// la UI. Envío por HTTP (sin dependencia).
 
-let started = false
+const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
 
-export function initAnalytics(): void {
-  if (started || typeof window === 'undefined') return
-  const key = process.env.NEXT_PUBLIC_POSTHOG_KEY
-  if (!key) return // sin clave no hay analítica; la app jamás se rompe por esto
-  posthog.init(key, {
-    api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://eu.i.posthog.com', // EU SIEMPRE
-    capture_pageview: false,
-    autocapture: false,
-    persistence: 'memory',
-  })
-  started = true
+export type EventName =
+  // gamificación
+  | "daily_pick_shown" | "daily_pick_submitted" | "daily_pick_resolved"
+  | "streak_extended" | "streak_broken" | "streak_shield_used" | "streak_recovered"
+  | "quest_completed" | "season_tier_unlocked"
+  | "league_week_started" | "league_promoted" | "league_relegated"
+  | "boost_purchased" | "boost_used"
+  | "group_digest_generated" | "group_digest_shared"
+  // loop
+  | "porra_created" | "pick_made" | "porra_resolved" | "porra_shared"
+  // publicidad
+  | "ad_opportunity_shown" | "ad_opt_in" | "ad_started" | "ad_completed"
+  | "ad_failed" | "ad_reward_granted"
+  // notificaciones
+  | "push_prompt_shown" | "push_permission_granted" | "push_permission_denied"
+  | "pwa_install_prompt_shown" | "pwa_installed"
+  | "push_opened" | "push_class_muted" | "push_permission_revoked"
+  | "inbox_opened" | "inbox_item_clicked";
+
+function distinctId(): string {
+  try {
+    let id = localStorage.getItem("vinko_did");
+    if (!id) { id = crypto.randomUUID(); localStorage.setItem("vinko_did", id); }
+    return id;
+  } catch { return "anon"; }
 }
 
-type Props = Record<string, unknown>
-
-/**
- * Único punto de captura permitido en el repo.
- * `isSeed` es obligatorio: true para plantillas/editorial/pruebas, false SOLO
- * para actividad de usuarios reales. Los dashboards de tracción filtran
- * is_seed=false; si hay duda, true (o no instrumentar).
- */
-export function capture(event: string, isSeed: boolean, props: Props = {}): void {
-  if (!started) return
-  if (typeof isSeed !== 'boolean') return // sin is_seed no se dispara
-  posthog.capture(event, { ...props, is_seed: isSeed })
-}
-
-export function identify(userId: string, props: Props = {}): void {
-  if (!started) return
-  posthog.identify(userId, props)
+// is_seed OBLIGATORIO (regla de datos del freeze): usuarios reales = false.
+export function capture(
+  event: EventName,
+  props: { is_seed: boolean } & Record<string, unknown>,
+): void {
+  if (!KEY) return;
+  try {
+    const body = JSON.stringify({
+      api_key: KEY,
+      event,
+      distinct_id: distinctId(),
+      properties: { ...props, $lib: "vinko-web" },
+      timestamp: new Date().toISOString(),
+    });
+    navigator.sendBeacon?.(`${HOST}/i/v0/e/`, body) ??
+      fetch(`${HOST}/i/v0/e/`, { method: "POST", body, keepalive: true });
+  } catch { /* la analítica jamás rompe la UI */ }
 }

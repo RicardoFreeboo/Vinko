@@ -4,6 +4,7 @@ import { getPorraBySlug } from "@/lib/porras";
 import { TEMPLATES } from "@/lib/templates";
 import { EDITORIAL } from "@/lib/editorial";
 import { Logo, VMark } from "@/components/Logo";
+import { PickPanel } from "@/components/PickPanel";
 import { t } from "@/lib/i18n";
 
 // Prerenderiza las porras conocidas (plantillas + editoriales @vinko) y sirve
@@ -138,12 +139,13 @@ export default async function PorraPage({ params }: Props) {
         })}
       </section>
 
-      <Link
-        href={`/login?next=/p/${porra.slug}`}
-        className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)]"
-      >
-        ⚡ {t("p.join")}
-      </Link>
+      <PickPanel
+        porraId={porra.id}
+        slug={porra.slug}
+        options={porra.options.map((o) => ({ id: o.id, label: o.label }))}
+        status={porra.status}
+        isTemplate={porra.is_template}
+      />
 
       <footer className="mt-auto flex flex-col gap-1.5 pt-6">
         <p className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted2)]">

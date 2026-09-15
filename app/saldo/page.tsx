@@ -1,13 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { getSession } from "@/lib/session";
+import { supabaseServer } from "@/lib/supabase/server";
 import { SaldoClient } from "@/components/SaldoClient";
 import { Logo } from "@/components/Logo";
+import { AppNav } from "@/components/AppNav";
 import { t } from "@/lib/i18n";
 
-// Saldo del usuario + rewarded (ganar puntos viendo un anuncio). Requiere sesión
-// y +18 declarado. El crédito lo hace el servidor (Edge Function). Sin sesión o
-// sin año de nacimiento → se guía al paso que falta.
+// Saldo + anuncios recompensados (placements R1/R2/R3/R6, §4.3). El crédito
+// SIEMPRE lo hace el servidor (Edge Function → grant_ad_reward_v2). Los
+// anuncios dan utilidad (PTS, escudo, boost), JAMÁS marcador (§0.2).
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: t("saldo.title"),
@@ -47,12 +49,35 @@ export default async function Saldo() {
     );
   }
 
+  const sb = await supabaseServer();
+  const { data: p } = await sb!
+    .from("profiles")
+    .select("points, xp, marcador_total, streak_days, streak_shields, streak_broken_days, streak_recover_until, division")
+    .eq("id", session.id)
+    .maybeSingle();
+
   const isAdult = new Date().getFullYear() - session.birth_year >= 18;
+  const recoverable =
+    !!p?.streak_recover_until && new Date(p.streak_recover_until) > new Date() &&
+    (p?.streak_broken_days ?? 0) > 0;
+
   return (
-    <SaldoClient
-      initialPoints={session.points ?? 0}
-      isAdult={isAdult}
-      handle={session.handle}
-    />
+    <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-24 pt-6">
+      <header className="flex items-center justify-between">
+        <Logo mark={28} word={20} />
+        <span className="mono text-xs text-[var(--muted)]">@{session.handle}</span>
+      </header>
+      <SaldoClient
+        initialPoints={p?.points ?? 0}
+        xp={p?.xp ?? 0}
+        marcador={p?.marcador_total ?? 0}
+        division={p?.division ?? "bronce"}
+        shields={p?.streak_shields ?? 0}
+        isAdult={isAdult}
+        recoverable={recoverable}
+        brokenDays={p?.streak_broken_days ?? 0}
+      />
+      <AppNav />
+    </main>
   );
 }
