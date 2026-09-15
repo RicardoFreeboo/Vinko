@@ -17,5 +17,5 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "legacy-web-v1"]
+  "exclude": ["node_modules", "legacy-web-v1", "supabase/functions"]
 }
