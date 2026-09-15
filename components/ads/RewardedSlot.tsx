@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { capture } from "@/lib/analytics";
 import { VMark } from "@/components/Logo";
+import { showRewarded } from "@/lib/gamRewarded";
 import { t } from "@/lib/i18n";
 
 // RewardedSlot (§4.2): UNA abstracción con cascada de tres proveedores.
@@ -54,9 +55,27 @@ export function RewardedSlot({
     if (started.current) return;
     started.current = true;
     capture("ad_opt_in", { is_seed: false, slot });
+
+    // CASCADA (§4.2): 1) rewarded REAL de Google Ad Manager si hay unidad
+    // configurada; 2) si no hay unidad o no rellena → house ad visible.
+    // La recompensa se concede igual: nunca se castiga al usuario por que no
+    // haya inventario.
+    const real = await showRewarded();
+    if (real === "granted") {
+      capture("ad_completed", { is_seed: false, slot, provider: "gam" });
+      setState("idle");
+      started.current = false;
+      await claim();
+      return;
+    }
+    if (real === "cerrado") { // lo cerró antes de terminar: sin recompensa
+      capture("ad_failed", { is_seed: false, slot, reason: "cerrado" });
+      setState("idle");
+      started.current = false;
+      return;
+    }
+
     setState("watching");
-    // Cascada: sin patrocinador ni Ad Manager configurados → house ad, que ahora
-    // se VE en pantalla (antes era una cuenta atrás en blanco: parecía roto).
     capture("ad_started", { is_seed: false, slot, provider: "house" });
     for (let s = 3; s > 0; s--) {
       setLeft(s);
@@ -65,6 +84,11 @@ export function RewardedSlot({
     capture("ad_completed", { is_seed: false, slot, provider: "house" });
     setState("idle");
     started.current = false;
+    await claim();
+  }
+
+  // El crédito SIEMPRE lo hace el servidor (Edge Function → grant_ad_reward_v2).
+  async function claim() {
 
     const sb = supabaseBrowser();
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
