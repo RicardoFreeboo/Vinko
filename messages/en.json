@@ -448,5 +448,13 @@
   "voice.noSupport": "Your browser can't dictate. Type it or record the audio below.",
   "voice.err": "Couldn't hear you. Try again.",
   "voice.short": "Too short. Say the question and options.",
-  "voice.invalid": "Didn't get it. Repeat: the question and the options."
+  "voice.invalid": "Didn't get it. Repeat: the question and the options.",
+  "u.edit": "My Vinkos →",
+  "u.created": "Created",
+  "u.played": "Played",
+  "u.hits": "Wins",
+  "u.createdSection": "Pools created",
+  "u.playedSection": "Pools played",
+  "u.noCreated": "No pools created yet.",
+  "u.noPlayed": "No pools played yet."
 }

@@ -73,7 +73,7 @@ export default async function Hoy() {
             </span>
           )}
           {session ? (
-            <Link href="/saldo" className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
+            <Link href={`/u/${session.handle}`} className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
           ) : (
             <Link href="/login?next=/hoy" className="rounded-full bg-[var(--win)] px-3.5 py-1.5 text-[12px] font-black text-[var(--ink)]">
               {t("home.loginCta")}

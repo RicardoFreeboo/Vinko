@@ -448,5 +448,13 @@
   "voice.noSupport": "Tu navegador no permite dictar. Escríbela o graba el audio abajo.",
   "voice.err": "No te pude escuchar. Prueba otra vez.",
   "voice.short": "Muy corto. Di la pregunta y las opciones.",
-  "voice.invalid": "No me quedó clara. Repítela: la pregunta y las opciones."
+  "voice.invalid": "No me quedó clara. Repítela: la pregunta y las opciones.",
+  "u.edit": "Mis Vinkos →",
+  "u.created": "Creadas",
+  "u.played": "Jugadas",
+  "u.hits": "Aciertos",
+  "u.createdSection": "Porras creadas",
+  "u.playedSection": "Porras jugadas",
+  "u.noCreated": "Aún no ha creado ninguna porra.",
+  "u.noPlayed": "Aún no ha jugado ninguna porra."
 }
