@@ -33,11 +33,28 @@ function distinctId(): string {
   } catch { return "anon"; }
 }
 
+// Subconjunto que también va a Google Analytics (adquisición/tráfico). PostHog
+// sigue siendo la analítica de producto: no se duplica todo a ciegas.
+const GA_MIRROR = new Set<string>([
+  "porra_created", "pick_made", "porra_resolved", "porra_shared",
+  "daily_pick_submitted", "daily_pick_resolved",
+  "streak_extended", "streak_broken", "ad_reward_granted",
+  "push_permission_granted", "league_promoted",
+]);
+
 // is_seed OBLIGATORIO (regla de datos del freeze): usuarios reales = false.
 export function capture(
   event: EventName,
   props: { is_seed: boolean } & Record<string, unknown>,
 ): void {
+  // Espejo a GA (sin datos personales: solo el nombre del evento e is_seed).
+  if (GA_MIRROR.has(event)) {
+    try {
+      (window as unknown as { gtag?: (...a: unknown[]) => void }).gtag?.(
+        "event", event, { is_seed: props.is_seed },
+      );
+    } catch { /* la analítica jamás rompe la UI */ }
+  }
   if (!KEY) return;
   try {
     const body = JSON.stringify({

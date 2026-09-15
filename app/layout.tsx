@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Gate } from "@/components/Gate";
+import { Analytics } from "@/components/Analytics";
+import { getSession } from "@/lib/session";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
@@ -25,12 +27,17 @@ export const metadata: Metadata = {
 
 export const viewport = { themeColor: "#0c1011" };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Consentimiento de analítica: solo con sesión y +18 declarado (age-gate),
+  // que es el mismo punto de opt-in que PostHog. Sin eso, GA queda denegado.
+  const session = await getSession().catch(() => null);
+  const consent = !!session?.birth_year;
   return (
     <html lang="es">
       <body className="min-h-dvh antialiased [font-family:system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif]">
+        <Analytics consent={consent} />
         <Gate>{children}</Gate>
         {ADSENSE_CLIENT && (
           <Script
