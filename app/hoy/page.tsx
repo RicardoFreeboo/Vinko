@@ -4,8 +4,8 @@ import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getFeed } from "@/lib/feed";
 import { HoyClient } from "@/components/HoyClient";
-import { PorraCard } from "@/components/PorraCard";
-import { StoriesRail } from "@/components/StoriesRail";
+import { FeedClient } from "@/components/feed/FeedClient";
+import { VinkoCoin } from "@/components/VinkoCoin";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { t } from "@/lib/i18n";
@@ -54,26 +54,40 @@ export default async function Hoy() {
     }
   }
 
+  // picks del usuario sobre el feed → para marcar lo ya apostado
+  const feedPicks: Record<string, string> = {};
+  if (session && sb && feed.length) {
+    const { data } = await sb.from("picks").select("porra_id, option_id").eq("user_id", session.id).in("porra_id", feed.map((f) => f.id));
+    for (const pk of data ?? []) feedPicks[pk.porra_id] = pk.option_id;
+  }
+
   return (
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-28 pt-6">
       <header className="flex items-center justify-between">
         <Logo mark={28} word={20} />
-        {session ? (
-          <Link href="/saldo" className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
-        ) : (
-          <Link href="/login?next=/hoy" className="rounded-full bg-[var(--win)] px-3.5 py-1.5 text-[12px] font-black text-[var(--ink)]">
-            {t("home.loginCta")}
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {/* RACHA arriba, como en la primera versión */}
+          {profile && (
+            <span className="flex items-center gap-1 rounded-full border border-[var(--gold)]/50 bg-[var(--gold)]/10 px-2.5 py-1 text-[13px] font-black text-[var(--gold)]">
+              🔥 {profile.streak_days}
+            </span>
+          )}
+          {session ? (
+            <Link href="/saldo" className="mono text-xs text-[var(--muted)]">@{session.handle}</Link>
+          ) : (
+            <Link href="/login?next=/hoy" className="rounded-full bg-[var(--win)] px-3.5 py-1.5 text-[12px] font-black text-[var(--ink)]">
+              {t("home.loginCta")}
+            </Link>
+          )}
+        </div>
       </header>
 
-      {/* gamificación visible: Monedas · Nivel · Puntería · Racha */}
+      {/* Vinkos · Nivel · Puntería */}
       {profile && (
-        <Link href="/saldo" className="grid grid-cols-4 gap-2">
-          <Stat icon="🪙" v={profile.points} l={t("saldo.coins")} c="var(--win)" />
-          <Stat icon="▲" v={profile.xp} l={t("saldo.level")} c="var(--gold)" />
+        <Link href="/saldo" className="grid grid-cols-3 gap-2">
+          <Stat icon={<VinkoCoin size={15} />} v={profile.points} l={t("saldo.coins")} c="var(--gold)" />
+          <Stat icon="▲" v={profile.xp} l={t("saldo.level")} c="var(--win)" />
           <Stat icon="🎯" v={profile.marcador_total} l={t("saldo.skill")} c="var(--cream)" />
-          <Stat icon="🔥" v={profile.streak_days} l={t("hoy.streak")} c="var(--gold)" />
         </Link>
       )}
 
@@ -95,31 +109,18 @@ export default async function Hoy() {
         </div>
       )}
 
-      {/* HISTORIAS — carrusel horizontal de porras con vídeo (apk4) */}
-      <StoriesRail porras={feed} />
-
-      {/* FEED de porras */}
-      <section className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-black text-[var(--cream)]">{t("home.feed")}</h2>
-          <span className="mono text-[11px] text-[var(--muted)]">{feed.length}</span>
-        </div>
-        {feed.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">{t("home.feedEmpty")}</p>
-        ) : (
-          feed.map((p) => <PorraCard key={p.id} p={p} />)
-        )}
-      </section>
+      {/* HISTORIAS + FEED con apuesta inline (apk4) */}
+      <FeedClient porras={feed} initialPicks={feedPicks} loggedIn={!!session} />
 
       <AppNav />
     </main>
   );
 }
 
-function Stat({ icon, v, l, c }: { icon: string; v: number; l: string; c: string }) {
+function Stat({ icon, v, l, c }: { icon: React.ReactNode; v: number; l: string; c: string }) {
   return (
     <div className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-2 py-2.5 text-center">
-      <div className="mono text-[15px] font-black leading-none" style={{ color: c }}>{icon} {v}</div>
+      <div className="mono flex items-center justify-center gap-1 text-[15px] font-black leading-none" style={{ color: c }}>{icon} {v}</div>
       <div className="mt-1 text-[9px] uppercase tracking-wide text-[var(--muted)]">{l}</div>
     </div>
   );

@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { MediaCapture } from "@/components/MediaCapture";
+import { Confetti } from "@/components/Confetti";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 
@@ -32,6 +34,8 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
   const [custom, setCustom] = useState("");
   const [arbiter, setArbiter] = useState<"me" | "friend">("me");
   const [arbHandle, setArbHandle] = useState("");
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [media, setMedia] = useState<{ url: string; kind: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ slug: string } | null>(null);
@@ -49,7 +53,13 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
     setBusy(true); setErr(null);
     const slug = slugify(title);
     const { data: porra, error } = await sb.from("porras")
-      .insert({ slug, title: title.trim(), created_by: userId, closes_at: closesAt(preset, custom) })
+      .insert({
+        slug, title: title.trim(), created_by: userId, closes_at: closesAt(preset, custom),
+        visibility,
+        media_url: media?.url ?? null,
+        media_kind: media?.kind ?? null,
+        video_status: media ? "pending" : "none",
+      })
       .select("id, slug").single();
     if (error || !porra) { setBusy(false); setErr(t("nueva.badTitle")); return; }
     const rows = clean.slice(0, 6).map((label, idx) => ({ porra_id: porra.id, idx, label: label.slice(0, 40) }));
@@ -67,13 +77,21 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
   if (done) {
     const url = `${origin}/p/${done.slug}`;
     const text = t("nueva.shareText", { title: title.trim(), url });
+    const inviteText = t("nueva.inviteText", { handle: arbHandle.trim(), url });
     return (
       <section className="flex flex-col gap-3">
+        <Confetti />
         <p className="text-center text-sm font-bold text-[var(--win)]">{t("nueva.share")}</p>
         <button onClick={() => { capture("porra_shared", { is_seed: false }); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener"); }}
           className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)]">
           {t("nueva.shareCta")}
         </button>
+        {arbiter === "friend" && arbHandle.trim() && (
+          <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, "_blank", "noopener")}
+            className="rounded-[14px] border border-[var(--gold)] px-4 py-3 text-center text-[14px] font-black text-[var(--gold)]">
+            {t("nueva.inviteArb")}
+          </button>
+        )}
         <Link href={`/p/${done.slug}`} className="text-center text-sm font-bold text-[var(--gold)]">{t("nueva.view")}</Link>
       </section>
     );
@@ -96,6 +114,11 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
             <button onClick={() => setOpts((o) => [...o, ""])} className="self-start text-sm font-bold text-[var(--gold)]">{t("nueva.addOpt")}</button>
           )}
         </div>
+      </Field>
+
+      {/* MEDIA: grabar/subir vídeo, foto o voz (apk4) */}
+      <Field label={t("nueva.media")}>
+        <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)} />
       </Field>
 
       {/* CIERRE: presets + calendario */}
@@ -127,8 +150,21 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
             <input value={arbHandle} onChange={(e) => { setArbHandle(e.target.value); setErr(null); }} placeholder={t("nueva.arbPh")}
               className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
             <p className="mt-1 text-[11px] text-[var(--muted)]">{t("nueva.arbHint")}</p>
+            <button type="button" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(t("nueva.inviteReg", { url: origin }))}`, "_blank", "noopener")}
+              className="mt-2 w-full rounded-[10px] border border-[var(--gold)] px-3 py-2 text-[13px] font-bold text-[var(--gold)]">
+              {t("nueva.inviteWa")}
+            </button>
           </>
         )}
+      </Field>
+
+      {/* PÚBLICA / PRIVADA */}
+      <Field label={t("nueva.visibility")}>
+        <div className="grid grid-cols-2 gap-2">
+          <Chip active={visibility === "public"} onClick={() => setVisibility("public")}>{t("nueva.public")}</Chip>
+          <Chip active={visibility === "private"} onClick={() => setVisibility("private")}>{t("nueva.private")}</Chip>
+        </div>
+        <p className="mt-1 text-[11px] text-[var(--muted)]">{visibility === "private" ? t("nueva.privateHint") : t("nueva.publicHint")}</p>
       </Field>
 
       {err && <p className="text-center text-xs text-[var(--red)]">{err}</p>}
