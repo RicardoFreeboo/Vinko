@@ -58,6 +58,34 @@ function Edges() {
   );
 }
 
+// Capa base viva (spec §B): puntos tenues recorriendo cada arista en bucle, para
+// que el grafo respire aunque no pase nada. Baja intensidad; los haces de evento
+// van por encima.
+function BaseFlow({ paused }: { paused: React.RefObject<boolean> }) {
+  const ref = useRef<THREE.Group>(null);
+  const dots = EDGES.flatMap(([a, b], i) =>
+    [0, 0.5].map((ph, j) => ({ a, b, phase: (i * 0.13 + ph) % 1, key: `${i}-${j}` })));
+  useFrame((state) => {
+    if (paused.current || !ref.current) return;
+    ref.current.children.forEach((c, k) => {
+      const d = dots[k];
+      const [ax, ay] = NODE_POS[d.a], [bx, by] = NODE_POS[d.b];
+      const p = (state.clock.elapsedTime * 0.18 + d.phase) % 1;
+      c.position.set(ax + (bx - ax) * p, ay + (by - ay) * p, 0);
+    });
+  });
+  return (
+    <group ref={ref}>
+      {dots.map((d) => (
+        <mesh key={d.key}>
+          <sphereGeometry args={[0.05, 8, 8]} />
+          <meshBasicMaterial color={GREEN} transparent opacity={0.55} toneMapped={false} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function Node({ id, x, y }: { id: NodeId; x: number; y: number }) {
   const ref = useRef<THREE.Mesh>(null);
   const phase = useRef(Math.random() * Math.PI * 2);
@@ -155,6 +183,7 @@ function Scene({ pending, clearPending, reduced }: {
       <color attach="background" args={["#060b09"]} />
       {!reduced && <Particles paused={paused} />}
       <Edges />
+      {!reduced && <BaseFlow paused={paused} />}
       {NODES.map((n) => <Node key={n.id} id={n.id} x={n.x} y={n.y} />)}
       {!reduced && beams.map((b) => <BeamMesh key={b.id} beam={b} onDone={removeBeam} />)}
       {!reduced && <Rig paused={paused} />}

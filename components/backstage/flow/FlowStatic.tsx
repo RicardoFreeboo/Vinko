@@ -1,40 +1,72 @@
 "use client";
-import { NODES, EDGES, NODE_POS, GREEN, type NodeId } from "@/lib/backstage/graph";
+import {
+  Satellite, Cpu, ShieldCheck, Rocket, Users, Target, Trophy, Bell, Megaphone, Coins, ShoppingBag, Gamepad2,
+} from "lucide-react";
+import { NODES, EDGES, NODE_POS, GREEN, GOLD, type NodeId } from "@/lib/backstage/graph";
 import { t } from "@/lib/i18n";
 
-// Fallback estático 2D (spec §7): se usa con prefers-reduced-motion, en móvil o
-// si no hay WebGL. Mismo grafo, bonito, sin movimiento — la info no depende del
-// haz. Render puro SVG, cero Three.js.
-const SX = 100, PADX = 6.5, PADY = 3.2, W = 1300, H = 640, BW = 250, BH = 118;
-const px = (x: number) => (x + PADX) * SX;
-const py = (y: number) => (PADY - y) * SX;
+// Grafo estático (spec paneles §B): cada nodo = ICONO en contenedor glass +
+// título debajo. Las aristas FLUYEN siempre (dashes animados = capa base viva),
+// respetando prefers-reduced-motion. Se usa sin WebGL / móvil / reduced-motion.
+const ICON: Record<NodeId, typeof Cpu> = {
+  fuentes: Satellite, agente: Cpu, aprobacion: ShieldCheck, publicado: Rocket,
+  usuarios: Users, porras: Target, marcador: Trophy, jugadores: Gamepad2,
+  push: Bell, anuncio: Megaphone, monedas: Coins, tienda: ShoppingBag,
+};
+const GOLDEN: Partial<Record<NodeId, boolean>> = { publicado: true, monedas: true };
+
+// mapea coords del grafo (-6.5..6.5, -3.2..3.2) a % del contenedor
+const xp = (x: number) => 8 + ((x + 6.5) / 13) * 84;
+const yp = (y: number) => 12 + ((3.2 - y) / 6.4) * 76;
 
 export function FlowStatic() {
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full" preserveAspectRatio="xMidYMid meet">
-      <defs>
-        <filter id="nodeglow" x="-40%" y="-40%" width="180%" height="180%">
-          <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor={GREEN} floodOpacity="0.45" />
-        </filter>
-      </defs>
-      {EDGES.map(([a, b], i) => {
-        const [ax, ay] = NODE_POS[a], [bx, by] = NODE_POS[b];
-        return <line key={i} x1={px(ax)} y1={py(ay)} x2={px(bx)} y2={py(by)}
-          stroke={GREEN} strokeOpacity={0.16} strokeWidth={2} />;
+    <div className="relative h-full w-full">
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .vk-flow { animation: vkflow 1.1s linear infinite; }
+        }
+        @keyframes vkflow { to { stroke-dashoffset: -12; } }
+      `}</style>
+
+      {/* aristas que fluyen (capa base) */}
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        {EDGES.map(([a, b], i) => {
+          const [ax, ay] = NODE_POS[a], [bx, by] = NODE_POS[b];
+          const gold = GOLDEN[a] && GOLDEN[b];
+          const c = gold ? GOLD : GREEN;
+          return (
+            <g key={i}>
+              <line x1={xp(ax)} y1={yp(ay)} x2={xp(bx)} y2={yp(by)}
+                stroke={c} strokeOpacity={0.12} strokeWidth={1} vectorEffect="non-scaling-stroke" />
+              <line className="vk-flow" x1={xp(ax)} y1={yp(ay)} x2={xp(bx)} y2={yp(by)}
+                stroke={c} strokeOpacity={0.5} strokeWidth={1.4} strokeDasharray="2 10"
+                strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            </g>
+          );
+        })}
+      </svg>
+
+      {/* nodos: icono + título debajo */}
+      {NODES.map((n: { id: NodeId; x: number; y: number }) => {
+        const Icon = ICON[n.id];
+        const c = GOLDEN[n.id] ? GOLD : GREEN;
+        return (
+          <div key={n.id}
+            className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1.5"
+            style={{ left: `${xp(n.x)}%`, top: `${yp(n.y)}%` }}>
+            <div className="grid h-12 w-12 place-items-center rounded-full backdrop-blur-md"
+              style={{ background: "rgba(8,14,11,0.85)", border: `1px solid ${c}`, boxShadow: `0 0 14px ${c}44` }}>
+              <Icon size={22} color={c} strokeWidth={2} />
+            </div>
+            <span className="whitespace-nowrap text-[10px] font-bold uppercase tracking-wide text-[rgba(244,241,233,0.7)]"
+              style={{ fontFamily: "var(--font-mono2), monospace" }}>
+              {t(`flujo.node.${n.id}`)}
+            </span>
+          </div>
+        );
       })}
-      {NODES.map((n: { id: NodeId; x: number; y: number }) => (
-        <g key={n.id}>
-          <rect x={px(n.x) - BW / 2} y={py(n.y) - BH / 2} width={BW} height={BH} rx={14}
-            filter="url(#nodeglow)"
-            fill="rgba(8,14,11,0.9)" stroke={GREEN} strokeOpacity={0.55} strokeWidth={1.5} />
-          <text x={px(n.x)} y={py(n.y)} textAnchor="middle" dominantBaseline="central"
-            fill="#f4f1e9" fontSize={28} fontWeight={700}
-            style={{ fontFamily: "var(--font-mono2), monospace" }}>
-            {t(`flujo.node.${n.id}`)}
-          </text>
-        </g>
-      ))}
-    </svg>
+    </div>
   );
 }
 
