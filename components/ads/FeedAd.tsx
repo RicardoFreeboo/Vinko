@@ -30,18 +30,20 @@ export function FeedAd({ seed = 0 }: { seed?: number }) {
     return () => clearInterval(id);
   }, []);
 
-  // pide el anuncio real y, si no rellena en unos segundos, cae a house ad
+  // pide el anuncio real y SONDEA su estado: "filled" → mantener; "unfilled" (o
+  // sin resolver a los 8 s) → house ad, para que nunca quede un hueco gris.
   useEffect(() => {
     if (!ADS_ENABLED || !ADSENSE_FEED_SLOT || pushed.current) return;
     pushed.current = true;
     try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch { /* noop */ }
-    const timer = setTimeout(() => {
-      const el = insRef.current;
-      if (!el || el.getAttribute("data-ad-status") === "unfilled" || el.clientHeight < 10) {
-        setFallback(true);
-      }
-    }, 3000);
-    return () => clearTimeout(timer);
+    let tries = 0;
+    const iv = setInterval(() => {
+      tries += 1;
+      const status = insRef.current?.getAttribute("data-ad-status");
+      if (status === "filled") { clearInterval(iv); return; }
+      if (status === "unfilled" || tries >= 16) { clearInterval(iv); setFallback(true); }
+    }, 500);
+    return () => clearInterval(iv);
   }, []);
 
   if (!ADS_ENABLED) return null;
