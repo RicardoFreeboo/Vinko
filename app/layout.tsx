@@ -14,6 +14,11 @@ const ADSENSE_CLIENT =
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vinko.fun";
 
+// Verificación de propiedad del dominio (Search Console). Google la exige para
+// publicar el consentimiento OAuth. Se inyecta como <meta name="google-site-
+// verification">. Basta con poner el token en la variable de entorno.
+const GSV = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION;
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: t("brand"), template: `%s — ${t("brand")}` },
@@ -23,6 +28,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Vinko", statusBarStyle: "black-translucent" },
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  ...(GSV ? { verification: { google: GSV } } : {}),
 };
 
 export const viewport = { themeColor: "#0c1011" };
