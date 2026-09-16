@@ -16,6 +16,7 @@ export type Porra = {
   closes_at: string;
   winning_option_id: string | null;
   options: PorraOption[];
+  category?: string | null;
   video?: string | null; // /v/<slug>.webm si la IA ya lo generó; si no, placeholder
   official?: boolean; // creada por el perfil oficial de Vinko (source=editorial)
 };
@@ -33,7 +34,7 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
     const { data } = await client
       .from("porras")
       .select(
-        "id, slug, title, is_template, source, status, closes_at, winning_option_id, media_url, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
+        "id, slug, title, is_template, source, status, closes_at, winning_option_id, media_url, category, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
       )
       .eq("slug", slug)
       .maybeSingle();

@@ -3,9 +3,10 @@ import Link from "next/link";
 import { getPorraBySlug } from "@/lib/porras";
 import { TEMPLATES } from "@/lib/templates";
 import { EDITORIAL } from "@/lib/editorial";
-import { Logo, VMark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
 import { FastVideo } from "@/components/FastVideo";
+import { PorraCover } from "@/components/PorraCover";
 import { PorraSocial } from "@/components/PorraSocial";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { porraUrl } from "@/lib/share";
@@ -90,12 +91,7 @@ export default async function PorraPage({ params }: Props) {
         {porra.video ? (
           <FastVideo src={porra.video} speed={1.5} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-            <VMark size={38} />
-            <span className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted)]">
-              {t("p.aiMaking")}
-            </span>
-          </div>
+          <PorraCover title={porra.title} category={porra.category} />
         )}
       </div>
 

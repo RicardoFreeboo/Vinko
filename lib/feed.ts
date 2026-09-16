@@ -12,6 +12,7 @@ export type FeedPorra = {
   closes_at: string;
   options: { id: string; label: string }[];
   video: string | null;
+  category: string | null;
   official: boolean;
   featured: boolean;
 };
@@ -23,12 +24,12 @@ export async function getFeed(limit = 24): Promise<FeedPorra[]> {
     return EDITORIAL.map((p) => ({
       id: p.id, slug: p.slug, title: p.title, source: p.source, closes_at: p.closes_at,
       options: p.options.map((o) => ({ id: o.id, label: o.label })),
-      video: p.video ?? null, official: true, featured: false,
+      video: p.video ?? null, category: null, official: true, featured: false,
     }));
   }
   const { data } = await sb
     .from("porras")
-    .select("id, slug, title, source, closes_at, featured_until, media_url, porra_options!porra_options_porra_id_fkey ( id, idx, label )")
+    .select("id, slug, title, source, closes_at, featured_until, media_url, category, porra_options!porra_options_porra_id_fkey ( id, idx, label )")
     .eq("status", "open")
     .eq("is_template", false)
     .gt("closes_at", new Date().toISOString())
@@ -44,6 +45,7 @@ export async function getFeed(limit = 24): Promise<FeedPorra[]> {
       options: opts,
       // vídeo: primero el subido a Storage (agente/usuario), luego el catálogo local (seeds)
       video: (p.media_url as string | null) ?? editorialBySlug(p.slug)?.video ?? null,
+      category: (p as { category?: string | null }).category ?? null,
       official: p.source === "editorial",
       featured: !!p.featured_until && new Date(p.featured_until).getTime() > now,
     };

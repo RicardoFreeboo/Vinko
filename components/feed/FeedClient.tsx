@@ -5,11 +5,11 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { StoriesViewer } from "./StoriesViewer";
 import { FastVideo } from "@/components/FastVideo";
 import { FeedAd } from "@/components/ads/FeedAd";
+import { PorraCover } from "@/components/PorraCover";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { porraUrl } from "@/lib/share";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { StakePicker } from "@/components/StakePicker";
-import { VMark } from "@/components/Logo";
 import { capture } from "@/lib/analytics";
 import type { FeedPorra } from "@/lib/feed";
 import { t } from "@/lib/i18n";
@@ -128,7 +128,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
           {p.video ? (
             <FastVideo src={p.video} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2"><VMark size={32} /><span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{t("p.aiMaking")}</span></div>
+            <PorraCover title={p.title} category={p.category} />
           )}
           {p.official && <span className="mono absolute left-3 top-3 rounded-full bg-[var(--win)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--ink)]">{t("p.badgeOfficial")}</span>}
           <span className="absolute right-3 top-3 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-bold uppercase text-white backdrop-blur">▶ {t("home.open")}</span>

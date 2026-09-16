@@ -1,11 +1,11 @@
 import Link from "next/link";
-import { VMark } from "@/components/Logo";
+import { PorraCover } from "@/components/PorraCover";
 import type { FeedPorra } from "@/lib/feed";
 import { t } from "@/lib/i18n";
 
 // Tarjeta de porra del feed (como el prototipo: vídeo vertical IA arriba,
-// pregunta, opciones, cierre). Vídeo en loop silencioso; sin vídeo → placeholder
-// con el logo. Enlaza a /p/[slug]. Sin anuncios aquí.
+// pregunta, opciones, cierre). Vídeo en loop silencioso; sin vídeo → portada
+// por temática. Enlaza a /p/[slug]. Sin anuncios aquí.
 function fmtCloses(iso: string): string {
   return new Intl.DateTimeFormat("es-ES", {
     day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid",
@@ -21,10 +21,7 @@ export function PorraCard({ p }: { p: FeedPorra }) {
           <video src={p.video} autoPlay muted loop playsInline preload="metadata"
             className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2">
-            <VMark size={34} />
-            <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{t("p.aiMaking")}</span>
-          </div>
+          <PorraCover title={p.title} category={p.category} />
         )}
         {p.official && (
           <span className="mono absolute left-3 top-3 rounded-full bg-[var(--win)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--ink)]">

@@ -1,14 +1,14 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { VMark } from "@/components/Logo";
+import { PorraCover } from "@/components/PorraCover";
 import { t } from "@/lib/i18n";
 
 // Rejilla de perfil estilo Instagram: pestañas (creadas / jugadas), 3 columnas
 // cuadradas a sangre y con separación mínima. Sin texto encima: la miniatura
 // manda, y el scroll es continuo aunque haya muchas porras.
 export type Row = {
-  id: string; slug: string; title: string; status: string; media_url?: string | null; video?: string | null;
+  id: string; slug: string; title: string; status: string; media_url?: string | null; video?: string | null; category?: string | null;
 };
 
 function Grid({ rows, empty }: { rows: Row[]; empty: string }) {
@@ -23,14 +23,14 @@ function Grid({ rows, empty }: { rows: Row[]; empty: string }) {
             {v ? (
               <video src={v} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
             ) : (
-              // Sin vídeo: en vez de un cuadrado negro, la pregunta. Así la
-              // rejilla se lee aunque la porra no tenga creativo.
-              <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-[var(--ink2)] to-[var(--ink3)] p-2">
-                <VMark size={18} />
-                <p className="line-clamp-4 text-center text-[9px] font-bold leading-tight text-[var(--muted)]">
-                  {r.title}
-                </p>
-              </div>
+              // Sin vídeo: portada por temática + la pregunta. Nunca prometemos
+              // un vídeo que no se está generando.
+              <>
+                <PorraCover title={r.title} category={r.category} size="sm" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 to-transparent p-1.5 pt-5">
+                  <p className="line-clamp-3 text-center text-[9px] font-bold leading-tight text-white">{r.title}</p>
+                </div>
+              </>
             )}
             {r.status === "resolved" && (
               <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-[11px] text-[var(--win)] backdrop-blur">✓</span>

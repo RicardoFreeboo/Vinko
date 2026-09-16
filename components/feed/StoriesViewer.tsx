@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { VMark } from "@/components/Logo";
 import { FastVideo } from "@/components/FastVideo";
+import { PorraCover } from "@/components/PorraCover";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { StakePicker } from "@/components/StakePicker";
 import type { FeedPorra } from "@/lib/feed";
@@ -74,7 +74,7 @@ export function StoriesViewer({
         {p.video ? (
           <FastVideo key={p.slug} src={p.video} speed={1.5} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[var(--ink)]"><VMark size={64} /></div>
+          <div className="absolute inset-0"><PorraCover title={p.title} category={p.category} size="lg" /></div>
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/90" />
 
