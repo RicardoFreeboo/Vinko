@@ -23,8 +23,13 @@ function Grid({ rows, empty }: { rows: Row[]; empty: string }) {
             {v ? (
               <video src={v} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
             ) : (
-              <div className="grid h-full w-full place-items-center bg-gradient-to-br from-[var(--ink2)] to-[var(--ink3)]">
-                <VMark size={26} />
+              // Sin vídeo: en vez de un cuadrado negro, la pregunta. Así la
+              // rejilla se lee aunque la porra no tenga creativo.
+              <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 bg-gradient-to-br from-[var(--ink2)] to-[var(--ink3)] p-2">
+                <VMark size={18} />
+                <p className="line-clamp-4 text-center text-[9px] font-bold leading-tight text-[var(--muted)]">
+                  {r.title}
+                </p>
               </div>
             )}
             {r.status === "resolved" && (
