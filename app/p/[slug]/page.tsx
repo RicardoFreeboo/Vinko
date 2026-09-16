@@ -89,7 +89,8 @@ export default async function PorraPage({ params }: Props) {
 
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
         {porra.video ? (
-          <FastVideo src={porra.video} speed={1.5} className="h-full w-full object-cover" />
+          <FastVideo src={porra.video} speed={1.5} eager
+            fallback={<PorraCover title={porra.title} category={porra.category} />} />
         ) : (
           <PorraCover title={porra.title} category={porra.category} />
         )}

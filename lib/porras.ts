@@ -34,7 +34,7 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
     const { data } = await client
       .from("porras")
       .select(
-        "id, slug, title, is_template, source, status, closes_at, winning_option_id, media_url, category, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
+        "id, slug, title, is_template, source, status, closes_at, winning_option_id, media_url, media_kind, category, porra_options!porra_options_porra_id_fkey ( id, idx, label )",
       )
       .eq("slug", slug)
       .maybeSingle();
@@ -49,7 +49,9 @@ export async function getPorraBySlug(slug: string): Promise<Porra | null> {
       return {
         ...data,
         options,
-        video: (data.media_url as string | null) ?? local?.video ?? null,
+        // media_url también guarda fotos/notas de voz: solo es vídeo si no es imagen ni audio
+        video: (data.media_kind !== "image" && data.media_kind !== "audio" ? (data.media_url as string | null) : null)
+          ?? local?.video ?? null,
         official: data.source === "editorial",
       } as Porra;
     }
