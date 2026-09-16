@@ -18,10 +18,13 @@ export async function POST(req: Request) {
   if (!url || !secret) return NextResponse.json({ error: "no_config" }, { status: 500 });
 
   const topic = typeof body.topic === "string" ? body.topic.trim() : "";
+  // force = "Renovar": regenera aunque las noticias ya se hubieran leído.
+  // (Antes se mandaba limit:5 fijo, por eso el panel sacaba tan pocas.)
+  const force = body.force === true;
   const res = await fetch(`${url}/functions/v1/trend-generate`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-cron-secret": secret },
-    body: JSON.stringify(topic ? { topic } : { limit: 5 }),
+    body: JSON.stringify(topic ? { topic } : { limit: 18, force }),
   });
   const j = await res.json().catch(() => ({}));
   return NextResponse.json(j, { status: res.ok ? 200 : res.status });

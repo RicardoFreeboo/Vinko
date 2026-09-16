@@ -276,6 +276,10 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const limit = Math.min(Number(body.limit) || 18, 30);
   const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, 120) : "";
+  // RENOVAR: ignora el deduplicador de titulares ya vistos. La búsqueda dirigida
+  // también lo ignora: si pides un tema a propósito, se regenera aunque ya se
+  // hubiera leído esa noticia (antes devolvía 0 y la pantalla se quedaba vacía).
+  const force = body.force === true;
 
   const secret = Deno.env.get("CRON_SECRET") ?? "";
   const isCron = secret && req.headers.get("x-cron-secret") === secret;
@@ -301,7 +305,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  const seen = await seenTopics(admin);
+  const seen = force || topic ? new Set<string>() : await seenTopics(admin);
   let ingested = 0;
 
   if (topic) {
@@ -330,11 +334,15 @@ Deno.serve(async (req) => {
 
   const q = admin.from("signals").select("*").eq("status", "new");
   const { data: signals } = topic
-    ? await q.eq("source", "search").order("created_at", { ascending: false }).limit(5)
+    ? await q.eq("source", "search").order("created_at", { ascending: false }).limit(8)
     : await q.order("created_at", { ascending: false }).limit(limit);
 
-  let created = 0, descartadas = 0;
+  let created = 0, descartadas = 0, repetidas = 0;
   const motivos: Record<string, number> = {};
+  // Títulos ya propuestos en los últimos 14 días: al renovar no se duplican.
+  const { data: previas } = await admin.from("topic_proposals").select("title")
+    .gt("created_at", new Date(Date.now() - 14 * 86400000).toISOString()).limit(1000);
+  const titulosPrevios = new Set((previas ?? []).map((p: { title: string }) => norm(p.title)));
 
   // Generación EN PARALELO por tandas: en serie sólo daba tiempo a unas pocas
   // antes del timeout, y por eso salían "de 3 en 3".
@@ -360,8 +368,15 @@ Deno.serve(async (req) => {
       await admin.from("signals").update({ status: "rejected" }).eq("id", s.id);
       continue;
     }
+    const titulo = String(cand.pregunta).slice(0, 160);
+    if (titulosPrevios.has(norm(titulo))) {
+      repetidas++;
+      await admin.from("signals").update({ status: "scored" }).eq("id", s.id);
+      continue;
+    }
+    titulosPrevios.add(norm(titulo));
     const { error } = await admin.from("topic_proposals").insert({
-      title: String(cand.pregunta).slice(0, 160),
+      title: titulo,
       options: cand.opciones,
       source_url: s.raw?.source_url ?? null,
       category: cand.categoria ?? s.category,
@@ -379,7 +394,7 @@ Deno.serve(async (req) => {
       await admin.from("signals").update({ status: "scored" }).eq("id", s.id);
     }
   }
-  return json({ created, descartadas, motivos, ingested, used: anthropic ? "haiku" : "ninguno" });
+  return json({ created, repetidas, descartadas, motivos, ingested, force, used: anthropic ? "haiku" : "ninguno" });
 });
 
 function json(body: unknown, status = 200) {
