@@ -8,14 +8,15 @@ export type CoverTheme = { key: string; emoji: string; from: string; glow: strin
 const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
 const TEMAS: Array<[RegExp, CoverTheme]> = [
+  // Streamers antes que realities: category "reality_internet" es drama de streamers
+  [/streamer|internet|influencer|ibai|velada|frank cuesta|twitch|\bkick\b|youtube|rubius|auronplay|grefg|illojuan|westcol|spreen|davoo/,
+    { key: "streaming", emoji: "🎮", from: "#21163f", glow: "rgba(145,110,255,0.35)" }],
   [/realit|isla de las tentaciones|supervivientes|gran hermano|\bgh\b|masterchef|operacion triunfo|\bot\b|casados a primera|carcel de los gemelos|maestros de la costura|bailando/,
     { key: "reality", emoji: "🏝️", from: "#3b1440", glow: "rgba(255,95,162,0.35)" }],
   [/\bf1\b|formula 1|alonso|sainz|gran premio|\bgp\b|motogp|marquez|madring/,
     { key: "motor", emoji: "🏎️", from: "#3d1111", glow: "rgba(255,90,70,0.35)" }],
   [/tenis|alcaraz|nadal|us open|roland garros|wimbledon|\batp\b|shelton/,
     { key: "tenis", emoji: "🎾", from: "#2e3a0d", glow: "rgba(200,255,80,0.30)" }],
-  [/streamer|ibai|velada|twitch|\bkick\b|youtube|rubius|auronplay|grefg|illojuan|westcol|spreen|davoo/,
-    { key: "streaming", emoji: "🎮", from: "#21163f", glow: "rgba(145,110,255,0.35)" }],
   [/futbol|laliga|la liga|champions|mundial|seleccion|real madrid|barca|barcelona|atletico|\bgol|kings league|queens league|jornada|clasico|rayo|espanyol|balon de oro/,
     { key: "futbol", emoji: "⚽", from: "#0f3a24", glow: "rgba(31,224,122,0.32)" }],
   [/musica|cancion|disco|eurovision|benidorm|concierto|rosalia|aitana|quevedo|numero 1|n\.?º ?1/,
