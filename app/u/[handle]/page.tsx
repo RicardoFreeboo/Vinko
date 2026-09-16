@@ -7,6 +7,7 @@ import { editorialBySlug } from "@/lib/editorial";
 import { Logo, VMark } from "@/components/Logo";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { AppNav } from "@/components/AppNav";
+import { ProfileGrid, type Row as GridRow } from "@/components/ProfileGrid";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -77,10 +78,11 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
         <St v={s.hits ?? 0} l={t("u.hits")} c="var(--win)" />
       </div>
 
-      {/* SECCIÓN 1 — porras creadas */}
-      <Section title={t("u.createdSection")} rows={(created ?? []) as Row[]} empty={t("u.noCreated")} />
-      {/* SECCIÓN 2 — porras jugadas */}
-      <Section title={t("u.playedSection")} rows={(played ?? []) as Row[]} empty={t("u.noPlayed")} />
+      {/* Rejilla estilo Instagram: pestañas creadas / jugadas, 3 columnas 1:1 */}
+      <ProfileGrid
+        created={((created ?? []) as GridRow[]).map((r) => ({ ...r, video: videoOf(r as Row) }))}
+        played={((played ?? []) as GridRow[]).map((r) => ({ ...r, video: videoOf(r as Row) }))}
+      />
 
       <AppNav />
     </main>
@@ -93,38 +95,5 @@ function St({ icon, v, l, c }: { icon?: React.ReactNode; v: number; l: string; c
       <div className="mono flex items-center justify-center gap-1 text-[15px] font-black leading-none" style={{ color: c }}>{icon} {v}</div>
       <div className="mt-1 text-[9px] uppercase tracking-wide text-[var(--muted)]">{l}</div>
     </div>
-  );
-}
-
-function Section({ title, rows, empty }: { title: string; rows: Row[]; empty: string }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between">
-        <h2 className="text-lg font-black text-[var(--cream)]">{title}</h2>
-        <span className="mono text-[11px] text-[var(--muted)]">{rows.length}</span>
-      </div>
-      {rows.length === 0 ? (
-        <p className="text-sm text-[var(--muted)]">{empty}</p>
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {rows.map((r) => {
-            const v = videoOf(r);
-            return (
-              <Link key={r.id} href={`/p/${r.slug}`}
-                className="relative aspect-square overflow-hidden rounded-[12px] border border-[var(--line)] bg-[var(--ink3)]">
-                {v ? (
-                  <video src={v} muted loop playsInline preload="metadata" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="grid h-full w-full place-items-center"><VMark size={22} /></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 to-transparent" />
-                {r.status === "resolved" && <span className="absolute right-1 top-1 text-[10px]">✓</span>}
-                <p className="absolute inset-x-0 bottom-0 line-clamp-2 p-1.5 text-[9px] font-bold leading-tight text-white">{r.title}</p>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-    </section>
   );
 }

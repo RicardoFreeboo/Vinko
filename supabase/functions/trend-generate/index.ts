@@ -45,9 +45,17 @@ function norm(s: string): string {
     .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+// Titulares que jamás darán una porra resoluble: opinión, entrevistas,
+// recopilatorios, explicativos… Filtrarlos aquí ahorra llamadas al modelo y
+// sube muchísimo el porcentaje de acierto.
+const NO_EVENTO = /^(¿?por qué|así (es|fue)|todo lo que|las claves|qué se sabe|esto es lo que|cómo |quién es |el motivo|la razón|opinión|editorial|entrevista|análisis|repasamos|top \d|las \d+|los \d+|\d+ (cosas|claves|razones|motivos))/i;
+const NO_EVENTO2 = /(entrevista|en directo|minuto a minuto|última hora|resumen|crónica|horóscopo|recetas?|consejos)/i;
+
 // Un titular sirve como señal; un término suelto ("justicia") no.
 function looksLikeEvent(t: string): boolean {
-  return t.length >= 25 && t.trim().split(/\s+/).length >= 4;
+  if (t.length < 25 || t.trim().split(/\s+/).length < 4) return false;
+  if (NO_EVENTO.test(t.trim()) || NO_EVENTO2.test(t)) return false;
+  return true;
 }
 
 function vetoed(t: string): string | null {
@@ -143,13 +151,16 @@ async function sweepEntities(admin: any, seen: Set<string>, max: number): Promis
     .select("id, nombre, categoria, palabras_clave, last_swept_at")
     .eq("activo", true)
     .order("last_swept_at", { ascending: true, nullsFirst: true })
-    .limit(6);
+    .limit(10);
   let n = 0;
   for (const e of ents ?? []) {
     if (n >= max) break;
-    const q = (e.palabras_clave?.[0] ?? e.nombre) as string;
+    // Rota entre todas las palabras clave: usando siempre la primera, Google
+    // News devolvía los mismos titulares y el deduplicador los tiraba todos.
+    const claves = (e.palabras_clave?.length ? e.palabras_clave : [e.nombre]) as string[];
+    const q = claves[Math.floor(Math.random() * claves.length)];
     try {
-      for (const it of parseFeed(await getFeed(gnews(q))).slice(0, 3)) {
+      for (const it of parseFeed(await getFeed(gnews(q))).slice(0, 4)) {
         if (n >= max) break;
         if (await insertSignal(admin, seen, it.t, {
           category: e.categoria, source: "gnews", score: 70,
@@ -263,7 +274,7 @@ Deno.serve(async (req) => {
   const admin = createClient(url, service);
 
   const body = await req.json().catch(() => ({}));
-  const limit = Math.min(Number(body.limit) || 6, 12);
+  const limit = Math.min(Number(body.limit) || 18, 30);
   const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, 120) : "";
 
   const secret = Deno.env.get("CRON_SECRET") ?? "";
@@ -324,17 +335,29 @@ Deno.serve(async (req) => {
 
   let created = 0, descartadas = 0;
   const motivos: Record<string, number> = {};
-  for (const s of signals ?? []) {
-    let cand;
-    try {
-      cand = anthropic ? await withHaiku(anthropic, s) : null;
-    } catch { cand = null; }
+
+  // Generación EN PARALELO por tandas: en serie sólo daba tiempo a unas pocas
+  // antes del timeout, y por eso salían "de 3 en 3".
+  const lista = signals ?? [];
+  const TANDA = 8;
+  const generadas: Array<{ s: any; cand: any }> = [];
+  for (let i = 0; i < lista.length; i += TANDA) {
+    const tanda = lista.slice(i, i + TANDA);
+    const res = await Promise.all(tanda.map(async (sig: any) => {
+      try { return { s: sig, cand: anthropic ? await withHaiku(anthropic, sig) : null }; }
+      catch { return { s: sig, cand: null }; }
+    }));
+    generadas.push(...res);
+  }
+
+  for (const { s, cand } of generadas) {
     // Sin modelo no se inventan porras de plantilla: sólo generaban ruido.
     const motivo = cand ? rejectReason(cand) : "sin_modelo";
     if (motivo) {
       descartadas++;
       motivos[motivo] = (motivos[motivo] ?? 0) + 1;
-      await admin.from("signals").update({ status: "discarded" }).eq("id", s.id);
+      // si esto fallara, la señal volvería a procesarse en cada barrido
+      await admin.from("signals").update({ status: "rejected" }).eq("id", s.id);
       continue;
     }
     const { error } = await admin.from("topic_proposals").insert({
