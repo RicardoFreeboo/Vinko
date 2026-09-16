@@ -414,6 +414,8 @@
   "buscar.empty": "Nadie por aquí todavía.",
   "buscar.created": "{n} porras creadas",
   "home.share": "Compartir →",
+  "home.shareWa": "📲 Compartir",
+  "p.shareWa": "📲 Compartir por WhatsApp",
   "stories.done": "¡Pronóstico hecho! Te avisamos al resolverse.",
   "stories.swipe": "Desliza para la siguiente →",
   "stories.prev": "Anterior",

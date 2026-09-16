@@ -414,6 +414,8 @@
   "buscar.empty": "Nobody here yet.",
   "buscar.created": "{n} pools created",
   "home.share": "Share →",
+  "home.shareWa": "📲 Share",
+  "p.shareWa": "📲 Share on WhatsApp",
   "stories.done": "Pick made! We'll ping you when it resolves.",
   "stories.swipe": "Swipe for the next →",
   "stories.prev": "Previous",

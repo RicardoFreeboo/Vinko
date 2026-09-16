@@ -1,5 +1,5 @@
 "use client";
-import { capture } from "@/lib/analytics";
+import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { t } from "@/lib/i18n";
 
 // El resumen de la semana + invitación: la tarjeta compartible por WhatsApp es
@@ -12,30 +12,21 @@ export function GroupShare({
   rows: { handle: string; score: number }[];
   url: string;
 }) {
-  function invite() {
-    const text = t("grupo.inviteText", { code, url });
-    capture("group_digest_shared", { is_seed: false });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-  }
-
-  function shareRecap() {
-    const lines = rows.map((r, i) => `${i + 1}. @${r.handle} — 🎯 ${r.score}`).join("\n");
-    const text = `${name} · Vinko\n${lines}\n${url}`;
-    capture("group_digest_shared", { is_seed: false });
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener");
-  }
+  const inviteText = t("grupo.inviteText", { code, url });
+  const recapLines = rows.map((r, i) => `${i + 1}. @${r.handle} — 🎯 ${r.score}`).join("\n");
+  const recapText = `${name} · Vinko\n${recapLines}\n${url}`;
 
   return (
     <div className="mt-2 flex flex-col gap-2">
-      <button onClick={invite}
-        className="rounded-[12px] bg-[var(--win)] px-4 py-3 text-[14px] font-black text-[var(--ink)]">
+      <ShareWhatsApp text={inviteText} event="group_digest_shared"
+        className="rounded-[12px] bg-[#25D366] px-4 py-3 text-center text-[14px] font-black text-white">
         {t("grupo.invite")}
-      </button>
+      </ShareWhatsApp>
       {rows.some((r) => r.score > 0) && (
-        <button onClick={shareRecap}
-          className="rounded-[12px] border border-[var(--gold)] px-4 py-3 text-[14px] font-black text-[var(--gold)]">
+        <ShareWhatsApp text={recapText} event="group_digest_shared"
+          className="rounded-[12px] border border-[var(--gold)] px-4 py-3 text-center text-[14px] font-black text-[var(--gold)]">
           {t("grupo.share")}
-        </button>
+        </ShareWhatsApp>
       )}
     </div>
   );

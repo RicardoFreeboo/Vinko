@@ -7,6 +7,8 @@ import { Logo, VMark } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
 import { FastVideo } from "@/components/FastVideo";
 import { PorraSocial } from "@/components/PorraSocial";
+import { ShareWhatsApp } from "@/components/ShareWhatsApp";
+import { porraUrl } from "@/lib/share";
 import { t } from "@/lib/i18n";
 
 // Prerenderiza las porras conocidas (plantillas + editoriales @vinko) y sirve
@@ -141,6 +143,14 @@ export default async function PorraPage({ params }: Props) {
         status={porra.status}
         isTemplate={porra.is_template}
       />
+
+      {/* COMPARTIR — aquí aterriza quien recibe el enlace, y desde aquí lo reenvía */}
+      {!porra.is_template && porra.status === "open" && (
+        <ShareWhatsApp text={t("nueva.shareText", { title: porra.title, url: porraUrl(porra.slug) })}
+          className="flex items-center justify-center gap-2 rounded-[14px] bg-[#25D366] px-4 py-3.5 text-[15px] font-black text-white">
+          {t("p.shareWa")}
+        </ShareWhatsApp>
+      )}
 
       {!porra.is_template && <PorraSocial porraId={porra.id} slug={porra.slug} />}
 

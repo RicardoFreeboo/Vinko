@@ -5,6 +5,8 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { StoriesViewer } from "./StoriesViewer";
 import { FastVideo } from "@/components/FastVideo";
 import { FeedAd } from "@/components/ads/FeedAd";
+import { ShareWhatsApp } from "@/components/ShareWhatsApp";
+import { porraUrl } from "@/lib/share";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { StakePicker } from "@/components/StakePicker";
 import { VMark } from "@/components/Logo";
@@ -151,7 +153,10 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
           {err && <p className="text-xs text-[var(--red)]">{err}</p>}
           <div className="flex items-center justify-between">
             <span className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted)]">{t("home.closes", { date: fmtCloses(p.closes_at) })}</span>
-            <Link href={`/p/${p.slug}`} className="text-[12px] font-black text-[var(--win)]">{t("home.share")}</Link>
+            <ShareWhatsApp text={t("nueva.shareText", { title: p.title, url: porraUrl(p.slug) })}
+              className="rounded-full bg-[#25D366] px-3 py-1.5 text-[12px] font-black text-white">
+              {t("home.shareWa")}
+            </ShareWhatsApp>
           </div>
         </div>
       </div>

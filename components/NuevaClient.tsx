@@ -1,4 +1,5 @@
 "use client";
+import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
@@ -83,15 +84,15 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
       <section className="flex flex-col gap-3">
         <Confetti />
         <p className="text-center text-sm font-bold text-[var(--win)]">{t("nueva.share")}</p>
-        <button onClick={() => { capture("porra_shared", { is_seed: false }); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank", "noopener"); }}
-          className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)]">
+        <ShareWhatsApp text={text}
+          className="rounded-[14px] bg-[#25D366] px-4 py-4 text-center text-[15px] font-black text-white">
           {t("nueva.shareCta")}
-        </button>
+        </ShareWhatsApp>
         {arbiter === "friend" && arbHandle.trim() && (
-          <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(inviteText)}`, "_blank", "noopener")}
+          <ShareWhatsApp text={inviteText}
             className="rounded-[14px] border border-[var(--gold)] px-4 py-3 text-center text-[14px] font-black text-[var(--gold)]">
             {t("nueva.inviteArb")}
-          </button>
+          </ShareWhatsApp>
         )}
         <Link href={`/p/${done.slug}`} className="text-center text-sm font-bold text-[var(--gold)]">{t("nueva.view")}</Link>
       </section>
@@ -158,10 +159,10 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
             <input value={arbHandle} onChange={(e) => { setArbHandle(e.target.value); setErr(null); }} placeholder={t("nueva.arbPh")}
               className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
             <p className="mt-1 text-[11px] text-[var(--muted)]">{t("nueva.arbHint")}</p>
-            <button type="button" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(t("nueva.inviteReg", { url: origin }))}`, "_blank", "noopener")}
-              className="mt-2 w-full rounded-[10px] border border-[var(--gold)] px-3 py-2 text-[13px] font-bold text-[var(--gold)]">
+            <ShareWhatsApp text={t("nueva.inviteReg", { url: origin })}
+              className="mt-2 block w-full rounded-[10px] border border-[var(--gold)] px-3 py-2 text-center text-[13px] font-bold text-[var(--gold)]">
               {t("nueva.inviteWa")}
-            </button>
+            </ShareWhatsApp>
           </>
         )}
       </Field>
