@@ -113,12 +113,30 @@ async function getFeed(url: string, ms = 5000): Promise<string> {
   const to = setTimeout(() => ctrl.abort(), ms);
   try {
     const res = await fetch(url, { signal: ctrl.signal, headers: { "user-agent": "Mozilla/5.0 (VinkoAgent)" } });
-    return await res.text();
+    // Decodificación UTF-8 explícita: Bing no declara bien el charset y los
+    // acentos llegaban rotos ("vÃ­deos", "MÃ³stoles").
+    return new TextDecoder("utf-8").decode(await res.arrayBuffer());
   } finally { clearTimeout(to); }
 }
 
 const gnews = (q: string) =>
   `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=es&gl=ES&ceid=ES:es`;
+// Respaldo: Bing News RSS (mismo formato <item><title><description>).
+const bnews = (q: string) =>
+  `https://www.bing.com/news/search?q=${encodeURIComponent(q)}&format=rss&setlang=es-ES&cc=ES&qft=sortbydate%3d%221%22`;
+
+// Google bloquea IPs de servidor tras muchas peticiones (503 "Sorry…") y el
+// agente se quedaba a 0 sin avisar. Se prueba Google y, si no da noticias,
+// Bing. Devuelve los items y qué fuente respondió.
+async function fetchNews(q: string): Promise<{ items: Item[]; via: string }> {
+  for (const [via, url] of [["google", gnews(q)], ["bing", bnews(q)]] as const) {
+    try {
+      const items = parseFeed(await getFeed(url));
+      if (items.length) return { items, via };
+    } catch { /* probamos la siguiente fuente */ }
+  }
+  return { items: [], via: "ninguna" };
+}
 
 // deno-lint-ignore no-explicit-any
 async function seenTopics(admin: any): Promise<Set<string>> {
@@ -160,7 +178,7 @@ async function sweepEntities(admin: any, seen: Set<string>, max: number): Promis
     const claves = (e.palabras_clave?.length ? e.palabras_clave : [e.nombre]) as string[];
     const q = claves[Math.floor(Math.random() * claves.length)];
     try {
-      for (const it of parseFeed(await getFeed(gnews(q))).slice(0, 4)) {
+      for (const it of (await fetchNews(q)).items.slice(0, 4)) {
         if (n >= max) break;
         if (await insertSignal(admin, seen, it.t, {
           category: e.categoria, source: "gnews", score: 70,
@@ -281,6 +299,21 @@ Deno.serve(async (req) => {
   // hubiera leído esa noticia (antes devolvía 0 y la pantalla se quedaba vacía).
   const force = body.force === true;
 
+  // DIAGNÓSTICO (solo con secreto de cron): qué recibe el SERVIDOR de Google News.
+  if (body.debug === true && Deno.env.get("CRON_SECRET") && req.headers.get("x-cron-secret") === Deno.env.get("CRON_SECRET")) {
+    const qd = typeof body.topic === "string" && body.topic ? body.topic : "Kings League";
+    try {
+      const out: Record<string, unknown> = {};
+      for (const [via, url] of [["google", gnews(qd)], ["bing", bnews(qd)]] as const) {
+        const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (VinkoAgent)" } });
+        const txt = await r.text();
+        const its = parseFeed(txt);
+        out[via] = { status: r.status, bytes: txt.length, items: its.length, muestra: its.slice(0, 3).map((i) => i.t) };
+      }
+      return json({ debug: true, consulta: qd, ...out });
+    } catch (e) { return json({ debug: true, error: String(e) }); }
+  }
+
   const secret = Deno.env.get("CRON_SECRET") ?? "";
   const isCron = secret && req.headers.get("x-cron-secret") === secret;
   if (!isCron) {
@@ -315,7 +348,7 @@ Deno.serve(async (req) => {
     const v = vetoed(topic);
     if (v) return json({ created: 0, error: "tema_vetado", motivo: v });
     try {
-      for (const it of parseFeed(await getFeed(gnews(topic))).slice(0, 5)) {
+      for (const it of (await fetchNews(topic)).items.slice(0, 5)) {
         if (await insertSignal(admin, seen, it.t, {
           category: "busqueda", source: "search", score: 80,
           raw: { consulta: topic, contexto: it.d },
