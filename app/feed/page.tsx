@@ -13,7 +13,7 @@ import { t } from "@/lib/i18n";
 // porra por pantalla, vídeo de fondo, pick inline). El pique del día va en el
 // primer slide; el header (racha, buscar, campana) flota fijo encima.
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: t("feed.title"), robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: t("feed.title") };
 
 function madridDay(offset = 0): string {
   return new Date(Date.now() + offset * 86400000).toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });

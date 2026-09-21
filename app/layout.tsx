@@ -25,8 +25,10 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: t("brand"), template: `%s — ${t("brand")}` },
   description: t("tagline"),
-  // Staging no indexable mientras LEGAL_LOCK (refuerzo de la cabecera global).
-  robots: { index: false, follow: false },
+  // Lanzamiento (21-sep): la app es pública e indexable. Las zonas privadas
+  // (/admin, /buzon, /saldo, /ajustes) se excluyen en app/robots.ts y AdSense
+  // necesita poder rastrear /, /p/* y las legales para aprobar el sitio.
+  robots: { index: true, follow: true },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Vinko", statusBarStyle: "black-translucent" },
   icons: {
