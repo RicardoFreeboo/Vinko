@@ -22,6 +22,7 @@ export function MediaCapture({ userId, onMedia }: {
   const stream = useRef<MediaStream | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const liveVideo = useRef<HTMLVideoElement>(null);
+  const seq = useRef(0);
 
   // Enseña la cámara EN VIVO mientras grabas (no a ciegas): engancha el stream al
   // <video> de previsualización en cuanto aparece.
@@ -76,17 +77,25 @@ export function MediaCapture({ userId, onMedia }: {
   async function upload(blob: Blob, kind: Kind) {
     const sb = supabaseBrowser();
     if (!sb) return;
+    const mine = ++seq.current; // si luego se quita o se graba otro, esta subida ya no cuenta
     setBusy(true); setErr(null);
-    const ext = kind === "image" ? "jpg" : kind === "audio" ? "webm" : "webm";
-    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extOf(blob.type, kind)}`;
     const { error } = await sb.storage.from("porra-media").upload(path, blob, { contentType: blob.type, upsert: false });
+    if (mine !== seq.current) return;
     if (error) { setBusy(false); setErr(t("media.err")); return; }
     const { data } = sb.storage.from("porra-media").getPublicUrl(path);
     setBusy(false);
     onMedia(data.publicUrl, kind);
+    // Miniatura JPG al lado del vídeo (<ruta>.thumb.jpg, ver lib/thumb.ts) EN
+    // SEGUNDO PLANO: no retrasa «Crear». Si falla o sale negra, se ve la portada.
+    if (kind === "video") {
+      void videoThumb(blob).then((thumb) => thumb
+        ? sb.storage.from("porra-media").upload(path.replace(/\.[^.]+$/, ".thumb.jpg"), thumb, { contentType: "image/jpeg", upsert: false })
+        : null).catch(() => null);
+    }
   }
 
-  function clear() { setPreview(null); onMedia(null, null); setErr(null); }
+  function clear() { seq.current++; setBusy(false); setPreview(null); onMedia(null, null); setErr(null); }
 
   if (preview) {
     return (
@@ -155,4 +164,76 @@ function Btn({ onClick, icon, label }: { onClick: () => void; icon: string; labe
       <span className="text-[11px] font-bold text-[var(--cream)]">{label}</span>
     </button>
   );
+}
+
+// Extensión según el tipo real (antes todo vídeo se guardaba como .webm, también
+// el .mov/.mp4 del iPhone).
+function extOf(type: string, kind: Kind): string {
+  const t0 = type.split(";")[0];
+  if (kind === "image") return t0 === "image/png" ? "png" : t0 === "image/webp" ? "webp" : "jpg";
+  if (kind === "audio") return t0 === "audio/mp4" ? "m4a" : t0 === "audio/mpeg" ? "mp3" : "webm";
+  return t0 === "video/mp4" ? "mp4" : t0 === "video/quicktime" ? "mov" : "webm";
+}
+
+// Saca un fotograma (~1 s, o la mitad si es más corto) y lo devuelve como JPG
+// 360x640 recortado al centro. El <video> se mete en la página (1 px, casi
+// transparente) porque iOS no carga fotogramas de un vídeo suelto ni deja
+// reproducir uno "invisible". Se arranca en loadedmetadata (iOS no pasa de ahí
+// sin un seek). Lo grabado con MediaRecorder puede no traer duración (Infinity):
+// entonces se reproduce en silencio hasta ~0,8 s o hasta el final. Descarta
+// fotogramas casi negros. Máximo 5 s; si no, null.
+function videoThumb(blob: Blob): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const v = document.createElement("video");
+    let done = false;
+    const finish = (b: Blob | null) => {
+      if (done) return;
+      done = true;
+      try { v.pause(); } catch { /* noop */ }
+      v.remove();
+      URL.revokeObjectURL(url);
+      resolve(b);
+    };
+    const grab = () => {
+      if (done) return;
+      if (v.readyState < 2) { v.addEventListener("loadeddata", grab, { once: true }); return; }
+      try {
+        const W = 360, H = 640;
+        const c = document.createElement("canvas");
+        c.width = W; c.height = H;
+        const ctx = c.getContext("2d");
+        if (!ctx || !v.videoWidth) return finish(null);
+        const s = Math.max(W / v.videoWidth, H / v.videoHeight);
+        const w = v.videoWidth * s, h = v.videoHeight * s;
+        ctx.drawImage(v, (W - w) / 2, (H - h) / 2, w, h);
+        // luminosidad media muestreando 1 de cada 100 píxeles (RGBA = 4 bytes)
+        const px = ctx.getImageData(0, 0, W, H).data;
+        let luz = 0, n = 0;
+        for (let i = 0; i < px.length; i += 400) { luz += (px[i] + px[i + 1] + px[i + 2]) / 3; n++; }
+        if (luz / n < 14) return finish(null);
+        c.toBlob((b) => finish(b), "image/jpeg", 0.8);
+      } catch { finish(null); }
+    };
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = "auto";
+    v.setAttribute("playsinline", "");
+    v.style.cssText = "position:fixed;left:0;top:0;width:1px;height:1px;opacity:0.01;pointer-events:none";
+    v.addEventListener("error", () => finish(null), { once: true });
+    v.addEventListener("loadedmetadata", () => {
+      if (Number.isFinite(v.duration) && v.duration > 0) {
+        v.addEventListener("seeked", grab, { once: true });
+        v.currentTime = Math.min(1, v.duration / 2);
+      } else {
+        const onTime = () => { if (v.currentTime >= 0.8) { v.removeEventListener("timeupdate", onTime); grab(); } };
+        v.addEventListener("timeupdate", onTime);
+        v.addEventListener("ended", grab, { once: true });
+        v.play().catch(grab);
+      }
+    }, { once: true });
+    setTimeout(() => { if (v.readyState >= 2) grab(); else finish(null); }, 5000);
+    document.body.appendChild(v);
+    v.src = url;
+  });
 }

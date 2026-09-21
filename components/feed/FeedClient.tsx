@@ -7,6 +7,7 @@ import { FeedAd } from "@/components/ads/FeedAd";
 import { PorraCover } from "@/components/PorraCover";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { porraUrl } from "@/lib/share";
+import { thumbOf } from "@/lib/thumb";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { StakePicker } from "@/components/StakePicker";
 import { capture } from "@/lib/analytics";
@@ -71,7 +72,7 @@ export function FeedClient({ porras, initialPicks, loggedIn }: {
               <button key={p.id} onClick={() => { if (moved.current) return; setViewer({ items: stories, i: k }); }}
                 className="relative aspect-[9/16] w-[124px] shrink-0 snap-start overflow-hidden rounded-[16px] border-2 bg-[var(--ink3)]"
                 style={{ borderColor: picks[p.id] ? "var(--win)" : "var(--gold)" }}>
-                <FastVideo src={p.video!} active={viewer === null}
+                <FastVideo src={p.video!} poster={thumbOf(p.video) ?? undefined} active={viewer === null}
                   fallback={<PorraCover title={p.title} category={p.category} size="sm" />} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-black/25" />
                 <div className="absolute inset-x-0 bottom-0 p-2">
@@ -135,7 +136,7 @@ function FeedCard({ p, pick, stake, onStake, active, onOpen, onPick }: {
     <div className="overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
       <button onClick={onOpen} className="relative block aspect-[16/10] w-full bg-[var(--ink3)]">
         {p.video ? (
-          <FastVideo src={p.video} active={active} fallback={cover} />
+          <FastVideo src={p.video} poster={thumbOf(p.video) ?? undefined} active={active} fallback={cover} />
         ) : cover}
         {p.official && <span className="mono absolute left-3 top-3 rounded-full bg-[var(--win)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--ink)]">{t("p.badgeOfficial")}</span>}
         <span className="absolute right-3 top-3 rounded-full bg-black/45 px-2 py-0.5 text-[10px] font-bold uppercase text-white backdrop-blur">▶ {t("home.open")}</span>

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FastVideo } from "@/components/FastVideo";
 import { PorraCover } from "@/components/PorraCover";
+import { thumbOf } from "@/lib/thumb";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { StakePicker } from "@/components/StakePicker";
 import type { FeedPorra } from "@/lib/feed";
@@ -72,7 +73,7 @@ export function StoriesViewer({
         style={{ transform: `translateX(${dx * 0.4}px)`, transition: dx ? "none" : "transform .25s" }}>
         {/* fondo: vídeo o placeholder */}
         {p.video ? (
-          <FastVideo key={p.slug} src={p.video} speed={1.5} eager
+          <FastVideo key={p.slug} src={p.video} poster={thumbOf(p.video) ?? undefined} speed={1.5} eager
             fallback={<PorraCover title={p.title} category={p.category} size="lg" />} />
         ) : (
           <div className="absolute inset-0"><PorraCover title={p.title} category={p.category} size="lg" /></div>

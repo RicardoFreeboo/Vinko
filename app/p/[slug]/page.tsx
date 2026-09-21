@@ -10,6 +10,7 @@ import { PorraCover } from "@/components/PorraCover";
 import { PorraSocial } from "@/components/PorraSocial";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { porraUrl } from "@/lib/share";
+import { thumbOf } from "@/lib/thumb";
 import { t } from "@/lib/i18n";
 
 // Prerenderiza las porras conocidas (plantillas + editoriales @vinko) y sirve
@@ -89,7 +90,7 @@ export default async function PorraPage({ params }: Props) {
 
       <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
         {porra.video ? (
-          <FastVideo src={porra.video} speed={1.5} eager
+          <FastVideo src={porra.video} poster={thumbOf(porra.video) ?? undefined} speed={1.5} eager
             fallback={<PorraCover title={porra.title} category={porra.category} />} />
         ) : (
           <PorraCover title={porra.title} category={porra.category} />
