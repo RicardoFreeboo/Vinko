@@ -52,7 +52,7 @@ function Tile({ r }: { r: Row }) {
 function Grid({ rows, empty }: { rows: Row[]; empty: string }) {
   if (!rows.length) return <p className="px-5 py-8 text-center text-sm text-[var(--muted)]">{empty}</p>;
   return (
-    <div className="-mx-5 grid grid-cols-3 gap-[2px]">
+    <div className="-mx-5 grid grid-cols-3 gap-[2px] lg:grid-cols-4">
       {rows.map((r) => <Tile key={r.id} r={r} />)}
     </div>
   );

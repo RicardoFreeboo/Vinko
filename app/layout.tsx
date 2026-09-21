@@ -5,6 +5,7 @@ import { AdsLoader } from "@/components/ads/AdsLoader";
 import { RefCatcher } from "@/components/RefCatcher";
 import { ConsentBanner } from "@/components/ConsentBanner";
 import { A2HSPrompt } from "@/components/A2HSPrompt";
+import { DesktopShell } from "@/components/DesktopShell";
 import { cookies } from "next/headers";
 import { getSession } from "@/lib/session";
 import { t } from "@/lib/i18n";
@@ -53,7 +54,9 @@ export default async function RootLayout({
       <body className="min-h-dvh antialiased [font-family:system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif]">
         <Analytics consent={consent} />
         <RefCatcher />
-        <Gate hasSession={!!session}>{children}</Gate>
+        <Gate hasSession={!!session}>
+          <DesktopShell>{children}</DesktopShell>
+        </Gate>
         <ConsentBanner />
         <A2HSPrompt />
         <AdsLoader />

@@ -29,7 +29,7 @@ export function AppNav() {
   return (
     <nav
       aria-label={t("nav.label")}
-      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-around border-t border-[var(--line)] bg-[var(--ink)]/95 backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-around border-t border-[var(--line)] bg-[var(--ink)]/95 backdrop-blur lg:hidden"
     >
       {TABS.map((tab) => {
         const active = path === tab.href || path?.startsWith(tab.href + "/");

@@ -24,8 +24,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
 const slug = args.find((a) => !a.startsWith("--"));
 const verifyJwt = args.includes("--verify-jwt");
-const token = process.env.SUPABASE_ACCESS_TOKEN;
-const ref = process.env.SUPABASE_PROJECT_REF;
+// También --token-file <ruta> y --ref <ref> (para entornos donde no se puede
+// exportar una variable de entorno en la misma línea).
+const flag = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : undefined; };
+const token = process.env.SUPABASE_ACCESS_TOKEN
+  ?? (flag("--token-file") ? (await import("node:fs")).readFileSync(flag("--token-file"), "utf8").trim() : undefined);
+const ref = process.env.SUPABASE_PROJECT_REF ?? flag("--ref");
 
 function fail(msg) { console.error(`✗ ${msg}`); process.exit(1); }
 if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) fail("uso: node scripts/deploy-edge.mjs <slug> [--verify-jwt]");

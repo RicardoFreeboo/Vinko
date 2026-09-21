@@ -1217,5 +1217,14 @@
   "og.div.oro": "Liga Oro",
   "og.div.diamante": "Liga Diamante",
   "og.div.leyenda": "Liga Leyenda",
-  "sponsors.report.prizeRange": "Puestos {from}–{to}"
+  "sponsors.report.prizeRange": "Puestos {from}–{to}",
+  "desktop.invite.body": "Comparte tu enlace: cuando un amigo entre con él y haga su primer pick, los dos ganáis Vinkos.",
+  "desktop.copy": "Copiar",
+  "desktop.copied": "Copiado ✓",
+  "desktop.login.title": "Entra para jugar",
+  "desktop.daily.title": "El pique del día",
+  "desktop.daily.body": "Una pregunta rápida cada día: acierta, suma racha y gana Vinkos.",
+  "desktop.daily.cta": "Jugar ahora →",
+  "desktop.install.title": "Vinko en tu móvil",
+  "desktop.install.body": "Abre vinko.fun en el móvil y añádela a la pantalla de inicio: a un toque y a pantalla completa."
 }

@@ -5,7 +5,8 @@
 -- lista negra en avisos, y sin forma de anular una porra devolviendo Vinkos.
 
 -- 1) El agente NO publica solo: cron apagado; la RPC solo para admin/servicio.
-update cron.job set active = false where jobname = 'vinko-agent-publish';
+-- (cron.job no admite UPDATE directo desde el rol de la API: se descarga el job)
+do $$ begin perform cron.unschedule('vinko-agent-publish'); exception when others then null; end $$;
 revoke execute on function public.agent_autopublish(integer) from anon, authenticated;
 revoke execute on function public.cron_league_close() from anon, authenticated;
 

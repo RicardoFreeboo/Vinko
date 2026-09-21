@@ -55,3 +55,12 @@ body {
   outline: 2px solid var(--win);
   outline-offset: 2px;
 }
+/* Escritorio (components/DesktopShell): la columna de la página pasa de 430 a
+   600px SOLO dentro del shell. El feed vertical no cambia: fija sus 430px en
+   su propio contenedor. Por debajo de 1024px esta regla no existe. */
+@media (min-width: 1024px) {
+  .vk-shell main.amb {
+    max-width: 600px;
+    margin-inline: auto;
+  }
+}

@@ -1217,5 +1217,14 @@
   "og.div.oro": "Gold League",
   "og.div.diamante": "Diamond League",
   "og.div.leyenda": "Legend League",
-  "sponsors.report.prizeRange": "Ranks {from}–{to}"
+  "sponsors.report.prizeRange": "Ranks {from}–{to}",
+  "desktop.invite.body": "Share your link: when a friend joins through it and makes their first pick, you both earn Vinkos.",
+  "desktop.copy": "Copy",
+  "desktop.copied": "Copied ✓",
+  "desktop.login.title": "Sign in to play",
+  "desktop.daily.title": "Today's pick",
+  "desktop.daily.body": "One quick question every day: get it right, build your streak and earn Vinkos.",
+  "desktop.daily.cta": "Play now →",
+  "desktop.install.title": "Vinko on your phone",
+  "desktop.install.body": "Open vinko.fun on your phone and add it to your home screen: one tap, full screen."
 }

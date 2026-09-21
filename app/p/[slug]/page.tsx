@@ -122,8 +122,11 @@ export default async function PorraPage({ params }: Props) {
   const outcome = extras?.dispute_outcome ?? null;
 
   return (
-    <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-8 pt-6">
-      <header className="flex items-center justify-between">
+    // ESCRITORIO (lg+): dos columnas — el vídeo/portada a la izquierda como
+    // tarjeta 9:16 pegajosa y el resto a la derecha. Móvil: intacto (una sola
+    // columna; el <div> de la derecha reproduce el mismo flex-col gap-5).
+    <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-8 pt-6 lg:grid lg:max-w-[1040px] lg:grid-cols-[420px_1fr] lg:grid-rows-[auto_1fr] lg:gap-8 lg:px-8 lg:pt-8">
+      <header className="flex items-center justify-between lg:col-span-2">
         <Logo mark={28} word={20} />
         {porra.is_template ? (
           <span className="mono rounded-full border border-[var(--win)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--win)]">
@@ -136,7 +139,7 @@ export default async function PorraPage({ params }: Props) {
         ) : null}
       </header>
 
-      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)]">
+      <div className="relative aspect-[16/10] w-full overflow-hidden rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] lg:sticky lg:top-8 lg:aspect-[9/16] lg:max-h-[82vh] lg:self-start">
         {porra.video ? (
           <FastVideo src={porra.video} poster={thumbOf(porra.video) ?? undefined} speed={1.5} eager
             fallback={<PorraCover title={porra.title} category={porra.category} />} />
@@ -145,122 +148,124 @@ export default async function PorraPage({ params }: Props) {
         )}
       </div>
 
-      <p className="mono text-xs uppercase tracking-[0.1em]" style={{ color: disputed || (open && closed) ? "var(--gold)" : "var(--muted)" }}>
-        {disputed ? t("p.inReview") : resolved ? t("p.resolved") : closed ? t("resolve.closedTag") : t("p.closes", { date: fmtDate(porra.closes_at) })}
-      </p>
+      <div className="flex grow flex-col gap-5 lg:min-w-0">
+        <p className="mono text-xs uppercase tracking-[0.1em]" style={{ color: disputed || (open && closed) ? "var(--gold)" : "var(--muted)" }}>
+          {disputed ? t("p.inReview") : resolved ? t("p.resolved") : closed ? t("resolve.closedTag") : t("p.closes", { date: fmtDate(porra.closes_at) })}
+        </p>
 
-      <h1 className="text-[1.7rem] font-black leading-[1.12] tracking-tight text-[var(--cream)] [text-wrap:balance]">
-        {porra.title}
-      </h1>
+        <h1 className="text-[1.7rem] font-black leading-[1.12] tracking-tight text-[var(--cream)] [text-wrap:balance]">
+          {porra.title}
+        </h1>
 
-      {/* Criterio de resolución (0041) y fecha prevista: la promesa del juez */}
-      {(criteria || (open && resolvesAt)) && (
-        <div className="-mt-2 flex flex-col gap-0.5 text-[13px] text-[var(--muted)]">
-          {criteria && <p>{t("p.criteria", { c: criteria })}</p>}
-          {open && resolvesAt && <p className="mono text-[11px] uppercase tracking-[0.1em]">{t("p.resolvesAt", { date: fmtDate(resolvesAt) })}</p>}
-        </div>
-      )}
+        {/* Criterio de resolución (0041) y fecha prevista: la promesa del juez */}
+        {(criteria || (open && resolvesAt)) && (
+          <div className="-mt-2 flex flex-col gap-0.5 text-[13px] text-[var(--muted)]">
+            {criteria && <p>{t("p.criteria", { c: criteria })}</p>}
+            {open && resolvesAt && <p className="mono text-[11px] uppercase tracking-[0.1em]">{t("p.resolvesAt", { date: fmtDate(resolvesAt) })}</p>}
+          </div>
+        )}
 
-      {/* IMPUGNADA: reparto congelado hasta que Vinko decida (SSR, sin JS) */}
-      {disputed && (
-        <div role="status" className="rounded-[14px] border border-[var(--gold)] bg-[rgba(255,194,61,0.08)] px-4 py-3">
-          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("p.inReview")}</p>
-          <p className="mt-1 text-[13px] text-[var(--cream)]">{t("p.inReviewBody")}</p>
-        </div>
-      )}
-      {resolved && outcome === "reversed" && (
-        <p className="rounded-[14px] border border-[var(--line)] px-4 py-2.5 text-[13px] text-[var(--muted)]">{t("dispute.reversed")}</p>
-      )}
-      {resolved && outcome === "upheld" && (
-        <p className="rounded-[14px] border border-[var(--line)] px-4 py-2.5 text-[13px] text-[var(--muted)]">{t("dispute.upheld")}</p>
-      )}
+        {/* IMPUGNADA: reparto congelado hasta que Vinko decida (SSR, sin JS) */}
+        {disputed && (
+          <div role="status" className="rounded-[14px] border border-[var(--gold)] bg-[rgba(255,194,61,0.08)] px-4 py-3">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("p.inReview")}</p>
+            <p className="mt-1 text-[13px] text-[var(--cream)]">{t("p.inReviewBody")}</p>
+          </div>
+        )}
+        {resolved && outcome === "reversed" && (
+          <p className="rounded-[14px] border border-[var(--line)] px-4 py-2.5 text-[13px] text-[var(--muted)]">{t("dispute.reversed")}</p>
+        )}
+        {resolved && outcome === "upheld" && (
+          <p className="rounded-[14px] border border-[var(--line)] px-4 py-2.5 text-[13px] text-[var(--muted)]">{t("dispute.upheld")}</p>
+        )}
 
-      <section aria-label={t("p.options")} className="flex flex-col gap-2.5">
-        {porra.options.map((o, i) => {
-          const accent = OPT_ACCENT[i % OPT_ACCENT.length];
-          const win = porra.winning_option_id === o.id;
-          return (
-            <div
-              key={o.id}
-              className="flex items-center gap-3 overflow-hidden rounded-[14px] border bg-[var(--ink2)] px-3.5 py-3.5"
-              style={{ borderColor: win ? accent : "var(--line)" }}
-            >
-              <span
-                className="mono flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black"
-                style={{ color: accent, border: `2px solid ${accent}` }}
+        <section aria-label={t("p.options")} className="flex flex-col gap-2.5">
+          {porra.options.map((o, i) => {
+            const accent = OPT_ACCENT[i % OPT_ACCENT.length];
+            const win = porra.winning_option_id === o.id;
+            return (
+              <div
+                key={o.id}
+                className="flex items-center gap-3 overflow-hidden rounded-[14px] border bg-[var(--ink2)] px-3.5 py-3.5"
+                style={{ borderColor: win ? accent : "var(--line)" }}
               >
-                {OPT_LETTER[i]}
-              </span>
-              <span className="flex-1 text-[15px] font-bold text-[var(--cream)]">
-                {o.label}
-              </span>
-              {win && (
-                <span className="mono text-xs font-black uppercase" style={{ color: accent }}>
-                  ✓
+                <span
+                  className="mono flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-black"
+                  style={{ color: accent, border: `2px solid ${accent}` }}
+                >
+                  {OPT_LETTER[i]}
                 </span>
-              )}
-            </div>
-          );
-        })}
-      </section>
+                <span className="flex-1 text-[15px] font-bold text-[var(--cream)]">
+                  {o.label}
+                </span>
+                {win && (
+                  <span className="mono text-xs font-black uppercase" style={{ color: accent }}>
+                    ✓
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </section>
 
-      {/* JUEZ con su reputación (judge_stats): quién decide y cuánto fiarse */}
-      {judge?.handle && (
-        <p className="-mt-2 text-[12px] text-[var(--muted)]">
-          ⚖️ <Link href={`/u/${judge.handle}`} className="font-bold text-[var(--cream)]">@{judge.handle}</Link>
-          {" · "}
-          {judge.resolved > 0
-            ? t("p.judgeTrust", { n: String(judge.resolved), d: String(judge.disputed) })
-            : t("p.judgeNew")}
-        </p>
-      )}
+        {/* JUEZ con su reputación (judge_stats): quién decide y cuánto fiarse */}
+        {judge?.handle && (
+          <p className="-mt-2 text-[12px] text-[var(--muted)]">
+            ⚖️ <Link href={`/u/${judge.handle}`} className="font-bold text-[var(--cream)]">@{judge.handle}</Link>
+            {" · "}
+            {judge.resolved > 0
+              ? t("p.judgeTrust", { n: String(judge.resolved), d: String(judge.disputed) })
+              : t("p.judgeNew")}
+          </p>
+        )}
 
-      {/* JUEZ — invitación pendiente, o resolver/anular si ya cerró (admin: siempre) */}
-      {isReal && open && isInvited && <ArbiterPanel porraId={porra.id} slug={porra.slug} />}
-      {(canResolve || canVoid) && (
-        <ResolvePanel porraId={porra.id} options={options} source={porra.source}
-          canResolve={canResolve} canVoid={canVoid} early={!closed} criteria={criteria} />
-      )}
+        {/* JUEZ — invitación pendiente, o resolver/anular si ya cerró (admin: siempre) */}
+        {isReal && open && isInvited && <ArbiterPanel porraId={porra.id} slug={porra.slug} />}
+        {(canResolve || canVoid) && (
+          <ResolvePanel porraId={porra.id} options={options} source={porra.source}
+            canResolve={canResolve} canVoid={canVoid} early={!closed} criteria={criteria} />
+        )}
 
-      <PickPanel
-        porraId={porra.id}
-        slug={porra.slug}
-        options={options}
-        status={porra.status}
-        isTemplate={porra.is_template}
-        closesAt={porra.closes_at}
-      />
-
-      {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
-      {rows && (
-        <PorraRanking rows={rows} options={options} winningOptionId={porra.winning_option_id} status={porra.status} />
-      )}
-
-      {/* IMPUGNAR: participantes reales, 24 h tras resolver; "Impugnada por N" ya va en el HTML */}
-      {isReal && settled && dispute && <DisputePanel porraId={porra.id} state={dispute} />}
-
-      {/* COMPARTIR — aquí aterriza quien recibe el enlace, y desde aquí lo reenvía */}
-      {!porra.is_template && open && !closed && (
-        <ShareWhatsApp text={t("nueva.shareText", { title: porra.title, url: porraUrl(porra.slug) + (session?.handle && !session.is_anonymous ? `?ref=${session.handle}` : "") })}
+        <PickPanel
           porraId={porra.id}
-          className="flex items-center justify-center gap-2 rounded-[14px] bg-[#25D366] px-4 py-3.5 text-[15px] font-black text-white">
-          {t("p.shareWa")}
-        </ShareWhatsApp>
-      )}
+          slug={porra.slug}
+          options={options}
+          status={porra.status}
+          isTemplate={porra.is_template}
+          closesAt={porra.closes_at}
+        />
 
-      {!porra.is_template && <PorraSocial porraId={porra.id} slug={porra.slug} />}
+        {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
+        {rows && (
+          <PorraRanking rows={rows} options={options} winningOptionId={porra.winning_option_id} status={porra.status} />
+        )}
 
-      <footer className="mt-auto flex flex-col gap-1.5 pt-6">
-        <p className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted2)]">
-          {t("og.footer")}
-        </p>
-        <p className="text-xs text-[var(--muted)]">{t("p.judge")}</p>
-        <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>
-        <nav className="mt-1 flex gap-3 text-[11px] text-[var(--muted2)]">
-          <Link href="/privacidad" className="underline">{t("legal.privacy.title")}</Link>
-          <Link href="/terminos" className="underline">{t("legal.terms.title")}</Link>
-        </nav>
-      </footer>
+        {/* IMPUGNAR: participantes reales, 24 h tras resolver; "Impugnada por N" ya va en el HTML */}
+        {isReal && settled && dispute && <DisputePanel porraId={porra.id} state={dispute} />}
+
+        {/* COMPARTIR — aquí aterriza quien recibe el enlace, y desde aquí lo reenvía */}
+        {!porra.is_template && open && !closed && (
+          <ShareWhatsApp text={t("nueva.shareText", { title: porra.title, url: porraUrl(porra.slug) + (session?.handle && !session.is_anonymous ? `?ref=${session.handle}` : "") })}
+            porraId={porra.id}
+            className="flex items-center justify-center gap-2 rounded-[14px] bg-[#25D366] px-4 py-3.5 text-[15px] font-black text-white">
+            {t("p.shareWa")}
+          </ShareWhatsApp>
+        )}
+
+        {!porra.is_template && <PorraSocial porraId={porra.id} slug={porra.slug} />}
+
+        <footer className="mt-auto flex flex-col gap-1.5 pt-6">
+          <p className="mono text-[11px] uppercase tracking-[0.1em] text-[var(--muted2)]">
+            {t("og.footer")}
+          </p>
+          <p className="text-xs text-[var(--muted)]">{t("p.judge")}</p>
+          <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>
+          <nav className="mt-1 flex gap-3 text-[11px] text-[var(--muted2)]">
+            <Link href="/privacidad" className="underline">{t("legal.privacy.title")}</Link>
+            <Link href="/terminos" className="underline">{t("legal.terms.title")}</Link>
+          </nav>
+        </footer>
+      </div>
     </main>
   );
 }
