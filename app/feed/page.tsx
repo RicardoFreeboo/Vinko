@@ -3,14 +3,15 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getFeed } from "@/lib/feed";
-import { FeedClient } from "@/components/feed/FeedClient";
+import { VerticalFeed } from "@/components/feed/VerticalFeed";
 import { DailyPick } from "@/components/DailyPick";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { t } from "@/lib/i18n";
 
-// FEED — pantalla de entrada de la app (sustituye a la antigua "Hoy"):
-// el pique del día arriba y debajo las porras con apuesta inline.
+// FEED — pantalla de entrada de la app: feed VERTICAL a pantalla completa (una
+// porra por pantalla, vídeo de fondo, pick inline). El pique del día va en el
+// primer slide; el header (racha, buscar, campana) flota fijo encima.
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: t("feed.title"), robots: { index: false, follow: false } };
 
@@ -54,22 +55,23 @@ export default async function Feed() {
     }
   }
 
+  const btn = "grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 leading-none text-white backdrop-blur";
+
   return (
-    <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-4 px-5 pb-28 pt-6">
-      <header className="flex items-center justify-between">
-        <Logo mark={28} word={20} />
-        <div className="flex items-center gap-2.5">
+    <main className="amb min-h-dvh w-full">
+      {/* header FIJO sobre el feed (el degradado superior de cada slide lo hace legible) */}
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[430px] items-center justify-between px-4 pt-3">
+        <Link href="/feed" className="pointer-events-auto" aria-label={t("brand")}><Logo mark={28} word={20} /></Link>
+        <div className="pointer-events-auto flex items-center gap-2.5">
           {session && (
-            <span className="flex items-center gap-1 rounded-full border border-[var(--gold)]/50 bg-[var(--gold)]/10 px-2.5 py-1 text-[13px] font-black text-[var(--gold)]">
+            <span className="flex items-center gap-1 rounded-full border border-[var(--gold)]/50 bg-black/45 px-2.5 py-1 text-[13px] font-black text-[var(--gold)] backdrop-blur">
               🔥 {streak}
             </span>
           )}
           {session ? (
             <>
-              <Link href="/buscar" aria-label={t("home.search")}
-                className="grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--ink2)] text-[16px] leading-none">🔍</Link>
-              <Link href="/buzon" aria-label={t("home.notifications")}
-                className="relative grid h-9 w-9 place-items-center rounded-full border border-[var(--line)] bg-[var(--ink2)] text-[17px] leading-none">
+              <Link href="/buscar" aria-label={t("home.search")} className={`${btn} text-[16px]`}>🔍</Link>
+              <Link href="/buzon" aria-label={t("home.notifications")} className={`relative ${btn} text-[17px]`}>
                 🔔
                 {unread > 0 && (
                   <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--red)] px-1 text-[9px] font-black text-white">
@@ -86,15 +88,18 @@ export default async function Feed() {
         </div>
       </header>
 
-      {session ? (
-        <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
-      ) : (
-        <div className="rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] p-4 text-center">
-          <p className="text-sm text-[var(--muted)]">{t("home.loginCard")}</p>
-        </div>
-      )}
-
-      <FeedClient porras={feed} initialPicks={feedPicks} loggedIn={!!session} />
+      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()}
+        intro={session ? (
+          <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
+        ) : (
+          <div className="rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-5 text-center">
+            <p className="text-[20px] font-black leading-tight text-[var(--cream)] [text-wrap:balance]">{t("feed.introTitle")}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">{t("home.loginCard")}</p>
+            <Link href="/login?next=/feed" className="mt-4 inline-block rounded-full bg-[var(--win)] px-5 py-2.5 text-[14px] font-black text-[var(--ink)]">
+              {t("home.loginCta")}
+            </Link>
+          </div>
+        )} />
       <AppNav />
     </main>
   );

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Gate } from "@/components/Gate";
 import { Analytics } from "@/components/Analytics";
 import { AdsLoader } from "@/components/ads/AdsLoader";
+import { RefCatcher } from "@/components/RefCatcher";
 import { getSession } from "@/lib/session";
 import { t } from "@/lib/i18n";
 import "./globals.css";
@@ -24,7 +25,14 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "Vinko", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   ...(GSV ? { verification: { google: GSV } } : {}),
 };
 
@@ -41,6 +49,7 @@ export default async function RootLayout({
     <html lang="es">
       <body className="min-h-dvh antialiased [font-family:system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif]">
         <Analytics consent={consent} />
+        <RefCatcher />
         <Gate hasSession={!!session}>{children}</Gate>
         <AdsLoader />
       </body>

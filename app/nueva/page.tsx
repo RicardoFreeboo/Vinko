@@ -31,7 +31,7 @@ export default async function Nueva() {
         <span className="mono text-xs text-[var(--muted)]">@{session.handle}</span>
       </header>
       <h1 className="text-2xl font-black">{t("nueva.title")}</h1>
-      <NuevaClient userId={session.id} origin={origin} />
+      <NuevaClient userId={session.id} origin={origin} handle={session.handle} />
       <AppNav />
     </main>
   );

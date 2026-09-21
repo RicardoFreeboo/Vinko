@@ -3,19 +3,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { ensurePushSubscription } from "@/lib/push";
+import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
 
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
 // limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
 // (header del Feed). Orden: Feed · Perfil · Crear · Grupos · Liga · Vinkos.
-const TABS = [
+const TABS: ReadonlyArray<{ href: string; key: string; icon: React.ReactNode; primary: boolean }> = [
   { href: "/feed", key: "nav.feed", icon: "▦", primary: false },
   { href: "/perfil", key: "nav.perfil", icon: "◉", primary: false },
   { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
   { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
   { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
-  { href: "/saldo", key: "nav.saldo", icon: "🪙", primary: false },
-] as const;
+  { href: "/saldo", key: "nav.saldo", icon: <VinkoCoin size={16} />, primary: false },
+];
 
 export function AppNav() {
   const path = usePathname();

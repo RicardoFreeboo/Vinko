@@ -39,12 +39,24 @@ begin
     raise notice 'ANULADA %: %', r.title, r.motivo;
   end loop;
 
-  -- B/C por patrón (todas sin picks; se comprueba igualmente):
+  -- B por título (los slugs van recortados y no siempre contienen el evento):
   for r in
     select p.id, p.title, m.motivo from porras p join (values
-      ('%us-open%', 'evento pasado: el US Open 2026 terminó el 13-sep'),
-      ('%vuelta-a-espana%', 'evento pasado: la Vuelta 2026 terminó el 13-sep'),
-      ('%enric-mas%', 'evento pasado: la Vuelta 2026 terminó el 13-sep'),
+      ('%US Open%', 'evento pasado: el US Open 2026 terminó el 13-sep'),
+      ('%Vuelta a España%', 'evento pasado: la Vuelta 2026 terminó el 13-sep'),
+      ('%Benidorm Fest 2026%', 'evento pasado: Benidorm Fest 2026 fue en febrero'),
+      ('%Mundial 2026%', 'evento pasado: el Mundial 2026 terminó en julio')
+    ) as m(pat, motivo) on p.title ilike m.pat
+    where p.status = 'open' and not p.is_template
+      and not exists (select 1 from picks k where k.porra_id = p.id)
+  loop
+    update porras set status = 'taken_down', void_reason = r.motivo where id = r.id;
+    raise notice 'RETIRADA %: %', r.title, r.motivo;
+  end loop;
+
+  -- C por patrón de slug (duplicadas; todas sin picks, se comprueba igualmente):
+  for r in
+    select p.id, p.title, m.motivo from porras p join (values
       ('abandonara-kico-el-programa-la-isla-de-%', 'duplicada (Kico, se conserva una)'),
       ('abandonara-kico-la-isla-de-las-tentaci-%', 'duplicada (Kico, se conserva una)'),
       ('abandonara-kico-sampol-la-isla-de-las-%', 'duplicada (Kico, se conserva una)'),
@@ -65,6 +77,12 @@ begin
     update porras set status = 'taken_down', void_reason = r.motivo where id = r.id;
     raise notice 'RETIRADA %: %', r.title, r.motivo;
   end loop;
+
+  -- Vídeo de La Isla generado el 15-sep cuya porra se borró en una purga:
+  -- se le asigna a la porra viva sobre el mismo tema (sin coste).
+  update porras set media_url = 'https://uarnpxjdccbidgzhhavc.supabase.co/storage/v1/object/public/porra-media/agent/isla-tentaciones-t11.mp4',
+                    media_kind = 'video'
+    where slug = 'cual-sera-la-primera-pareja-en-abandona-ba6e1' and status = 'open' and media_url is null;
 
   -- D: cerradas sin participantes → caducadas.
   update porras set status = 'taken_down', void_reason = 'caducada sin participantes'

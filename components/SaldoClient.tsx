@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { RewardedSlot, type SlotId } from "@/components/ads/RewardedSlot";
+import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
 
 // Monedas (gastas) · Nivel (subes) · Puntería (compites). Aquí se ve el saldo,
@@ -55,7 +56,7 @@ export function SaldoClient({
   return (
     <>
       <div className="grid grid-cols-3 gap-2">
-        <Stat value={points} label={t("saldo.coins")} icon="🪙" color="var(--win)" hint={t("saldo.coinsHint")} />
+        <Stat value={points} label={t("saldo.coins")} icon={<VinkoCoin size={18} />} color="var(--win)" hint={t("saldo.coinsHint")} />
         <Stat value={xp} label={t("saldo.level")} icon="▲" color="var(--gold)" hint={t("saldo.levelHint")} />
         <Stat value={marcador} label={t("saldo.skill")} icon="🎯" color="var(--cream)" hint={t("saldo.skillHint")} />
       </div>
@@ -87,13 +88,6 @@ export function SaldoClient({
           <RewardedSlot slot="R1" cta={t("saldo.r1", { n: String(brokenDays) })}
             onGranted={(g) => onGranted("R1", g)} onError={onError} />
         )}
-
-        <EarnRow icon="🎁" title={t("saldo.earn.daily")} value="≤500" href="/saldo" />
-        <EarnRow icon="🎯" title={t("saldo.earn.pick")} value="+150" href="/feed" />
-        <EarnRow icon="✏️" title={t("saldo.earn.create")} value="+Nivel" href="/nueva" />
-        <EarnRow icon="🤝" title={t("saldo.earn.invite")} value="+200" href="/grupos" />
-        <EarnRow icon="📲" title={t("saldo.earn.share")} value="+50" href="/feed" />
-        <EarnRow icon="🔥" title={t("saldo.earn.streak")} value="🏆" href="/saldo" />
       </section>
 
       {msg && (
@@ -105,7 +99,7 @@ export function SaldoClient({
   );
 }
 
-function Stat({ value, label, icon, color, hint }: { value: number; label: string; icon: string; color: string; hint: string }) {
+function Stat({ value, label, icon, color, hint }: { value: number; label: string; icon: React.ReactNode; color: string; hint: string }) {
   return (
     <div className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] p-2.5 text-center">
       <div className="mono text-lg font-black leading-none" style={{ color }}>{icon} {value}</div>
@@ -115,15 +109,3 @@ function Stat({ value, label, icon, color, hint }: { value: number; label: strin
   );
 }
 
-function EarnRow({ icon, title, value, href }: { icon: string; title: string; value: string; href: string }) {
-  return (
-    <Link href={href}
-      className="flex items-center justify-between rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3">
-      <span className="flex items-center gap-3">
-        <span className="text-lg leading-none">{icon}</span>
-        <span className="text-[14px] font-bold text-[var(--cream)]">{title}</span>
-      </span>
-      <span className="mono text-sm font-black text-[var(--win)]">{value}</span>
-    </Link>
-  );
-}

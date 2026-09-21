@@ -15,6 +15,7 @@ export type EventName =
   | "boost_purchased" | "boost_used"
   | "group_digest_generated" | "group_digest_shared"
   // loop
+  | "sign_up" | "login"
   | "porra_created" | "pick_made" | "porra_resolved" | "porra_shared"
   // publicidad
   | "ad_opportunity_shown" | "ad_opt_in" | "ad_started" | "ad_completed"
@@ -36,6 +37,7 @@ function distinctId(): string {
 // Subconjunto que también va a Google Analytics (adquisición/tráfico). PostHog
 // sigue siendo la analítica de producto: no se duplica todo a ciegas.
 const GA_MIRROR = new Set<string>([
+  "sign_up", "login",
   "porra_created", "pick_made", "porra_resolved", "porra_shared",
   "daily_pick_submitted", "daily_pick_resolved",
   "streak_extended", "streak_broken", "ad_reward_granted",

@@ -1,0 +1,35 @@
+{
+  "nueva.arbSelf": "Tú ya eres el juez si eliges «Yo decido».",
+  "nueva.arbFailed": "No se pudo asignar al árbitro: por ahora decides tú.",
+
+  "level.title": "Nivel {n}",
+  "level.xp": "{xp} XP",
+  "level.next": "{n} XP para el nivel {next}",
+  "level.hint": "El nivel es tu experiencia: no se gasta y no afecta a la Puntería.",
+
+  "week.prizePts": "+{n}",
+  "week.keep": "Juega hoy para no perder la racha 🔥 Te faltan {n} días para el premio",
+
+  "vinkos.bonusCta": "🎁 Recoge tus +{pts} Vinkos de hoy (día {n} de {total})",
+  "vinkos.refTitle": "Tu enlace de invitación",
+  "vinkos.refBody": "Cuando un amigo entra con tu enlace y hace su primer pick: +{n} Vinkos para ti y +{m} para él. Con 5 amigos +1.000 y con 10 +2.500.",
+  "vinkos.refWa": "📲 Invitar por WhatsApp",
+  "vinkos.inviteText": "Te invito a Vinko 🔥 Porras con amigos y puntos virtuales. Entra con mi enlace: {url}",
+  "vinkos.earn": "Cómo se ganan Vinkos",
+  "vinkos.earn.share": "Comparte una porra por WhatsApp",
+  "vinkos.earn.shareSub": "1 vez al día",
+  "vinkos.earn.invite": "Un amigo entra con tu enlace",
+  "vinkos.earn.inviteSub": "Al hacer su primer pick · él también gana +{m}",
+  "vinkos.earn.creator": "Cada persona que entra en tu porra",
+  "vinkos.earn.creatorSub": "Hasta {cap} por porra",
+  "vinkos.earn.daily": "Regalo diario",
+  "vinkos.earn.dailySub": "Sube cada día seguido, hasta el día {total}",
+  "vinkos.earn.streak": "Racha de 7 días",
+  "vinkos.earn.streakSub": "Juega cada día; el escudo te cubre uno",
+  "vinkos.earn.ad": "Ver un anuncio (+18)",
+  "vinkos.earn.adSub": "Máximo {cap} al día",
+
+  "saldo.rechargeGot": "+{n} Vinkos extra ✓",
+  "saldo.rechargeNone": "Tus Vinkos extra llegan solas cada pocas horas.",
+  "saldo.r2": "+{n} Vinkos extra por ver un anuncio"
+}

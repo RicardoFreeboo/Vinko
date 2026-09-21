@@ -1,11 +1,27 @@
 name: CI
+# Regresión automática (nació de dos caídas del feed en una semana):
+#   check → léxico prohibido · paridad i18n · tests unitarios · tsc · build
+#   e2e   → smoke contra producción (solo lectura). Corre en push a main, a
+#           mano (workflow_dispatch) y cuando Vercel marca el deploy de
+#           Production como exitoso (deployment_status) — este último es el
+#           fiable: el de push puede llegar antes de que termine el deploy.
+# Sin secretos: el build funciona con las variables de Supabase vacías.
 on:
   push:
     branches: [main]
   pull_request:
+    branches: [main]
+  workflow_dispatch:
+  deployment_status:
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  check:
+    name: Léxico · i18n · unit · tsc · build
+    if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,11 +30,60 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      # L5: la copy pública no puede contener léxico prohibido
-      - name: Léxico prohibido (L5)
-        run: npm run lexicon
-      - name: Build
+
+      - name: Léxico prohibido (copy pública + migraciones ≥ 0030)
+        run: node scripts/lexicon-check.mjs
+
+      # Falla el job si el script existe y falla; solo avisa si aún no existe.
+      - name: Paridad i18n es/en
+        run: |
+          if [ -f scripts/i18n-parity.mjs ]; then
+            node scripts/i18n-parity.mjs
+          else
+            echo "::warning::scripts/i18n-parity.mjs no existe todavía: paso omitido"
+          fi
+
+      - name: Tests unitarios
+        run: node tests/unit/run.mjs
+
+      - name: TypeScript (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      - name: Build de Next
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-placeholder
+          NEXT_PUBLIC_SUPABASE_URL: ""
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+          NEXT_PUBLIC_LEGAL_LOCK: "true"
+          NEXT_PUBLIC_ADS_ENABLED: "false"
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  e2e:
+    name: Smoke en producción (www.vinko.fun)
+    needs: check
+    if: >-
+      ${{ !cancelled()
+          && (needs.check.result == 'success' || needs.check.result == 'skipped')
+          && (
+            github.event_name == 'workflow_dispatch'
+            || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+            || (github.event_name == 'deployment_status'
+                && github.event.deployment_status.state == 'success'
+                && github.event.deployment.environment == 'Production')
+          ) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Navegador (chromium de Playwright)
+        run: npx playwright install --with-deps chromium
+      - name: Smoke E2E
+        run: node tests/e2e/smoke.mjs
+        env:
+          BASE_URL: https://www.vinko.fun
+          CI: "true"

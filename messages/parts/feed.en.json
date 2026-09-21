@@ -1,0 +1,16 @@
+{
+  "feed.closesMin": "Closes in {n} min",
+  "feed.closesH": "Closes in {n} h",
+  "feed.closesD": "Closes in {n} days",
+  "feed.closed": "Closed",
+  "feed.closedErr": "This porra has already closed.",
+  "feed.playing": "{n} playing",
+  "feed.like": "Like",
+  "feed.share": "Share",
+  "feed.close": "Close",
+  "feed.loading": "Loading…",
+  "feed.swipeUp": "Swipe up to see the porras ↑",
+  "feed.next": "Next porra",
+  "feed.loginToPlay": "Sign in to make your pick and earn Vinkos.",
+  "feed.introTitle": "Porras with friends, with virtual points"
+}

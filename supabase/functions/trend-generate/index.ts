@@ -1,71 +1,31 @@
-// Edge Function: POST /trend-generate — agente de tendencias de Vinko.
+// Edge Function: POST /trend-generate — agente de tendencias de Vinko. v3 (21-sep-2026)
 // Convierte señales REALES de actualidad en porras candidatas para la cola de
-// revisión humana (topic_proposals). NUNCA publica: eso es publish_proposal.
+// revisión humana (topic_proposals). NUNCA publica: eso es publish_proposal
+// desde /admin/temas (el cron de autopublicación se apagó en 0030).
 //
 // FUENTES (todas gratuitas y sin clave):
-//  1. tracked_entities (catálogo semilla) -> Google News RSS por palabra clave.
-//     Es la fuente PRIMARIA: garantiza que las porras hablen de lo que sigue
-//     nuestro público (realities, streamers, fútbol, música…).
-//  2. Titulares generales de deporte/actualidad, como red de arrastre.
-// Se eliminó la ingesta de términos crudos de Google Trends: producían basura
-// del tipo "justicia", "emergencia", "liam neeson" (no son eventos resolubles).
+//  1. tracked_entities (catálogo, editable en /admin/catalogo) -> Google News
+//     RSS por palabra clave, con Bing News de respaldo. Es la fuente PRIMARIA.
+//  2. Búsqueda dirigida por tema desde /admin/temas.
+// La red general de titulares y Google Trends se eliminaron: metían política,
+// deportes irrelevantes y términos sueltos ("justicia") sin desenlace.
 //
-// GUARDARRAÍLES (§0 del catálogo), aplicados YA EN LA INGESTA, no solo al final:
+// GUARDARRAÍLES (todos en ./filtros.ts, puros y testados en Node), aplicados
+// YA EN LA INGESTA y otra vez sobre lo que devuelve el modelo:
 //  léxico prohibido · veto de cuotas · contenido inseguro · política partidista
-//  · menores · criterio de resolución obligatorio · sin difamación.
+//  · MENORES (sub-XX, juvenil, cadete, "N años"<18, colegio/instituto)
+//  · YA OCURRIÓ (el titular cuenta el resultado) · FECHA REAL extraída del
+//  texto (nunca estimada) · la noticia debe nombrar a la entidad vigilada
+//  · DUPLICADOS por evento (Jaccard sobre tokens) contra la cola de 14 días,
+//  las porras abiertas y la propia tanda.
+// v3 corrige lo que produjo el v2: un menor como protagonista, preguntas sobre
+// finales ya jugadas, 3-4 copias del mismo evento y fechas inventadas.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const BANNED = [
-  /apuest\w*/i, /apost\w*/i, /\bbet\b/i, /betting/i, /\bwager\w*/i, /\bcuota\w*/i,
-  /\bodds?\b/i, /casa de apuestas/i, /\bjackpot\b/i, /\bbote\b/i, /\bcasino\b/i,
-  /\bwallet\b/i, /\bcash\b/i, /ganar dinero/i, /dinero real/i, /\bslots?\b/i,
-  /tragaperras/i, /ruleta/i,
-];
-const ODDS = /(\bodds\b|\bcuota|\bspread\b|\bpayout\b|\bhandicap\b|\bmoneyline\b|over\/under|\bbookmaker|\btipster|\b[1-9]\.[0-9]{2}\b)/i;
-const UNSAFE = /(asesin|matar\b|mata\b|homicid|apu.alar|tiroteo|masacre|terror|atentad|suicid|autoles|descuartiz|linch|pederast|pedofil|abuso infantil|porno|pornograf|prostituci|zoofil|violaci|envenen|coca.na|hero.na|metanfetam|fentanil|narcotr|traficar|arma de fuego|explosiv|bomba|trata de personas|genocid|nazi|incita.*odio|violent|agred|reyerta|muerto|muere\b|fallec)/i;
-// Política partidista FUERA (§0). Solo actualidad neutral y resoluble.
-const POLITICA = /(\bpsoe\b|\bpp\b|\bvox\b|\bsumar\b|\bpodemos\b|\berc\b|\bjunts\b|\bbildu\b|s[áa]nchez|feij[óo]o|abascal|ayuso|puigdemont|moncloa|congreso de los diputados|\bsenado\b|elecciones|ministr\w+|gobierno de espa[ñn]a|parlamento|consejo de europa|bruselas|comisi[óo]n europea|eurodiputad|investidura|moci[óo]n de censura|amnist[íi]a|refer[ée]ndum|migrante|inmigra|deportaci|geopol[íi]tic|\bguerra\b|\bejército\b|militar)/i;
-// Menores NUNCA como sujeto (§0).
-const MENORES = /(\bmenor(es)? de edad\b|\bni[ñn]o(s)?\b|\bni[ñn]a(s)?\b|\badolescent|\binfantil\b|\bcolegio\b|\binstituto\b)/i;
-// Opciones de relleno ("Equipo 1", "Participante A", "Opción II"…). Antes sólo
-// se cazaban dígitos y se colaban las de letra.
-const PLACEHOLDER = /^(equipo|opci[óo]n|jugador|pareja|concursante|candidat[oa]|persona|participante|team|player|contestant|nombre)\s*([a-z0-9]|[ivx]{1,3})$/i;
-
-// Si TODAS las opciones empiezan por la misma palabra ("Participante A/B/C"),
-// son relleno aunque el patrón anterior no las cace.
-function mismoPrefijo(ops: string[]): boolean {
-  if (ops.length < 2) return false;
-  const first = (s: string) => norm(s).split(" ")[0] ?? "";
-  const p = first(ops[0]);
-  return p.length > 2 && ops.every((o) => first(o) === p);
-}
-
-function norm(s: string): string {
-  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-// Titulares que jamás darán una porra resoluble: opinión, entrevistas,
-// recopilatorios, explicativos… Filtrarlos aquí ahorra llamadas al modelo y
-// sube muchísimo el porcentaje de acierto.
-const NO_EVENTO = /^(¿?por qué|así (es|fue)|todo lo que|las claves|qué se sabe|esto es lo que|cómo |quién es |el motivo|la razón|opinión|editorial|entrevista|análisis|repasamos|top \d|las \d+|los \d+|\d+ (cosas|claves|razones|motivos))/i;
-const NO_EVENTO2 = /(entrevista|en directo|minuto a minuto|última hora|resumen|crónica|horóscopo|recetas?|consejos)/i;
-
-// Un titular sirve como señal; un término suelto ("justicia") no.
-function looksLikeEvent(t: string): boolean {
-  if (t.length < 25 || t.trim().split(/\s+/).length < 4) return false;
-  if (NO_EVENTO.test(t.trim()) || NO_EVENTO2.test(t)) return false;
-  return true;
-}
-
-function vetoed(t: string): string | null {
-  if (BANNED.some((r) => r.test(t))) return "lexico";
-  if (ODDS.test(t)) return "cuotas";
-  if (UNSAFE.test(t)) return "seguridad";
-  if (POLITICA.test(t)) return "politica";
-  if (MENORES.test(t)) return "menores";
-  return null;
-}
+import {
+  type Candidata, type Huella,
+  cierreDesde, coincideEntidad, esRepetida, flagsSuaves, huella, looksLikeEvent,
+  norm, rejectReason, tieneFechaEnTexto, vetoed, yaOcurrido,
+} from "./filtros.ts";
 
 // Decodifica entidades HTML y limpia etiquetas. Sin esto llegaban títulos como
 // «Fermín: &quot;Las burlas...&quot;» o «...&lt;br&gt;» hasta la porra.
@@ -81,14 +41,11 @@ function decodeTitle(s: string): string {
     .trim();
 }
 
-// Parser tolerante: los <title> de 20minutos vienen con salto de línea antes del
-// CDATA y la regex anterior no casaba NADA (esa fuente aportaba cero señales).
-// Se leen los <item> para no ingerir el <title> del canal ("Daily Search Trends").
-type Item = { t: string; d: string };
+// Parser tolerante: se leen los <item> (nunca el <title> del canal) y se
+// captura <description> (nombres y fechas), <link> (fuente para el revisor)
+// y <pubDate> (para convertir "este domingo" en una fecha real).
+type Item = { t: string; d: string; link: string | null; pub: string | null };
 function parseFeed(xml: string): Item[] {
-  // Se leen los <item>: así nunca entra el <title> del canal ("Daily Search
-  // Trends") y además se captura la <description>, que es donde vienen los
-  // NOMBRES de los participantes y las FECHAS del evento.
   const blocks = [...xml.matchAll(/<item\b[\s\S]*?<\/item>/g)].map((m) => m[0]);
   const out: Item[] = [];
   const seen = new Set<string>();
@@ -99,11 +56,16 @@ function parseFeed(xml: string): Item[] {
     const t = decodeTitle(tm[1]).replace(/\s+[-–|]\s+[^-–|]{2,40}$/, "").trim();
     const dm = b.match(/<description\b[^>]*>([\s\S]*?)<\/description>/i);
     const d = dm ? decodeTitle(dm[1]).slice(0, 400) : "";
+    const lm = b.match(/<link\b[^>]*>([\s\S]*?)<\/link>/i);
+    const link = lm ? decodeTitle(lm[1]).slice(0, 500) : null;
+    const pm = b.match(/<pubDate\b[^>]*>([\s\S]*?)<\/pubDate>/i);
+    const pubTs = pm ? Date.parse(decodeTitle(pm[1])) : NaN;
+    const pub = Number.isNaN(pubTs) ? null : new Date(pubTs).toISOString();
     const k = norm(t);
     if (!k || seen.has(k)) continue;
     if (t.length < 12 || t.length > 140) continue;
     seen.add(k);
-    out.push({ t, d });
+    out.push({ t, d, link: link && /^https?:\/\//i.test(link) ? link : null, pub });
   }
   return out;
 }
@@ -145,26 +107,38 @@ async function seenTopics(admin: any): Promise<Set<string>> {
   return new Set((data ?? []).map((s: { topic: string }) => norm(s.topic)));
 }
 
+type Entidad = { nombre: string; claves: string[] };
+// Motivos de descarte EN LA INGESTA (se devuelven en la respuesta para que el
+// admin vea por qué un barrido dio pocas porras).
+type Ingesta = { seen: Set<string>; descartes: Record<string, number> };
+function cuenta(m: Record<string, number>, k: string) { m[k] = (m[k] ?? 0) + 1; }
+
 // deno-lint-ignore no-explicit-any
-async function insertSignal(admin: any, seen: Set<string>, t: string, meta: Record<string, unknown>): Promise<boolean> {
-  const k = norm(t);
-  if (seen.has(k)) return false;
-  if (!looksLikeEvent(t)) return false;
+async function insertSignal(admin: any, ing: Ingesta, it: Item, meta: Record<string, unknown>, entidad?: Entidad): Promise<boolean> {
+  const k = norm(it.t);
+  if (ing.seen.has(k)) { cuenta(ing.descartes, "vista"); return false; }
+  if (!looksLikeEvent(it.t)) { cuenta(ing.descartes, "no_evento"); return false; }
   // Se veta sobre titular + contexto: la política venía en la descripción
-  // ("PP y Vox…") mientras el titular parecía neutro.
-  const ctx = String((meta.raw as Record<string, unknown> | undefined)?.contexto ?? "");
-  if (vetoed(`${t} ${ctx}`)) return false; // descarte en la INGESTA, no se encola basura
+  // ("PP y Vox…") mientras el titular parecía neutro. Menores incluidos.
+  const v = vetoed(`${it.t} ${it.d}`);
+  if (v) { cuenta(ing.descartes, v); return false; }
+  // Titular que ya cuenta el desenlace: no gastamos modelo en él.
+  if (yaOcurrido(it.t, it.d)) { cuenta(ing.descartes, "ya_ocurrido"); return false; }
+  // La noticia tiene que hablar de la entidad que buscábamos (Google devuelve
+  // "relacionados" que no lo son).
+  if (entidad && !coincideEntidad(it.t, entidad.nombre, entidad.claves)) { cuenta(ing.descartes, "sin_entidad"); return false; }
+  const raw = { ...(meta.raw as Record<string, unknown> ?? {}), titular: it.t, contexto: it.d, source_url: it.link, publicado: it.pub };
   const { error } = await admin.from("signals").insert({
-    topic: t, status: "new", velocity: 60, ...meta,
+    topic: it.t, status: "new", velocity: 60, ...meta, raw,
   });
-  if (error) return false;
-  seen.add(k);
+  if (error) { cuenta(ing.descartes, "insert"); return false; }
+  ing.seen.add(k);
   return true;
 }
 
-// FUENTE PRIMARIA: el catálogo semilla (tracked_entities) vía Google News.
+// FUENTE PRIMARIA: el catálogo (tracked_entities) vía Google News / Bing.
 // deno-lint-ignore no-explicit-any
-async function sweepEntities(admin: any, seen: Set<string>, max: number): Promise<number> {
+async function sweepEntities(admin: any, ing: Ingesta, max: number): Promise<number> {
   const { data: ents } = await admin.from("tracked_entities")
     .select("id, nombre, categoria, palabras_clave, last_swept_at")
     .eq("activo", true)
@@ -180,10 +154,10 @@ async function sweepEntities(admin: any, seen: Set<string>, max: number): Promis
     try {
       for (const it of (await fetchNews(q)).items.slice(0, 4)) {
         if (n >= max) break;
-        if (await insertSignal(admin, seen, it.t, {
+        if (await insertSignal(admin, ing, it, {
           category: e.categoria, source: "gnews", score: 70,
-          raw: { entidad: e.nombre, consulta: q, contexto: it.d },
-        })) n++;
+          raw: { entidad: e.nombre, consulta: q },
+        }, { nombre: e.nombre, claves })) n++;
       }
     } catch { /* fuente caída: seguimos */ }
     await admin.from("tracked_entities").update({ last_swept_at: new Date().toISOString() }).eq("id", e.id);
@@ -191,89 +165,68 @@ async function sweepEntities(admin: any, seen: Set<string>, max: number): Promis
   return n;
 }
 
-// Red de arrastre general (deporte + actualidad).
-// deno-lint-ignore no-explicit-any
-async function sweepNews(admin: any, seen: Set<string>, max: number): Promise<number> {
-  const SRC = [
-    { url: "https://e00-marca.uecdn.es/rss/portada.xml", cat: "deporte" },
-    { url: "https://www.20minutos.es/rss/", cat: "actualidad" },
-  ];
-  let n = 0;
-  for (const s of SRC) {
-    if (n >= max) break;
-    try {
-      for (const it of parseFeed(await getFeed(s.url)).slice(0, 5)) {
-        if (n >= max) break;
-        if (await insertSignal(admin, seen, it.t, {
-          category: s.cat, source: "news", score: 55, raw: { contexto: it.d },
-        })) n++;
-      }
-    } catch { /* seguimos */ }
-  }
-  return n;
-}
+const SYSTEM = `Eres el generador de porras de Vinko: conviertes UNA noticia real en una porra social de puntos virtuales para público español (realities, streamers, fútbol, música, cultura pop).
 
-const SYSTEM = `Eres el generador de porras de Vinko: conviertes una noticia real en una porra social de puntos virtuales para público español (realities, streamers, fútbol, música, cultura pop).
+Recibes un JSON con: titular, contexto (extracto de la noticia), entidad (lo que vigilamos), publicado (fecha de la noticia) y hoy (fecha actual).
 
 REGLAS ABSOLUTAS (si incumples alguna, devuelve invalida=true):
 - Léxico prohibido: apuesta, apostar, bet, cuota, odds, casa de apuestas, bote, jackpot, casino, ganar dinero. Usa: porra, pronóstico, predicción, puntos.
-- RESOLUBLE: debe existir un desenlace objetivo y público. Escribe criterio_de_resolucion diciendo con qué fuente se declara el ganador. Si el desenlace no se puede verificar, invalida=true.
-- fecha_cierre SIEMPRE anterior al desenlace, en ISO, y como mucho a 30 días vista.
-- Opciones CONCRETAS: nombres propios REALES que aparezcan en el titular o en el campo "contexto" que recibes. Prohibido inventar y prohibido cualquier relleno tipo "Equipo 1", "Participante A", "Opción B", "Jugador 2". Si en el material no hay nombres reales suficientes para 2 opciones, invalida=true. Es preferible una porra binaria con dos desenlaces concretos ("Sí, antes del domingo" / "No") que una lista de relleno.
-- fecha_cierre: dedúcela del material (día del partido, de la gala, de la jornada). Si no hay fecha exacta, ESTIMA con criterio —la próxima jornada, gala o partido suele caer en los próximos 7 días— y pon una fecha anterior al desenlace. Solo invalida=true si el desenlace no ocurrirá dentro de los próximos 30 días o no se puede saber nunca.
-- El criterio_de_resolucion debe nombrar la fuente que lo declara (web oficial, acta, clasificación, comunicado, audiencias).
+- FUTURO, no pasado: la porra pregunta por un desenlace que TODAVÍA NO ha ocurrido. Si el titular o el contexto ya cuentan el resultado (quién ganó, quién fue expulsado, cómo terminó, quién es campeón), pon ya_ocurrido=true e invalida=true. Jamás preguntes "quién fue", "quién ganó" ni "quién ha sido".
+- FECHA REAL, nunca estimada: fecha_evento es la fecha del desenlace TAL COMO APARECE en el material (día del partido, gala, combate, estreno, carrera). Convierte expresiones relativas ("este domingo", "mañana", "el jueves") usando la fecha de publicado. Si el material NO dice cuándo ocurre, fecha_evento=null e invalida=true. Prohibido suponer "la próxima jornada" o "la semana que viene".
+  Formato: "YYYY-MM-DDTHH:MM" en hora de España si el texto da la hora; "YYYY-MM-DD" si solo da el día.
+- MENORES: si el protagonista tiene menos de 18 años (sub-16, sub-17, juvenil, cadete, infantil, "a sus 16 años", instituto, colegio) → invalida=true. Nunca un menor como sujeto de una porra.
+- RESOLUBLE: debe existir un desenlace objetivo y público. criterio_de_resolucion dice con qué fuente se declara el ganador (web oficial, acta, clasificación, comunicado, audiencias). Si no se puede verificar, invalida=true.
+- Opciones CONCRETAS: nombres propios REALES que aparezcan en el titular o en contexto. Prohibido inventar y prohibido cualquier relleno tipo "Equipo 1", "Participante A", "Opción B". Si no hay nombres reales suficientes para 2 opciones, invalida=true. Es preferible una porra binaria con dos desenlaces concretos ("Sí, antes del domingo" / "No") que una lista de relleno.
 - NADA de política partidista, partidos, elecciones, gobiernos ni geopolítica: invalida=true.
-- NUNCA menores como sujeto: invalida=true.
 - SIN DIFAMACIÓN: la porra pregunta por un hecho público que ocurrirá y se declarará objetivamente. Jamás por acusaciones, delitos, rumores o la vida privada de nadie: invalida=true.
 - Si la noticia es sobre muerte, violencia, delitos o desgracias: invalida=true.
 - Preferimos preguntas de pique: quién gana, quién cae, pasa sí o no.
 
-Devuelve SOLO JSON: {"pregunta","opciones":["..."],"fecha_cierre":"ISO","criterio_de_resolucion","categoria","invalida":false}`;
+Devuelve SOLO JSON: {"pregunta":"…","opciones":["…"],"fecha_evento":"YYYY-MM-DD | YYYY-MM-DDTHH:MM | null","ya_ocurrido":false,"criterio_de_resolucion":"…","categoria":"…","invalida":false}`;
 
-async function withHaiku(key: string, signal: Record<string, unknown>) {
+type Material = { titular: string; contexto: string; entidad: string | null; categoria: string | null; publicado: string | null; hoy: string };
+
+async function withHaiku(key: string, m: Material): Promise<Candidata> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",
-      max_tokens: 700,
+      model: "claude-haiku-4-5",
+      max_tokens: 1000,
       system: SYSTEM,
-      messages: [{ role: "user", content: JSON.stringify(signal) }],
+      messages: [{ role: "user", content: JSON.stringify(m) }],
     }),
   });
+  if (!res.ok) throw new Error(`anthropic ${res.status}`);
   const j = await res.json();
   const text = j?.content?.[0]?.text ?? "{}";
   const match = text.match(/\{[\s\S]*\}/);
   return JSON.parse(match ? match[0] : "{}");
 }
 
-// Motivo por el que una candidata NO sirve. null = se puede encolar.
-function rejectReason(c: {
-  pregunta?: string; opciones?: string[]; criterio_de_resolucion?: string;
-  fecha_cierre?: string; invalida?: boolean;
-}): string | null {
-  if (c.invalida) return "invalida";
-  const p = c.pregunta ?? "";
-  const ops = c.opciones ?? [];
-  const crit = c.criterio_de_resolucion ?? "";
-  if (!p || p.length < 12 || p.length > 140) return "pregunta";
-  if (ops.length < 2 || ops.length > 6) return "opciones";
-  if (ops.some((o) => !o || PLACEHOLDER.test(o.trim()))) return "opciones_relleno";
-  if (mismoPrefijo(ops)) return "opciones_relleno";
-  if (new Set(ops.map(norm)).size !== ops.length) return "opciones_repetidas";
-  if (!crit || crit.length < 25) return "sin_resolucion";
-  // El criterio debe decir CON QUÉ se declara el ganador, no una frase vacía.
-  if (!/(seg[uú]n|publica|anuncia|emite|declara|resultado oficial|acta|clasificaci[óo]n|web oficial|comunicado)/i.test(crit)) {
-    return "criterio_generico";
+// Huellas de lo que ya existe: cola de 14 días (pendientes + publicadas) y
+// porras abiertas. Contra esto se deduplica cada candidata nueva.
+// deno-lint-ignore no-explicit-any
+async function huellasPrevias(admin: any): Promise<Huella[]> {
+  const out: Huella[] = [];
+  const desde = new Date(Date.now() - 14 * 86400000).toISOString();
+  const { data: previas } = await admin.from("topic_proposals")
+    .select("title, options, closes_at, signals(raw)")
+    .in("status", ["pending_review", "published"])
+    .gt("created_at", desde).limit(1000);
+  for (const p of previas ?? []) {
+    const raw = (Array.isArray(p.signals) ? p.signals[0]?.raw : p.signals?.raw) as Record<string, unknown> | undefined;
+    out.push(huella(String(p.title ?? ""), (p.options ?? []) as string[], (raw?.entidad as string) ?? null, p.closes_at));
   }
-  // FECHA DE CIERRE verificable: sin fecha creíble no se sabe cuándo vence.
-  const ts = Date.parse(String(c.fecha_cierre ?? ""));
-  if (!ts || Number.isNaN(ts)) return "sin_fecha";
-  if (ts < Date.now() + 3 * 3600_000) return "fecha_pasada";
-  if (ts > Date.now() + 60 * 86400_000) return "fecha_lejana";
-  const v = vetoed([p, ...ops, crit].join(" "));
-  if (v) return v;
-  return null;
+  const { data: abiertas } = await admin.from("porras")
+    .select("title, closes_at, porra_options(label)")
+    .eq("status", "open").eq("is_template", false)
+    .gt("closes_at", new Date().toISOString()).limit(800);
+  for (const p of abiertas ?? []) {
+    const ops = ((p.porra_options ?? []) as { label: string }[]).map((o) => o.label);
+    out.push(huella(String(p.title ?? ""), ops, null, p.closes_at));
+  }
+  return out;
 }
 
 Deno.serve(async (req) => {
@@ -299,7 +252,8 @@ Deno.serve(async (req) => {
   // hubiera leído esa noticia (antes devolvía 0 y la pantalla se quedaba vacía).
   const force = body.force === true;
 
-  // DIAGNÓSTICO (solo con secreto de cron): qué recibe el SERVIDOR de Google News.
+  // DIAGNÓSTICO (solo con secreto de cron): qué recibe el SERVIDOR de Google
+  // News / Bing y qué diría cada filtro de la muestra.
   if (body.debug === true && Deno.env.get("CRON_SECRET") && req.headers.get("x-cron-secret") === Deno.env.get("CRON_SECRET")) {
     const qd = typeof body.topic === "string" && body.topic ? body.topic : "Kings League";
     try {
@@ -308,9 +262,15 @@ Deno.serve(async (req) => {
         const r = await fetch(url, { headers: { "user-agent": "Mozilla/5.0 (VinkoAgent)" } });
         const txt = await r.text();
         const its = parseFeed(txt);
-        out[via] = { status: r.status, bytes: txt.length, items: its.length, muestra: its.slice(0, 3).map((i) => i.t) };
+        out[via] = {
+          status: r.status, bytes: txt.length, items: its.length,
+          muestra: its.slice(0, 3).map((i) => ({
+            t: i.t, publicado: i.pub, veto: vetoed(`${i.t} ${i.d}`), ya_ocurrido: yaOcurrido(i.t, i.d),
+            fecha_en_texto: tieneFechaEnTexto(`${i.t} ${i.d}`), entidad: coincideEntidad(i.t, qd),
+          })),
+        };
       }
-      return json({ debug: true, consulta: qd, ...out });
+      return json({ debug: true, version: 3, consulta: qd, ...out });
     } catch (e) { return json({ debug: true, error: String(e) }); }
   }
 
@@ -338,30 +298,29 @@ Deno.serve(async (req) => {
     }
   }
 
-  const seen = force || topic ? new Set<string>() : await seenTopics(admin);
+  const ing: Ingesta = { seen: force || topic ? new Set<string>() : await seenTopics(admin), descartes: {} };
   let ingested = 0;
 
   if (topic) {
     // BÚSQUEDA DIRIGIDA: se buscan NOTICIAS REALES del tema y de ahí salen las
-    // señales. Antes se metía el término crudo ("dalas review") y el modelo no
-    // tenía nada con lo que trabajar: no salía nada.
+    // señales. El tema hace de entidad: el titular tiene que nombrarlo.
     const v = vetoed(topic);
     if (v) return json({ created: 0, error: "tema_vetado", motivo: v });
     try {
-      for (const it of (await fetchNews(topic)).items.slice(0, 5)) {
-        if (await insertSignal(admin, seen, it.t, {
+      for (const it of (await fetchNews(topic)).items.slice(0, 6)) {
+        if (await insertSignal(admin, ing, it, {
           category: "busqueda", source: "search", score: 80,
-          raw: { consulta: topic, contexto: it.d },
-        })) ingested++;
+          raw: { consulta: topic },
+        }, { nombre: topic, claves: [] })) ingested++;
       }
     } catch { /* red caída */ }
     if (!ingested) {
-      return json({ created: 0, sin_noticias: true, mensaje: `Sin noticias recientes utilizables sobre "${topic}".` });
+      return json({ created: 0, sin_noticias: true, ingesta_descartes: ing.descartes, mensaje: `Sin noticias recientes utilizables sobre "${topic}".` });
     }
   } else {
     // SOLO el catálogo: la red general de titulares metía política (Ceuta, el
     // Rey), deportes irrelevantes (cricket) y listículos sin desenlace.
-    ingested += await sweepEntities(admin, seen, limit);
+    ingested += await sweepEntities(admin, ing, limit);
   }
   await admin.from("agent_runs").insert({ kind: topic ? "search" : "sweep", topic: topic || null });
 
@@ -372,62 +331,90 @@ Deno.serve(async (req) => {
 
   let created = 0, descartadas = 0, repetidas = 0;
   const motivos: Record<string, number> = {};
-  // Títulos ya propuestos en los últimos 14 días: al renovar no se duplican.
-  const { data: previas } = await admin.from("topic_proposals").select("title")
-    .gt("created_at", new Date(Date.now() - 14 * 86400000).toISOString()).limit(1000);
-  const titulosPrevios = new Set((previas ?? []).map((p: { title: string }) => norm(p.title)));
+  const previas = await huellasPrevias(admin);
+  const hoy = new Date().toISOString().slice(0, 10);
 
   // Generación EN PARALELO por tandas: en serie sólo daba tiempo a unas pocas
   // antes del timeout, y por eso salían "de 3 en 3".
-  const lista = signals ?? [];
+  // deno-lint-ignore no-explicit-any
+  const lista: any[] = signals ?? [];
   const TANDA = 8;
-  const generadas: Array<{ s: any; cand: any }> = [];
+  // deno-lint-ignore no-explicit-any
+  const generadas: Array<{ s: any; m: Material; cand: Candidata | null }> = [];
   for (let i = 0; i < lista.length; i += TANDA) {
     const tanda = lista.slice(i, i + TANDA);
-    const res = await Promise.all(tanda.map(async (sig: any) => {
-      try { return { s: sig, cand: anthropic ? await withHaiku(anthropic, sig) : null }; }
-      catch { return { s: sig, cand: null }; }
+    const res = await Promise.all(tanda.map(async (sig) => {
+      const raw = (sig.raw ?? {}) as Record<string, unknown>;
+      const m: Material = {
+        titular: String(raw.titular ?? sig.topic ?? ""),
+        contexto: String(raw.contexto ?? ""),
+        entidad: (raw.entidad as string) ?? null,
+        categoria: sig.category ?? null,
+        publicado: (raw.publicado as string) ?? null,
+        hoy,
+      };
+      try { return { s: sig, m, cand: anthropic ? await withHaiku(anthropic, m) : null }; }
+      catch { return { s: sig, m, cand: null }; }
     }));
     generadas.push(...res);
   }
 
-  for (const { s, cand } of generadas) {
+  for (const { s, m, cand } of generadas) {
     // Sin modelo no se inventan porras de plantilla: sólo generaban ruido.
-    const motivo = cand ? rejectReason(cand) : "sin_modelo";
-    if (motivo) {
+    const motivo = cand ? rejectReason(cand, `${m.titular} ${m.contexto}`) : "sin_modelo";
+    if (motivo || !cand) {
       descartadas++;
-      motivos[motivo] = (motivos[motivo] ?? 0) + 1;
+      cuenta(motivos, motivo ?? "sin_modelo");
       // si esto fallara, la señal volvería a procesarse en cada barrido
       await admin.from("signals").update({ status: "rejected" }).eq("id", s.id);
       continue;
     }
     const titulo = String(cand.pregunta).slice(0, 160);
-    if (titulosPrevios.has(norm(titulo))) {
+    const opciones = (cand.opciones ?? []).map((o) => String(o).trim().slice(0, 80));
+    const cierre = cierreDesde(cand.fecha_evento)!; // validado en rejectReason
+    // DUPLICADOS por evento: contra la cola, las porras abiertas y esta tanda.
+    const h = huella(titulo, opciones, m.entidad, cierre.closesAt);
+    if (esRepetida(h, previas)) {
       repetidas++;
+      cuenta(motivos, "repetida");
       await admin.from("signals").update({ status: "scored" }).eq("id", s.id);
       continue;
     }
-    titulosPrevios.add(norm(titulo));
-    const { error } = await admin.from("topic_proposals").insert({
+    previas.push(h);
+    const fila: Record<string, unknown> = {
       title: titulo,
-      options: cand.opciones,
+      options: opciones,
       source_url: s.raw?.source_url ?? null,
+      source_title: m.titular || null,
       category: cand.categoria ?? s.category,
       resolution_criteria: cand.criterio_de_resolucion,
-      closes_at: cand.fecha_cierre ?? s.resolution_date,
+      closes_at: cierre.closesAt,
       score: s.score,
-      flags: [],
+      flags: flagsSuaves(cierre),
       lang: s.lang ?? "es",
       kind: "porra",
       signal_id: s.id,
       status: "pending_review",
-    });
+    };
+    let { error } = await admin.from("topic_proposals").insert(fila);
+    // Migración 0032 aún sin aplicar (source_title): no perdemos la porra.
+    if (error && /source_title/.test(String(error.message))) {
+      delete fila.source_title;
+      ({ error } = await admin.from("topic_proposals").insert(fila));
+    }
     if (!error) {
       created++;
       await admin.from("signals").update({ status: "scored" }).eq("id", s.id);
+    } else {
+      descartadas++;
+      cuenta(motivos, "insert");
+      await admin.from("signals").update({ status: "rejected" }).eq("id", s.id);
     }
   }
-  return json({ created, repetidas, descartadas, motivos, ingested, force, used: anthropic ? "haiku" : "ninguno" });
+  return json({
+    version: 3, created, repetidas, descartadas, motivos, ingested,
+    ingesta_descartes: ing.descartes, force, used: anthropic ? "haiku" : "ninguno",
+  });
 });
 
 function json(body: unknown, status = 200) {

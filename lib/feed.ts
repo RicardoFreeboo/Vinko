@@ -5,17 +5,22 @@ import { coverTheme } from "@/lib/cover";
 // Feed del home: porras ABIERTAS reales (editoriales + de usuarios), nunca
 // plantillas. Vídeo: primero el subido a Storage, luego el catálogo local.
 // Público (RLS: open/resolved legibles por todos).
+export type FeedCreator = { handle: string; avatar_url: string | null };
+
 export type FeedPorra = {
   id: string;
   slug: string;
   title: string;
   source: string;
   closes_at: string;
-  options: { id: string; label: string }[];
+  options: { id: string; idx: number; label: string }[];
   video: string | null;
   category: string | null;
   official: boolean;
   featured: boolean;
+  // quien la creó (perfil REAL); null en editoriales (se enseñan como "Vinko
+  // oficial") o si el perfil ya no existe
+  creator: FeedCreator | null;
 };
 
 // Cuántas porras abiertas se leen para ORDENAR antes de recortar. El recorte va
@@ -44,41 +49,60 @@ const temaDe = (list: FeedPorra[]) => {
   return last ? coverTheme(last.category, last.title).key : "";
 };
 
+type Row = {
+  id: string; slug: string; title: string; source: string; closes_at: string;
+  featured_until: string | null; media_url: string | null; media_kind: string | null;
+  category?: string | null;
+  porra_options: { id: string; idx: number; label: string }[] | null;
+  // PostgREST devuelve la relación a-uno como objeto; por si acaso, también array
+  creator?: FeedCreator | FeedCreator[] | null;
+};
+
+const SELECT = "id, slug, title, source, closes_at, featured_until, media_url, media_kind, category, porra_options!porra_options_porra_id_fkey ( id, idx, label )";
+// Creador vía la FK por defecto de `porras.created_by → profiles.id`.
+const SELECT_CREATOR = ", creator:profiles!porras_created_by_fkey ( handle, avatar_url )";
+
 export async function getFeed(limit = 30): Promise<FeedPorra[]> {
   const sb = await supabaseServer();
   if (!sb) {
     // sin backend: al menos las editoriales locales (con vídeo)
     return EDITORIAL.map((p) => ({
       id: p.id, slug: p.slug, title: p.title, source: p.source, closes_at: p.closes_at,
-      options: p.options.map((o) => ({ id: o.id, label: o.label })),
-      video: p.video ?? null, category: null, official: true, featured: false,
+      options: p.options.map((o, idx) => ({ id: o.id, idx, label: o.label })),
+      video: p.video ?? null, category: null, official: true, featured: false, creator: null,
     }));
   }
-  const { data } = await sb
+  const leer = (conCreador: boolean) => sb
     .from("porras")
-    .select("id, slug, title, source, closes_at, featured_until, media_url, media_kind, category, porra_options!porra_options_porra_id_fkey ( id, idx, label )")
+    .select(SELECT + (conCreador ? SELECT_CREATOR : ""))
     .eq("status", "open")
     .eq("is_template", false)
     .gt("closes_at", new Date().toISOString())
     .order("created_at", { ascending: false })
     .order("id", { ascending: true })
     .limit(POOL);
+  let { data, error } = await leer(true);
+  // Si la relación no existe con ese nombre (FK renombrada), el feed sigue
+  // saliendo: sin creador antes que sin porras.
+  if (error) ({ data } = await leer(false));
 
   const now = Date.now();
   // `rows` sale ya de más reciente a más antigua
-  const rows: FeedPorra[] = (data ?? []).map((p) => {
-    const opts = ((p.porra_options ?? []) as { id: string; idx: number; label: string }[])
-      .slice().sort((a, b) => a.idx - b.idx).map((o) => ({ id: o.id, label: o.label }));
+  const rows: FeedPorra[] = ((data ?? []) as unknown as Row[]).map((p) => {
+    const opts = (p.porra_options ?? [])
+      .slice().sort((a, b) => a.idx - b.idx).map((o) => ({ id: o.id, idx: o.idx, label: o.label }));
+    const c = Array.isArray(p.creator) ? p.creator[0] : p.creator;
     return {
       id: p.id, slug: p.slug, title: p.title, source: p.source, closes_at: p.closes_at,
       options: opts,
       // media_url también guarda fotos y notas de voz subidas desde /nueva: solo
       // cuenta como vídeo si no es imagen ni audio
-      video: (p.media_kind !== "image" && p.media_kind !== "audio" ? (p.media_url as string | null) : null)
+      video: (p.media_kind !== "image" && p.media_kind !== "audio" ? p.media_url : null)
         ?? editorialBySlug(p.slug)?.video ?? null,
-      category: (p as { category?: string | null }).category ?? null,
+      category: p.category ?? null,
       official: p.source === "editorial",
       featured: !!p.featured_until && new Date(p.featured_until).getTime() > now,
+      creator: p.source !== "editorial" && c?.handle ? { handle: c.handle, avatar_url: c.avatar_url ?? null } : null,
     };
   });
   // destacadas → con vídeo → sin vídeo; dentro de cada grupo, recientes primero

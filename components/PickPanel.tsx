@@ -3,32 +3,38 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { StakePicker } from "@/components/StakePicker";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 
 // Enhancement de /p (la landing SSR sigue usable sin JS: título+opciones ya
-// están en el HTML). Aquí, con sesión, se hace el pick (make_pick, gasta 10
-// monedas) y se ve "El termómetro" (consenso). Sin sesión → CTA de entrar.
+// están en el HTML). Con sesión se hace el pick (make_pick con el importe del
+// StakePicker) y se ve "El termómetro" (consenso). Sin sesión → CTA de entrar.
+// Pasada la hora de cierre → estado "Cerrada" (el juez resolverá). Resuelta →
+// no pinta nada: el ranking de la porra (SSR) toma el relevo.
 type Opt = { id: string; label: string };
 
 export function PickPanel({
-  porraId, slug, options, status, isTemplate,
+  porraId, slug, options, status, isTemplate, closesAt,
 }: {
   porraId: string;
   slug: string;
   options: Opt[];
   status: string;
   isTemplate: boolean;
+  closesAt: string;
 }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [myPick, setMyPick] = useState<string | null>(null);
   const [tallies, setTallies] = useState<Record<string, number>>({});
+  const [stake, setStake] = useState(10);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const isReal = !isTemplate && /^[0-9a-f-]{36}$/.test(porraId);
+  const closed = status === "open" && Date.parse(closesAt) <= Date.now();
 
   useEffect(() => {
     if (!isReal) { setReady(true); return; }
@@ -51,8 +57,9 @@ export function PickPanel({
 
   if (isTemplate) return null;
   if (!ready) return null;
+  if (status !== "open") return null;
 
-  if (!loggedIn) {
+  if (!loggedIn && !closed) {
     return (
       <Link href={`/login?next=/p/${slug}`}
         className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)]">
@@ -62,17 +69,18 @@ export function PickPanel({
   }
 
   async function pick(optionId: string) {
-    if (busy || myPick || status !== "open") return;
+    if (busy || myPick || closed) return;
     const sb = supabaseBrowser();
     if (!sb) return;
     setBusy(true); setErr(null);
-    const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: optionId });
+    const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: optionId, p_stake: stake });
     setBusy(false);
     if (error) {
-      setErr(error.message.includes("NO_POINTS") ? t("pick.noPoints") : t("pick.err"));
+      const m = error.message;
+      setErr(m.includes("NO_POINTS") ? t("pick.noPoints") : m.includes("CLOSED") ? t("resolve.closedErr") : t("pick.err"));
       return;
     }
-    capture("pick_made", { is_seed: false });
+    capture("pick_made", { is_seed: false, stake });
     setMyPick(optionId);
     setTallies((tl) => ({ ...tl, [optionId]: (tl[optionId] ?? 0) + 1 }));
     router.refresh();
@@ -80,11 +88,13 @@ export function PickPanel({
 
   const total = Object.values(tallies).reduce((a, b) => a + b, 0);
 
-  if (myPick || status !== "open") {
-    // El termómetro (consenso) tras haber jugado
+  if (myPick || closed) {
+    // El termómetro (consenso) tras haber jugado o al cerrar
     return (
       <section className="flex flex-col gap-2">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("pick.meter")}</p>
+        <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: closed ? "var(--gold)" : "var(--muted)" }}>
+          {closed ? t("resolve.closedTag") : t("pick.meter")}
+        </p>
         {options.map((o) => {
           const n = tallies[o.id] ?? 0;
           const pct = total > 0 ? Math.round((n / total) * 100) : 0;
@@ -100,16 +110,17 @@ export function PickPanel({
             </div>
           );
         })}
-        {myPick && status === "open" && (
-          <p className="text-center text-xs text-[var(--muted)]">{t("pick.locked")}</p>
-        )}
+        <p className="text-center text-xs text-[var(--muted)]">
+          {closed ? t("resolve.closedNote") : t("pick.locked")}
+        </p>
       </section>
     );
   }
 
   return (
     <section className="flex flex-col gap-2">
-      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("pick.spend")}</p>
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("resolve.spendN", { n: String(stake) })}</p>
+      <StakePicker value={stake} onChange={setStake} />
       {options.map((o) => (
         <button key={o.id} onClick={() => pick(o.id)} disabled={busy}
           className="rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3.5 text-left text-[15px] font-bold text-[var(--cream)] disabled:opacity-50 hover:border-[var(--win)]">

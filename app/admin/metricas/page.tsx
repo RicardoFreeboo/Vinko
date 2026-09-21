@@ -1,69 +1,62 @@
+import Link from "next/link";
 import { supabaseServer } from "@/lib/supabase/server";
-import { GlassCard, MetricCard, Eyebrow } from "@/components/backstage/ui";
+import { GlassCard } from "@/components/backstage/ui";
+import { loadMetrics } from "@/components/admin/MetricasData";
+import { Traccion, Retencion, Embudo, Viralidad, Economia, Definiciones } from "@/components/admin/MetricasSections";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
-// Dashboard de KPIs para dirección/inversores (spec §4 + paneles §5). Conteos
-// REALES (kpi_counts, admin-gated). Retención/K-factor = "—" hasta que haya
-// histórico: honesto, nunca inventado (regla de datos del freeze).
-export default async function AdminMetricas() {
+// Métricas para dirección e inversores: tracción, retención por cohorte,
+// embudo, viralidad y economía de Vinkos desde las RPC kpi_* (0033). Todo
+// real y auditable: si n=0 se ve 0; si falta la migración, se dice.
+// ?sinadmin=1 deja fuera a las cuentas admin (el equipo).
+export default async function AdminMetricas({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const excl = sp.sinadmin === "1";
   const sb = await supabaseServer();
-  let c: Record<string, number> = {};
-  if (sb) {
-    const { data } = await sb.rpc("kpi_counts");
-    c = (data ?? {}) as Record<string, number>;
-  }
-  const n = (k: string) => String(c[k] ?? 0);
+  const m = await loadMetrics(sb, excl);
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display), system-ui" }}>
-          {t("admin.kpi.title")}
-        </h1>
-        <p className="mt-2 max-w-[70ch] text-[13px] leading-relaxed text-[rgba(244,241,233,0.55)]">
-          {t("admin.kpi.note")}
-        </p>
-      </div>
-
-      <div>
-        <Eyebrow>{t("admin.kpi.growth")} · {t("admin.kpi.content")}</Eyebrow>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard value={n("users")} label={t("admin.kpi.signups")} accent="var(--win)" />
-          <MetricCard value={n("pools")} label={t("admin.kpi.pools")} accent="var(--win)" />
-          <MetricCard value={n("picks")} label={t("admin.kpi.picks")} accent="var(--win)" />
-          <MetricCard value={n("groups")} label={t("admin.kpi.groups")} accent="var(--gold)" />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display), system-ui" }}>
+            {t("admin.kpi.title")}
+          </h1>
+          <p className="mt-2 max-w-[72ch] text-[13px] leading-relaxed text-[rgba(244,241,233,0.55)]">
+            {t("admin.mx.sub")}
+          </p>
         </div>
+        <Link
+          href={excl ? "/admin/metricas" : "/admin/metricas?sinadmin=1"}
+          style={{ fontFamily: "var(--font-mono2), monospace" }}
+          className={`rounded-full border px-3 py-1.5 text-[12px] font-bold uppercase tracking-[0.08em] ${
+            excl ? "border-[var(--gold)] text-[var(--gold)]" : "border-[rgba(31,224,122,0.2)] text-[rgba(244,241,233,0.6)]"
+          }`}
+        >
+          {t(excl ? "admin.mx.exclOff" : "admin.mx.exclOn")}
+        </Link>
       </div>
 
-      <div>
-        <Eyebrow>{t("admin.kpi.retention")} · {t("admin.kpi.virality")}</Eyebrow>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard value="—" label={t("admin.kpi.d1")} hint={t("admin.kpi.needdata")} />
-          <MetricCard value="—" label={t("admin.kpi.d7")} hint={t("admin.kpi.needdata")} />
-          <MetricCard value="—" label={t("admin.kpi.d30")} hint={t("admin.kpi.needdata")} />
-          <MetricCard value="—" label={t("admin.kpi.kfactor")} accent="var(--gold)" hint={t("admin.kpi.needdata")} />
-        </div>
-      </div>
+      {excl && <p className="text-[12px] text-[var(--gold)]">{t("admin.mx.exclNote")}</p>}
 
-      <div>
-        <Eyebrow>{t("admin.kpi.economy")} · {t("admin.kpi.agent")}</Eyebrow>
-        <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <MetricCard value={n("points_out")} label={t("admin.kpi.emitted")} accent="var(--gold)" />
-          <MetricCard value={n("points_burn")} label={t("admin.kpi.burned")} accent="var(--win)" />
-          <MetricCard value={n("ads_shown")} label={t("admin.kpi.adsShown")} accent="var(--win)" />
-          <MetricCard value={`${c.ad_revenue_eur ?? 0} €`} label={t("admin.kpi.adRevenue")} accent="var(--gold)"
-            hint={t("admin.kpi.adRevenueHint")} />
-          <MetricCard value={n("signals")} label={t("admin.kpi.signals")} accent="var(--win)" />
-          <MetricCard value={n("buffer_days")} label={t("admin.kpi.buffer")}
-            accent={(c.buffer_days ?? 0) < 7 ? "var(--red)" : "var(--win)"} />
-        </div>
-      </div>
+      {m.missing && (
+        <GlassCard glow="gold">
+          <p className="text-[13px] leading-relaxed text-[var(--gold)]">{t("admin.mx.pending")}</p>
+        </GlassCard>
+      )}
 
-      <GlassCard glow="none">
-        <p className="text-[12px] leading-relaxed text-[rgba(244,241,233,0.5)]">{t("admin.kpi.honest")}</p>
-      </GlassCard>
+      <Traccion m={m} />
+      {m.retention && <Retencion r={m.retention} />}
+      {m.funnel && <Embudo f={m.funnel} />}
+      {m.kfactor && <Viralidad k={m.kfactor} />}
+      {m.economy && <Economia e={m.economy} />}
+      <Definiciones />
     </div>
   );
 }

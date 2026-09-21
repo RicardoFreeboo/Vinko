@@ -1,0 +1,35 @@
+{
+  "nueva.arbSelf": "You are already the judge if you pick “I decide”.",
+  "nueva.arbFailed": "Couldn't assign the arbiter: for now you decide.",
+
+  "level.title": "Level {n}",
+  "level.xp": "{xp} XP",
+  "level.next": "{n} XP to level {next}",
+  "level.hint": "Your level is your experience: it is never spent and never affects Accuracy.",
+
+  "week.prizePts": "+{n}",
+  "week.keep": "Play today to keep your streak 🔥 {n} days left for the prize",
+
+  "vinkos.bonusCta": "🎁 Claim today's +{pts} Vinkos (day {n} of {total})",
+  "vinkos.refTitle": "Your invite link",
+  "vinkos.refBody": "When a friend joins with your link and makes their first pick: +{n} Vinkos for you and +{m} for them. 5 friends +1,000, 10 friends +2,500.",
+  "vinkos.refWa": "📲 Invite on WhatsApp",
+  "vinkos.inviteText": "Join me on Vinko 🔥 Pools with friends and virtual points. Use my link: {url}",
+  "vinkos.earn": "How Vinkos are earned",
+  "vinkos.earn.share": "Share a pool on WhatsApp",
+  "vinkos.earn.shareSub": "Once a day",
+  "vinkos.earn.invite": "A friend joins with your link",
+  "vinkos.earn.inviteSub": "On their first pick · they also get +{m}",
+  "vinkos.earn.creator": "Each person who joins your pool",
+  "vinkos.earn.creatorSub": "Up to {cap} per pool",
+  "vinkos.earn.daily": "Daily gift",
+  "vinkos.earn.dailySub": "Grows every consecutive day, up to day {total}",
+  "vinkos.earn.streak": "7-day streak",
+  "vinkos.earn.streakSub": "Play every day; a shield covers one miss",
+  "vinkos.earn.ad": "Watch an ad (18+)",
+  "vinkos.earn.adSub": "Max {cap} a day",
+
+  "saldo.rechargeGot": "+{n} extra Vinkos ✓",
+  "saldo.rechargeNone": "Your extra Vinkos arrive on their own every few hours.",
+  "saldo.r2": "+{n} extra Vinkos for watching an ad"
+}

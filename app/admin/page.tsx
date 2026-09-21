@@ -1,35 +1,45 @@
 import Link from "next/link";
-import { Panel, Tile } from "@/components/admin/ui";
-import { FIVE_METRICS } from "@/lib/admin";
+import { Panel } from "@/components/admin/ui";
+import { MandoTiles } from "@/components/admin/MandoTiles";
+import { KpiChat } from "@/components/admin/KpiChat";
+import { loadMando } from "@/components/admin/MetricasData";
+import { supabaseServer } from "@/lib/supabase/server";
 import { t } from "@/lib/i18n";
 
-const M_ACCENT = ["var(--win)", "var(--gold)", "var(--win)", "var(--gold)", "var(--win)"];
+export const dynamic = "force-dynamic";
 
 const PANELS = [
   { href: "/admin/metricas", key: "admin.nav.metricas" },
   { href: "/admin/moderacion", key: "admin.nav.moderacion" },
   { href: "/admin/temas", key: "admin.nav.temas" },
+  { href: "/admin/porras", key: "admin.nav.porras" },
+  { href: "/admin/catalogo", key: "admin.nav.catalogo" },
+  { href: "/admin/sponsors", key: "admin.nav.sponsors" },
   { href: "/admin/health", key: "admin.nav.health" },
   { href: "/admin/live", key: "admin.nav.live" },
 ];
 
-export default function AdminHub() {
+// Resumen: las 5 métricas norte salen de la base (kpi_funnel, kpi_kfactor de
+// 0033). Sin la migración, los tiles dicen "—" y la nota lo explica.
+export default async function AdminHub() {
+  const sb = await supabaseServer();
+  const { funnel, kfactor } = await loadMando(sb);
+  const pending = !funnel || !kfactor;
+
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-[13px] leading-relaxed text-[var(--muted)]">{t("admin.day0")}</p>
+      <p className="text-[13px] leading-relaxed text-[var(--muted)]">
+        {t(pending ? "admin.mando.pending" : "admin.mando.note")}
+      </p>
 
-      <Panel title={t("admin.hub.mando")}>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {FIVE_METRICS.map((m, i) => (
-            <Tile
-              key={m.key}
-              value={m.value}
-              label={t(`admin.m.${m.key}`)}
-              def={t(`admin.m.${m.key}.def`)}
-              accent={M_ACCENT[i]}
-            />
-          ))}
-        </div>
+      {/* Chat con el panel: cómo va todo, fallos y recomendaciones con datos reales */}
+      <KpiChat />
+
+      <Panel
+        title={t("admin.hub.mando")}
+        aside={<Link href="/admin/metricas" className="mono text-xs text-[var(--win)]">{t("admin.nav.metricas")} →</Link>}
+      >
+        <MandoTiles funnel={funnel} kfactor={kfactor} />
       </Panel>
 
       <Panel title={t("admin.hub.panels")}>

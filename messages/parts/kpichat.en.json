@@ -1,0 +1,14 @@
+{
+  "kpichat.title": "Ask the dashboard",
+  "kpichat.hint": "answers only with real data",
+  "kpichat.placeholder": "How is everything today? What is failing?",
+  "kpichat.send": "Ask",
+  "kpichat.thinking": "Reading the data…",
+  "kpichat.noKey": "ANTHROPIC_API_KEY is missing in the Vercel environment.",
+  "kpichat.err": "Could not answer. Try again.",
+  "kpichat.q1": "How is everything today?",
+  "kpichat.q2": "What failures do you see in the data?",
+  "kpichat.q3": "Which three things should I improve today?",
+  "kpichat.q4": "Which pools must be resolved now?",
+  "admin.nav.sponsors": "Sponsors"
+}

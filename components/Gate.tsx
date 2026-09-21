@@ -19,10 +19,10 @@ const KEY = "vinko_gate";
 //  · /secret              donde el fundador lee el código del día.
 const ABIERTAS = ["/secret", "/privacidad", "/terminos", "/p/", "/login", "/auth", "/bienvenida"];
 
-// Soft launch: quien ya tiene sesión (ha entrado con Google desde un enlace
-// compartido) entra sin código. El código diario solo frena la navegación
-// anónima. NEXT_PUBLIC_ALPHA_GATE=off apaga el candado del todo (lanzamiento).
-const GATE_OFF = process.env.NEXT_PUBLIC_ALPHA_GATE === "off";
+// LANZAMIENTO (spec F-09, 21-sep-2026): la app es pública. El candado del alfa
+// solo se enciende con NEXT_PUBLIC_ALPHA_GATE=on (entonces quien tiene sesión
+// sigue entrando sin código). /admin va aparte: comprueba role=admin en servidor.
+const GATE_OFF = process.env.NEXT_PUBLIC_ALPHA_GATE !== "on";
 
 export function Gate({ children, hasSession = false }: { children: React.ReactNode; hasSession?: boolean }) {
   const path = usePathname();

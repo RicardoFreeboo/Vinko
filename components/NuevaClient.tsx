@@ -1,17 +1,22 @@
 "use client";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MediaCapture } from "@/components/MediaCapture";
 import { VoiceToPorra } from "@/components/VoiceToPorra";
 import { Confetti } from "@/components/Confetti";
 import { capture } from "@/lib/analytics";
+import { porraUrl, SITE } from "@/lib/share";
 import { t } from "@/lib/i18n";
 
 // Crear porra en <30s: pregunta, 2–6 opciones, CIERRE (1h/24h/1 semana o fecha
 // exacta en calendario), y ÁRBITRO (tú o un amigo, que deberá aceptar). Share
 // solo wa.me con copy de lista blanca.
+//
+// Todo enlace que sale de aquí lleva ?ref=<tu handle>: RefCatcher lo guarda y
+// /auth/callback lo convierte en referred_by. Los Vinkos de la invitación se
+// pagan a los dos en el primer pick del invitado (servidor, 0030).
 function slugify(title: string): string {
   const base = title.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
@@ -29,7 +34,19 @@ function closesAt(preset: Preset, custom: string): string {
   return d.toISOString();
 }
 
-export function NuevaClient({ userId, origin }: { userId: string; origin: string }) {
+// @Usuario → usuario (lo que espera set_arbiter: handle en minúsculas, sin @).
+const HANDLE_RX = /^[a-z0-9_]{3,30}$/;
+function normHandle(s: string): string {
+  return s.trim().replace(/^@+/, "").trim().toLowerCase();
+}
+
+// Añade ?ref=<handle> a un enlace (respeta una query previa).
+function withRef(url: string, handle: string | null | undefined): string {
+  if (!handle) return url;
+  return `${url}${url.includes("?") ? "&" : "?"}ref=${encodeURIComponent(handle)}`;
+}
+
+export function NuevaClient({ userId, handle }: { userId: string; origin?: string; handle?: string | null }) {
   const [title, setTitle] = useState("");
   const [opts, setOpts] = useState(["", ""]);
   const [preset, setPreset] = useState<Preset>("24h");
@@ -39,20 +56,42 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [media, setMedia] = useState<{ url: string; kind: string } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [warn, setWarn] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState<{ slug: string } | null>(null);
+  const [done, setDone] = useState<{ id: string; slug: string } | null>(null);
+  const [myHandle, setMyHandle] = useState<string | null>(handle ?? null);
+
+  // Si la página no pasa el handle, se lee del perfil (para el ?ref= del enlace).
+  useEffect(() => {
+    if (myHandle) return;
+    const sb = supabaseBrowser();
+    if (!sb) return;
+    void sb.from("profiles").select("handle").eq("id", userId).maybeSingle()
+      .then(({ data }) => { if (data?.handle) setMyHandle(data.handle); });
+  }, [myHandle, userId]);
 
   function setOpt(i: number, v: string) { setOpts((o) => o.map((x, j) => (j === i ? v : x))); setErr(null); }
 
   async function create() {
     const clean = opts.map((o) => o.trim()).filter(Boolean);
+    const arb = normHandle(arbHandle);
     if (title.trim().length < 5 || title.trim().length > 120) { setErr(t("nueva.badTitle")); return; }
     if (clean.length < 2) { setErr(t("nueva.badOpts")); return; }
     if (preset === "custom" && !custom) { setErr(t("nueva.badDate")); return; }
-    if (arbiter === "friend" && !arbHandle.trim()) { setErr(t("nueva.badArb")); return; }
+    if (arbiter === "friend" && !arb) { setErr(t("nueva.badArb")); return; }
+    if (arbiter === "friend" && !HANDLE_RX.test(arb)) { setErr(t("nueva.arbNotFound")); return; }
+    if (arbiter === "friend" && myHandle && arb === myHandle.toLowerCase()) { setErr(t("nueva.arbSelf")); return; }
     const sb = supabaseBrowser();
     if (!sb) return;
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setWarn(null);
+
+    // El árbitro se comprueba ANTES de crear: si no existe, no se crea nada
+    // (antes se creaba la porra y luego fallaba set_arbiter con VINKO_NO_USER).
+    if (arbiter === "friend") {
+      const { data: found } = await sb.from("profiles").select("id").eq("handle", arb).maybeSingle();
+      if (!found) { setBusy(false); setErr(t("nueva.arbNotFound")); return; }
+    }
+
     const slug = slugify(title);
     const { data: porra, error } = await sb.from("porras")
       .insert({
@@ -68,32 +107,36 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
     const { error: e2 } = await sb.from("porra_options").insert(rows);
     if (e2) { setBusy(false); setErr(t("nueva.badOpts")); return; }
     if (arbiter === "friend") {
-      const { error: e3 } = await sb.rpc("set_arbiter", { p_porra: porra.id, p_handle: arbHandle.trim() });
-      if (e3) { setBusy(false); setErr(t("nueva.arbNotFound")); return; }
+      // La porra ya existe: si esto falla, el juez eres tú y se avisa (sin duplicar porras).
+      const { error: e3 } = await sb.rpc("set_arbiter", { p_porra: porra.id, p_handle: arb });
+      if (e3) setWarn(t("nueva.arbFailed"));
     }
     setBusy(false);
-    capture("porra_created", { is_seed: false });
-    setDone({ slug: porra.slug });
+    capture("porra_created", { is_seed: false, visibility, arbiter: arbiter === "friend" ? "friend" : "me" });
+    setDone({ id: porra.id, slug: porra.slug });
   }
 
   if (done) {
-    const url = `${origin}/p/${done.slug}`;
+    const url = withRef(porraUrl(done.slug), myHandle);
+    const arb = normHandle(arbHandle);
     const text = t("nueva.shareText", { title: title.trim(), url });
-    const inviteText = t("nueva.inviteText", { handle: arbHandle.trim(), url });
+    const inviteText = t("nueva.inviteText", { handle: arb, url });
     return (
       <section className="flex flex-col gap-3">
         <Confetti />
         <p className="text-center text-sm font-bold text-[var(--win)]">{t("nueva.share")}</p>
-        <ShareWhatsApp text={text}
+        {warn && <p className="text-center text-xs text-[var(--gold)]">{warn}</p>}
+        <ShareWhatsApp text={text} porraId={done.id}
           className="rounded-[14px] bg-[#25D366] px-4 py-4 text-center text-[15px] font-black text-white">
           {t("nueva.shareCta")}
         </ShareWhatsApp>
-        {arbiter === "friend" && arbHandle.trim() && (
+        {arbiter === "friend" && arb && !warn && (
           <ShareWhatsApp text={inviteText}
             className="rounded-[14px] border border-[var(--gold)] px-4 py-3 text-center text-[14px] font-black text-[var(--gold)]">
             {t("nueva.inviteArb")}
           </ShareWhatsApp>
         )}
+        <p className="mono break-all text-center text-[11px] text-[var(--muted)]">{url}</p>
         <Link href={`/p/${done.slug}`} className="text-center text-sm font-bold text-[var(--gold)]">{t("nueva.view")}</Link>
       </section>
     );
@@ -157,9 +200,10 @@ export function NuevaClient({ userId, origin }: { userId: string; origin: string
         {arbiter === "friend" && (
           <>
             <input value={arbHandle} onChange={(e) => { setArbHandle(e.target.value); setErr(null); }} placeholder={t("nueva.arbPh")}
+              autoCapitalize="none" autoCorrect="off" spellCheck={false}
               className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
             <p className="mt-1 text-[11px] text-[var(--muted)]">{t("nueva.arbHint")}</p>
-            <ShareWhatsApp text={t("nueva.inviteReg", { url: origin })}
+            <ShareWhatsApp text={t("nueva.inviteReg", { url: withRef(`${SITE}/`, myHandle) })}
               className="mt-2 block w-full rounded-[10px] border border-[var(--gold)] px-3 py-2 text-center text-[13px] font-bold text-[var(--gold)]">
               {t("nueva.inviteWa")}
             </ShareWhatsApp>

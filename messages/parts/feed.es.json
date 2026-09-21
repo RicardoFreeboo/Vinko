@@ -1,0 +1,16 @@
+{
+  "feed.closesMin": "Cierra en {n} min",
+  "feed.closesH": "Cierra en {n} h",
+  "feed.closesD": "Cierra en {n} días",
+  "feed.closed": "Cerrada",
+  "feed.closedErr": "Esta porra ya ha cerrado.",
+  "feed.playing": "{n} jugando",
+  "feed.like": "Me gusta",
+  "feed.share": "Compartir",
+  "feed.close": "Cerrar",
+  "feed.loading": "Cargando…",
+  "feed.swipeUp": "Desliza hacia arriba para ver las porras ↑",
+  "feed.next": "Siguiente porra",
+  "feed.loginToPlay": "Entra para hacer tu pick y ganar Vinkos.",
+  "feed.introTitle": "Porras entre amigos, con puntos virtuales"
+}

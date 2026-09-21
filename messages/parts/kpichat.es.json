@@ -1,0 +1,14 @@
+{
+  "kpichat.title": "Pregúntale al panel",
+  "kpichat.hint": "responde solo con datos reales",
+  "kpichat.placeholder": "¿Cómo va todo hoy? ¿Qué está fallando?",
+  "kpichat.send": "Preguntar",
+  "kpichat.thinking": "Mirando los datos…",
+  "kpichat.noKey": "Falta ANTHROPIC_API_KEY en las variables de Vercel.",
+  "kpichat.err": "No se pudo responder. Inténtalo otra vez.",
+  "kpichat.q1": "¿Cómo va todo hoy?",
+  "kpichat.q2": "¿Qué fallos ves en los datos?",
+  "kpichat.q3": "¿Qué tres cosas mejoro hoy?",
+  "kpichat.q4": "¿Qué porras hay que resolver ya?",
+  "admin.nav.sponsors": "Patrocinios"
+}
