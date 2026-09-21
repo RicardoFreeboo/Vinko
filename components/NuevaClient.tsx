@@ -168,18 +168,20 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
     const resolvesAt = Number.isNaN(resolvesDate.getTime()) || resolvesDate < close ? close : resolvesDate;
 
     const slug = slugify(title);
-    const { data: porra, error } = await sb.from("porras")
-      .insert({
-        slug, title: title.trim(), created_by: userId, closes_at: close.toISOString(),
-        visibility,
-        media_url: media?.url ?? null,
-        media_kind: media?.kind ?? null,
-        video_status: media ? "pending" : "none",
-        resolution_criteria: crit.slice(0, 280),
-        resolves_at: resolvesAt.toISOString(),
-        template_key: tpl,
-      })
+    const base = {
+      slug, title: title.trim(), created_by: userId, closes_at: close.toISOString(),
+      visibility,
+      media_url: media?.url ?? null,
+      media_kind: media?.kind ?? null,
+      video_status: media ? "pending" : "none",
+    };
+    let res = await sb.from("porras")
+      .insert({ ...base, resolution_criteria: crit.slice(0, 280), resolves_at: resolvesAt.toISOString(), template_key: tpl })
       .select("id, slug").single();
+    if (res.error?.code === "PGRST204") { // 0041 aún sin aplicar: sin las columnas nuevas
+      res = await sb.from("porras").insert(base).select("id, slug").single();
+    }
+    const { data: porra, error } = res;
     if (error || !porra) { setBusy(false); setErr(dbErr(error?.message)); return; }
     const rows = clean.slice(0, 6).map((label, idx) => ({ porra_id: porra.id, idx, label: label.slice(0, 40) }));
     const { error: e2 } = await sb.from("porra_options").insert(rows);

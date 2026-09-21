@@ -30,7 +30,7 @@ begin
   select * into v_me from profiles where id = auth.uid();
   if v_me.referred_by is not null or v_me.created_at < now() - interval '7 days' then return; end if;
   select * into v_inviter from profiles where handle = lower(ltrim(p_handle, '@'));
-  if not found or v_inviter.id = auth.uid() or v_inviter.handle like 'invitado_%' then return; end if;
+  if not found or v_inviter.id = auth.uid() or coalesce(v_inviter.is_anonymous, false) then return; end if;
   update profiles set referred_by = v_inviter.id where id = auth.uid();
 end $$;
 
@@ -142,5 +142,239 @@ begin
   update topic_proposals set status = 'published' where id = p_id;
   if pr.signal_id is not null then update signals set status = 'generated' where id = pr.signal_id; end if;
   return v_porra;
+end $$;
+notify pgrst, 'reload schema';
+
+-- Invitados (0040) fuera de make_pick: no cuentan para la invitación validada, el
+-- loop del creador ni el tope de XP; y un JWT anónimo no puede hacer picks reales.
+create or replace function public.make_pick(p_porra uuid, p_option uuid, p_stake integer default 10)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v porras%rowtype;
+  v_eco jsonb := cfg('economy');
+  v_min int := coalesce((v_eco->>'pick_min')::int, 10);
+  v_max int := coalesce((v_eco->>'pick_max')::int, 1000);
+  v_stake int;
+  v_xp_today int;
+  v_others int; v_my_picks int;
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select * into v from porras where id = p_porra for update;
+  if not found then raise exception 'VINKO_NO_PORRA'; end if;
+  if v.is_template then raise exception 'VINKO_TEMPLATE'; end if;
+  if v.status <> 'open' or v.closes_at <= now() then raise exception 'VINKO_CLOSED'; end if;
+  if not exists (select 1 from porra_options where id = p_option and porra_id = p_porra) then
+    raise exception 'VINKO_BAD_OPTION';
+  end if;
+
+  v_stake := coalesce(p_stake, v_min);
+  if v_stake < v_min then raise exception 'VINKO_STAKE_MIN'; end if;
+  if v_stake > v_max then raise exception 'VINKO_STAKE_MAX'; end if;
+
+  update profiles set points = points - v_stake
+    where id = auth.uid() and points >= v_stake;
+  if not found then raise exception 'VINKO_NO_POINTS'; end if;
+
+  insert into picks (porra_id, user_id, option_id, points_spent)
+    values (p_porra, auth.uid(), p_option, v_stake);
+
+  -- XP por participar (cap diario) + racha. El XP NO escala con el importe:
+  -- poner más Vinkos no debe comprar nivel.
+  select count(*) into v_xp_today from picks
+    where user_id = auth.uid() and not coalesce(is_guest, false)
+      and (created_at at time zone 'Europe/Madrid')::date = madrid_today();
+  if v_xp_today <= coalesce((v_eco->>'pick_xp_daily_cap')::int, 5) then
+    perform award_xp(auth.uid(), coalesce((v_eco->>'pick_xp')::int, 15));
+  end if;
+  perform touch_streak(auth.uid());
+
+  -- LOOP DEL CREADOR (§7.2): +25 Vinkos por cada participante real en tu porra,
+  -- tope 500 por porra (20 participantes). Solo porras de usuario, nunca a uno mismo.
+  if v.source = 'user' and v.created_by is not null and v.created_by <> auth.uid() then
+    select count(*) into v_others from picks where porra_id = p_porra and user_id <> v.created_by and not coalesce(is_guest, false);
+    if v_others <= 20 then
+      update profiles set points = points + 25 where id = v.created_by;
+      if v_others in (1, 5, 10, 20) then
+        perform notify_user(v.created_by, 'social', v_others || ' ya han entrado en tu porra',
+          '+' || (25 * v_others) || ' Vinkos acumulados por ' || left(v.title, 40), '/p/' || v.slug);
+      end if;
+    end if;
+  end if;
+
+  -- INVITACIÓN VALIDADA: en el primer pick del invitado cobran los dos.
+  select count(*) into v_my_picks from picks where user_id = auth.uid() and not coalesce(is_guest, false);
+  if v_my_picks = 1 then perform pay_referral(auth.uid()); end if;
+end $$;
+
+-- claim_drip (última definición en 0007_streaks_leagues_seasons.sql) + guarda anti-invitado.
+create or replace function public.claim_drip() returns int
+language plpgsql security definer set search_path = public as $$
+declare
+  p profiles%rowtype;
+  v_eco jsonb := cfg('economy');
+  v_amt int := coalesce((v_eco->>'drip_amount')::int, 100);
+  v_int int := coalesce((v_eco->>'drip_interval_h')::int, 4);
+  v_cap int := coalesce((v_eco->>'cap_pts')::int, 7500);
+  v_ticks int; v_grant int;
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select * into p from profiles where id = auth.uid() for update;
+  if p.points >= v_cap then
+    update profiles set last_drip = now() where id = p.id; -- el goteo no corre sobre el techo
+    return 0;
+  end if;
+  v_ticks := floor(extract(epoch from (now() - p.last_drip)) / (v_int * 3600));
+  if v_ticks <= 0 then return 0; end if;
+  v_grant := least(v_ticks * v_amt, v_cap - p.points);
+  update profiles set points = points + v_grant,
+    last_drip = p.last_drip + (v_ticks * v_int || ' hours')::interval
+    where id = p.id;
+  return v_grant;
+end $$;
+
+-- claim_daily_bonus (última definición en 0007_streaks_leagues_seasons.sql) + guarda anti-invitado.
+create or replace function public.claim_daily_bonus() returns int
+language plpgsql security definer set search_path = public as $$
+declare
+  p profiles%rowtype;
+  v_eco jsonb := cfg('economy');
+  v_today date := madrid_today();
+  v_step int; v_amt int;
+  v_ladder jsonb := coalesce(v_eco->'daily_bonus', '[50,75,100,150,200,300,500]'::jsonb);
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select * into p from profiles where id = auth.uid() for update;
+  if p.daily_bonus_last = v_today then return 0; end if;
+  if p.daily_bonus_last = v_today - 1 then
+    v_step := least(p.daily_bonus_step + 1, jsonb_array_length(v_ladder));
+  else
+    v_step := 1; -- se rompió la escalera
+  end if;
+  v_amt := coalesce((v_ladder ->> (v_step - 1))::int, 50);
+  update profiles set points = points + v_amt,
+    daily_bonus_step = v_step, daily_bonus_last = v_today where id = p.id;
+  perform award_xp(p.id, 10);
+  perform touch_streak(p.id);
+  return v_amt;
+end $$;
+
+-- answer_daily (última definición en 0008_loop_store_groups_ads.sql) + guarda anti-invitado.
+create or replace function public.answer_daily(p_day uuid, p_idx smallint)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  d daily_picks%rowtype;
+  v_eco jsonb := cfg('economy');
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select * into d from daily_picks where id = p_day for update;
+  if not found or d.status <> 'open' then raise exception 'VINKO_CLOSED'; end if;
+  if d.scheduled_for <> madrid_today() then raise exception 'VINKO_CLOSED'; end if;
+  if p_idx < 0 or p_idx >= jsonb_array_length(d.options) then raise exception 'VINKO_BAD_OPTION'; end if;
+  insert into daily_pick_answers (day_id, user_id, option_idx, pts, xp)
+    values (p_day, auth.uid(), p_idx,
+      coalesce((v_eco->>'daily_pick_pts')::int, 150),
+      coalesce((v_eco->>'daily_pick_xp')::int, 10));
+  update profiles set points = points + coalesce((v_eco->>'daily_pick_pts')::int, 150)
+    where id = auth.uid();
+  perform award_xp(auth.uid(), coalesce((v_eco->>'daily_pick_xp')::int, 10));
+  perform touch_streak(auth.uid());
+end $$;
+
+-- buy_item (última definición en 0008_loop_store_groups_ads.sql) + guarda anti-invitado.
+create or replace function public.buy_item(p_code text, p_target uuid default null)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare it store_items%rowtype;
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select * into it from store_items where code = p_code and active for update;
+  if not found then raise exception 'VINKO_NO_ITEM'; end if;
+  update profiles set points = points - it.cost
+    where id = auth.uid() and points >= it.cost;
+  if not found then raise exception 'VINKO_NO_POINTS'; end if;
+  insert into purchases (user_id, code, cost) values (auth.uid(), p_code, it.cost);
+
+  if it.kind = 'shield' then
+    update profiles set streak_shields = least(streak_shields + 1, 2) where id = auth.uid();
+  elsif it.kind = 'double' then
+    if p_target is null then raise exception 'VINKO_NO_TARGET'; end if;
+    update picks set boost = 'double'
+      where porra_id = p_target and user_id = auth.uid() and boost is null
+      and exists (select 1 from porras p where p.id = p_target and p.status = 'open' and p.closes_at > now());
+    if not found then raise exception 'VINKO_BAD_TARGET'; end if;
+  elsif it.kind = 'wildcard' then
+    insert into user_items (user_id, code) values (auth.uid(), p_code);
+  elsif it.kind = 'frame' then
+    insert into user_cosmetics (user_id, code, kind) values (auth.uid(), p_code, 'frame')
+      on conflict do nothing;
+    update profiles set frame = p_code where id = auth.uid();
+  elsif it.kind = 'group_shield' then
+    if p_target is null then raise exception 'VINKO_NO_TARGET'; end if;
+    insert into user_items (user_id, code, target_id) values (auth.uid(), p_code, p_target);
+  elsif it.kind = 'feature' then
+    if p_target is null then raise exception 'VINKO_NO_TARGET'; end if;
+    update porras set featured_until = now() + interval '24 hours'
+      where id = p_target and created_by = auth.uid() and status = 'open';
+    if not found then raise exception 'VINKO_BAD_TARGET'; end if;
+  end if;
+end $$;
+
+-- change_pick (última definición en 0008_loop_store_groups_ads.sql) + guarda anti-invitado.
+create or replace function public.change_pick(p_porra uuid, p_option uuid)
+returns void
+language plpgsql security definer set search_path = public as $$
+declare v_item uuid;
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select id into v_item from user_items
+    where user_id = auth.uid() and code = 'wildcard' and used_at is null
+    order by created_at limit 1 for update;
+  if v_item is null then raise exception 'VINKO_NO_WILDCARD'; end if;
+  if not exists (select 1 from porras p where p.id = p_porra and p.status = 'open' and p.closes_at > now()) then
+    raise exception 'VINKO_CLOSED';
+  end if;
+  if not exists (select 1 from porra_options where id = p_option and porra_id = p_porra) then
+    raise exception 'VINKO_BAD_OPTION';
+  end if;
+  update picks set option_id = p_option
+    where porra_id = p_porra and user_id = auth.uid();
+  if not found then raise exception 'VINKO_NO_PICK'; end if;
+  update user_items set used_at = now(), target_id = p_porra where id = v_item;
+end $$;
+
+-- create_group (última definición en 0008_loop_store_groups_ads.sql) + guarda anti-invitado.
+create or replace function public.create_group(p_name text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare g uuid;
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  insert into groups (name, created_by) values (p_name, auth.uid()) returning id into g;
+  insert into group_members (group_id, user_id) values (g, auth.uid());
+  return g;
+end $$;
+
+-- join_group (última definición en 0008_loop_store_groups_ads.sql) + guarda anti-invitado.
+create or replace function public.join_group(p_code text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare g groups%rowtype;
+begin
+  if auth.uid() is null then raise exception 'VINKO_NO_AUTH'; end if;
+  if public.jwt_is_anonymous() then raise exception 'VINKO_NOT_GUEST'; end if;
+  select * into g from groups where invite_code = lower(p_code);
+  if not found then raise exception 'VINKO_NO_GROUP'; end if;
+  insert into group_members (group_id, user_id) values (g.id, auth.uid())
+    on conflict do nothing;
+  perform notify_user(g.created_by, 'social',
+    'Alguien nuevo en ' || g.name,
+    'Un amigo ha entrado en tu grupo.', '/g/' || g.id);
+  return g.id;
 end $$;
 notify pgrst, 'reload schema';

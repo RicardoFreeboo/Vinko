@@ -33,7 +33,7 @@ async function contexto() {
     q(sb.from("porras").select("status, source, media_url", { count: "exact", head: false }).eq("is_template", false)),
     q(sb.from("porras").select("slug, title, closes_at").eq("status", "open").lt("closes_at", now).order("closes_at").limit(40)),
     q(sb.from("porras").select("slug, title, closes_at").eq("status", "open").gt("closes_at", now).order("closes_at").limit(15)),
-    q(sb.from("topic_proposals").select("status", { count: "exact", head: false }).in("status", ["pending_review", "published", "rejected"])),
+    q(sb.from("topic_proposals").select("status", { count: "exact", head: false }).in("status", ["pending_review", "published", "discarded"])),
     q(sb.from("notifications").select("class, created_at").gt("created_at", new Date(Date.now() - 86400e3).toISOString())),
     q(sb.from("daily_picks").select("scheduled_for, status, question").order("scheduled_for", { ascending: false }).limit(12)),
     q(sb.from("profiles").select("created_at, referred_by, points, streak_days, role")),

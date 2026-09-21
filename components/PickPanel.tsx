@@ -104,6 +104,11 @@ export function PickPanel({
     const { error } = await sb.rpc("make_guest_pick", { p_porra: porraId, p_option: optionId });
     setBusy(false);
     if (error) {
+      if (error.code === "PGRST202") { // 0040 aún sin aplicar: fuera del modo invitado, CTA de entrar
+        await sb.auth.signOut();
+        setLoggedIn(false); setIsGuest(false); setGuestOff(true);
+        return;
+      }
       setErr(error.message.includes("CLOSED") ? t("resolve.closedErr") : t("guest.err"));
       return;
     }

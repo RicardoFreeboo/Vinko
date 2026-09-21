@@ -27,10 +27,14 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
   const sb = await supabaseServer();
   if (!sb) notFound();
 
-  const { data: p } = await sb.from("profiles")
-    .select("id, handle, avatar_url, points, xp, marcador_total, division, streak_days, streak_best")
-    .eq("handle", handle).maybeSingle();
-  if (!p) notFound();
+  const COLS = "id, handle, avatar_url, points, xp, marcador_total, division, streak_days, streak_best";
+  let q = await sb.from("profiles").select(`${COLS}, is_anonymous, deleted_at`).eq("handle", handle).maybeSingle();
+  if (q.error) q = await sb.from("profiles").select(COLS).eq("handle", handle).maybeSingle(); // 0037/0040 aún sin aplicar
+  type ProfileRow = { id: string; handle: string; avatar_url: string | null; points: number; xp: number; marcador_total: number;
+    division: string; streak_days: number; streak_best: number; is_anonymous?: boolean; deleted_at?: string | null };
+  const p = q.data as ProfileRow | null;
+  // Invitados (0040) y cuentas borradas (0037) no son personas reales: 404.
+  if (!p || p.is_anonymous || p.deleted_at) notFound();
 
   const session = await getSession();
   const isMe = session?.id === p.id;

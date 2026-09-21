@@ -15,9 +15,9 @@ export async function POST(req: Request) {
   if (!id) return NextResponse.json({ error: "no_id" }, { status: 400 });
 
   if (action === "discard") {
-    // RPC de 0032 (deja la señal de origen rechazada); si aún no existe, estado "rejected" (el CHECK no admite "discarded").
+    // RPC de 0032 (deja la señal de origen rechazada); si aún no existe, estado "discarded" (el único que admite el CHECK de 0001).
     const r1 = await sb.rpc("reject_proposal", { p_id: id });
-    const { error } = r1.error ? await sb.from("topic_proposals").update({ status: "rejected" }).eq("id", id) : r1;
+    const { error } = r1.error ? await sb.from("topic_proposals").update({ status: "discarded" }).eq("id", id) : r1;
     return NextResponse.json({ ok: !error, error: error?.message });
   }
 
