@@ -1,0 +1,12 @@
+{
+  "guest.free": "Elige sin registro · tu pick no gasta Vinkos",
+  "guest.tapHint": "Toca una opción y queda guardada. Te registras después, si quieres.",
+  "guest.badge": "Invitado",
+  "guest.savedTitle": "Tu pronóstico está guardado.",
+  "guest.pendingTitle": "Estás como invitado.",
+  "guest.savedBody": "Regístrate en 1 toque para que cuente y ganar Vinkos.",
+  "guest.keep": "Con Google tu pick se queda contigo. Sin formularios.",
+  "guest.locked": "Guardado como invitado: cuenta en el termómetro, no en la clasificación.",
+  "guest.err": "No se pudo guardar tu pick de invitado. Prueba otra vez.",
+  "guest.linkErr": "No se pudo continuar con Google. Prueba otra vez."
+}

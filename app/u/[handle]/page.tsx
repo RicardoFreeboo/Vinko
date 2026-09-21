@@ -35,19 +35,27 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
   const session = await getSession();
   const isMe = session?.id === p.id;
 
-  const [{ data: created }, { data: played }, { data: stats }] = await Promise.all([
+  const [{ data: created }, { data: played }, { data: stats }, judgeRes] = await Promise.all([
     sb.rpc("profile_created", { p_user: p.id }),
     sb.rpc("profile_played", { p_user: p.id }),
     sb.rpc("profile_stats", { p_user: p.id }),
+    sb.rpc("judge_stats", { p_user: p.id }), // 0042: reputación como juez
   ]);
   const s = (stats ?? {}) as { created?: number; played?: number; hits?: number };
+  const j = (!judgeRes.error && judgeRes.data ? judgeRes.data : null) as
+    { resolved?: number; disputed?: number; median_sla_minutes?: number | null } | null;
   const DIV: Record<string, string> = { bronce: "Bronce", plata: "Plata", oro: "Oro", diamante: "Diamante", leyenda: "Leyenda" };
 
   return (
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-28 pt-6">
       <header className="flex items-center justify-between">
         <Logo mark={26} word={18} />
-        {isMe && <Link href="/saldo" className="mono text-[11px] text-[var(--win)]">{t("u.edit")}</Link>}
+        {isMe && (
+          <span className="flex items-center gap-3">
+            <Link href="/saldo" className="mono text-[11px] text-[var(--win)]">{t("u.edit")}</Link>
+            <Link href="/ajustes" aria-label={t("ajustes.title")} className="text-[15px] text-[var(--muted)]">⚙</Link>
+          </span>
+        )}
       </header>
 
       {/* cabecera del perfil */}
@@ -77,6 +85,14 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
         <St v={s.played ?? 0} l={t("u.played")} c="var(--cream)" />
         <St v={s.hits ?? 0} l={t("u.hits")} c="var(--win)" />
       </div>
+
+      {/* Reputación como juez (judge_stats): solo si ya ha resuelto alguna porra */}
+      {j && (j.resolved ?? 0) > 0 && (
+        <p className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2 text-center text-[12px] text-[var(--muted)]">
+          ⚖️ <span className="font-bold text-[var(--cream)]">{t("u.judgeLine", { n: String(j.resolved ?? 0), d: String(j.disputed ?? 0) })}</span>
+          {typeof j.median_sla_minutes === "number" && <> · {t("u.judgeSla", { m: String(j.median_sla_minutes) })}</>}
+        </p>
+      )}
 
       {/* Rejilla estilo Instagram: pestañas creadas / jugadas, 3 columnas 1:1 */}
       <ProfileGrid

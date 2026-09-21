@@ -3,6 +3,9 @@ import { Gate } from "@/components/Gate";
 import { Analytics } from "@/components/Analytics";
 import { AdsLoader } from "@/components/ads/AdsLoader";
 import { RefCatcher } from "@/components/RefCatcher";
+import { ConsentBanner } from "@/components/ConsentBanner";
+import { A2HSPrompt } from "@/components/A2HSPrompt";
+import { cookies } from "next/headers";
 import { getSession } from "@/lib/session";
 import { t } from "@/lib/i18n";
 import "./globals.css";
@@ -41,16 +44,18 @@ export const viewport = { themeColor: "#0c1011" };
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  // Consentimiento de analítica: solo con sesión y +18 declarado (age-gate),
-  // que es el mismo punto de opt-in que PostHog. Sin eso, GA queda denegado.
+  // Consentimiento de analítica (RGPD, spec F-10): solo si pulsó «Aceptar» en
+  // el banner (cookie vinko_consent=1). Por defecto, denegado.
   const session = await getSession().catch(() => null);
-  const consent = !!session?.birth_year;
+  const consent = (await cookies()).get("vinko_consent")?.value === "1";
   return (
     <html lang="es">
       <body className="min-h-dvh antialiased [font-family:system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif]">
         <Analytics consent={consent} />
         <RefCatcher />
         <Gate hasSession={!!session}>{children}</Gate>
+        <ConsentBanner />
+        <A2HSPrompt />
         <AdsLoader />
       </body>
     </html>

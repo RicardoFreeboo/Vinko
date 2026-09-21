@@ -43,6 +43,14 @@ export async function GET(req: Request) {
   if (user) {
     const { data } = await sb.from("profiles").select("birth_year").eq("id", user.id).maybeSingle();
     needsAge = !data?.birth_year;
+    // Onboarding de 3 pantallas (spec F-08): quien tiene año pero no terminó las
+    // pantallas 2-3 también pasa por /bienvenida. Tolerante si 0036 no está aplicada.
+    if (!needsAge) {
+      try {
+        const { data: ob, error } = await sb.from("profiles").select("onboarded_at").eq("id", user.id).maybeSingle();
+        if (!error && ob && !ob.onboarded_at) needsAge = true;
+      } catch { /* columna aún no existe */ }
+    }
 
     const store = await cookies();
 
@@ -51,6 +59,15 @@ export async function GET(req: Request) {
     if (REF_RX.test(ref)) {
       try { await sb.rpc("claim_referral", { p_handle: ref }); } catch { /* nunca bloquea el login */ }
       store.set("vinko_ref", "", { maxAge: 0, path: "/", sameSite: "lax" });
+    }
+
+    // Registro diferido (F-01, 0040): si la sesión venía de un invitado
+    // (linkIdentity con Google conserva el mismo usuario), convert_guest activa
+    // el perfil y cobra la entrada de sus picks invitados. Va DESPUÉS de
+    // claim_referral (así la invitación queda apuntada antes de pagarla).
+    // Nunca bloquea el login.
+    if (!user.is_anonymous) {
+      try { await sb.rpc("convert_guest"); } catch { /* nunca bloquea el login */ }
     }
 
     // Primer login (cuenta recién creada o sin +18 aún) vs. vuelta.

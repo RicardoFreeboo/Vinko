@@ -35,7 +35,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
   }
 
-  return new ImageResponse(<RecapCard data={data} format={format} />, {
+  const safeCode = code && CODE_RX.test(code) ? code.toLowerCase() : null;
+  return new ImageResponse(<RecapCard data={data} format={format} code={safeCode} />, {
     width,
     height,
     status: data ? 200 : 404,

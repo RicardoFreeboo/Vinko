@@ -6,6 +6,7 @@ export type Session = {
   handle: string | null;
   points: number | null;
   birth_year: number | null;
+  is_anonymous: boolean; // sesión invitada (pick sin registro, spec F-01)
 };
 
 // Perfil del usuario autenticado (server). null si no hay sesión o sin backend.
@@ -25,5 +26,6 @@ export async function getSession(): Promise<Session | null> {
     handle: data?.handle ?? null,
     points: data?.points ?? null,
     birth_year: data?.birth_year ?? null,
+    is_anonymous: !!(user as { is_anonymous?: boolean }).is_anonymous,
   };
 }

@@ -1,0 +1,12 @@
+{
+  "guest.free": "Pick without signing up · it costs no Vinkos",
+  "guest.tapHint": "Tap an option and it's saved. Sign up later, if you want.",
+  "guest.badge": "Guest",
+  "guest.savedTitle": "Your pick is saved.",
+  "guest.pendingTitle": "You're playing as a guest.",
+  "guest.savedBody": "Sign up in 1 tap so it counts and to earn Vinkos.",
+  "guest.keep": "With Google your pick stays with you. No forms.",
+  "guest.locked": "Saved as a guest: it counts in the meter, not in the leaderboard.",
+  "guest.err": "Couldn't save your guest pick. Try again.",
+  "guest.linkErr": "Couldn't continue with Google. Try again."
+}

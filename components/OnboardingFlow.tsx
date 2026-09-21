@@ -286,7 +286,9 @@ function StepStart({ t, profile, next, gift, mock, go }: {
 
       <section>
         <p className="text-xs font-bold text-[var(--muted)]">{t("onb.s3.avatar")}</p>
-        <div className="mt-2 flex flex-wrap gap-2.5" role="radiogroup" aria-label={t("onb.s3.avatar")}>
+        {/* una sola fila: 6 estilos (7 con la foto del proveedor), ancho fluido */}
+        <div className="mt-2 grid gap-2" role="radiogroup" aria-label={t("onb.s3.avatar")}
+          style={{ gridTemplateColumns: `repeat(${AVATAR_STYLES.length + (photo ? 1 : 0)}, minmax(0, 1fr))` }}>
           {photo && <AvatarChoice src={photo} on={style === "photo"} onClick={() => pick("photo")} />}
           {AVATAR_STYLES.map((s) => (
             <AvatarChoice key={s} src={avatarUrl(profile.handle, s)} on={style === s} onClick={() => pick(s)} />
@@ -326,9 +328,9 @@ function StepStart({ t, profile, next, gift, mock, go }: {
 function AvatarChoice({ src, on, onClick }: { src: string; on: boolean; onClick: () => void }) {
   return (
     <button type="button" role="radio" aria-checked={on} onClick={onClick}
-      className={`rounded-full p-0.5 transition-transform ${on ? "ring-2 ring-[var(--win)] scale-105" : "ring-1 ring-[var(--line)] opacity-80"}`}>
+      className={`aspect-square w-full rounded-full p-0.5 transition-transform ${on ? "ring-2 ring-[var(--win)] scale-105" : "ring-1 ring-[var(--line)] opacity-80"}`}>
       {/* SVG remoto (DiceBear) o foto del proveedor: <img> a propósito, sin optimizador */}
-      <img src={src} alt="" width={52} height={52} loading="lazy" className="h-[52px] w-[52px] rounded-full bg-[var(--ink3)] object-cover" />
+      <img src={src} alt="" width={48} height={48} loading="lazy" className="aspect-square h-auto w-full rounded-full bg-[var(--ink3)] object-cover" />
     </button>
   );
 }

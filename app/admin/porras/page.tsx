@@ -1,41 +1,45 @@
 import { supabaseServer } from "@/lib/supabase/server";
-import { PorrasAdmin, type AdminPorra, type AdminDaily } from "@/components/admin/PorrasAdmin";
+import { PorrasAdmin, type AdminPorra, type AdminDaily, type AdminDispute } from "@/components/admin/PorrasAdmin";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
 
 // Porras reales (usuario + editorial, nunca plantillas) ordenadas por urgencia:
-// cerradas sin resolver (Vinkos parados) → abiertas → resueltas/anuladas.
+// impugnadas (reparto congelado) → cerradas sin resolver (Vinkos parados) →
+// abiertas → resueltas/anuladas (con su SLA: minutos del cierre a la resolución).
 // Admin ve todo por RLS (porras_read is_admin, picks_read_admin).
 type Row = {
   id: string; slug: string; title: string; source: string; status: string;
   closes_at: string; created_at: string; winning_option_id: string | null;
-  void_reason?: string | null;
+  void_reason?: string | null; resolved_at?: string | null;
   porra_options: { id: string; idx: number; label: string }[] | null;
 };
 
 const SELECT = "id, slug, title, source, status, closes_at, created_at, winning_option_id, " +
   "porra_options!porra_options_porra_id_fkey ( id, idx, label )";
+// Columnas opcionales por migración: void_reason (0030), resolved_at (0033).
+// Se intenta de más a menos para que el panel no se rompa sin ellas.
+const EXTRA = [", void_reason, resolved_at", ", void_reason", ""];
 
 export default async function AdminPorras() {
   const sb = await supabaseServer();
   let porras: AdminPorra[] = [];
   let daily: AdminDaily[] = [];
+  let disputes: AdminDispute[] = [];
 
   if (sb) {
-    // void_reason llega con la 0030; si aún no está aplicada, se lee sin ella.
-    let res = await sb.from("porras").select(SELECT + ", void_reason").eq("is_template", false)
-      .order("created_at", { ascending: false }).limit(400);
-    if (res.error) {
-      res = await sb.from("porras").select(SELECT).eq("is_template", false)
+    let list: Row[] = [];
+    for (const ex of EXTRA) {
+      const res = await sb.from("porras").select(SELECT + ex).eq("is_template", false)
         .order("created_at", { ascending: false }).limit(400);
+      if (!res.error) { list = (res.data ?? []) as unknown as Row[]; break; }
     }
-    const list = (res.data ?? []) as unknown as Row[];
 
-    const [{ data: picks }, { data: dp }] = await Promise.all([
+    const [{ data: picks }, { data: dp }, disp] = await Promise.all([
       sb.from("picks").select("porra_id, points_spent").limit(20000),
       sb.from("daily_picks").select("id, scheduled_for, question, options, status").eq("status", "open")
         .order("scheduled_for", { ascending: true }),
+      sb.rpc("admin_disputes"), // 0042; si aún no existe, la sección sale vacía
     ]);
     const agg = new Map<string, { n: number; pot: number }>();
     for (const k of picks ?? []) {
@@ -46,11 +50,15 @@ export default async function AdminPorras() {
     const now = Date.now();
     porras = list.map((p) => {
       const a = agg.get(p.id) ?? { n: 0, pot: 0 };
+      const settled = p.status === "resolved" || p.status === "disputed";
+      const sla = settled && p.resolved_at
+        ? Math.max(0, Math.round((Date.parse(p.resolved_at) - Date.parse(p.closes_at)) / 60000)) : null;
       return {
         id: p.id, slug: p.slug, title: p.title, source: p.source,
         status: p.status as AdminPorra["status"],
         closes_at: p.closes_at, created_at: p.created_at,
         winning_option_id: p.winning_option_id, void_reason: p.void_reason ?? null,
+        resolved_at: p.resolved_at ?? null, sla_minutes: sla,
         options: (p.porra_options ?? []).slice().sort((x, y) => x.idx - y.idx).map((o) => ({ id: o.id, label: o.label })),
         picks: a.n, pot: a.pot,
         closed: p.status === "open" && Date.parse(p.closes_at) <= now,
@@ -68,6 +76,8 @@ export default async function AdminPorras() {
     daily = (dp ?? []).map((d) => ({
       id: d.id, scheduled_for: d.scheduled_for, question: d.question, options: (d.options as string[]) ?? [],
     }));
+
+    if (!disp.error && Array.isArray(disp.data)) disputes = disp.data as AdminDispute[];
   }
 
   return (
@@ -80,7 +90,7 @@ export default async function AdminPorras() {
           {t("admin.porras.how")}
         </p>
       </div>
-      <PorrasAdmin initial={porras} daily={daily} />
+      <PorrasAdmin initial={porras} daily={daily} disputes={disputes} />
     </div>
   );
 }

@@ -2,8 +2,9 @@ import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
 
 // Ranking de UNA porra (SSR, sin JS): quién puso qué y qué cobra. Filas de
-// porra_ranking (0031). Resuelta → acertantes arriba con su pago; cerrada sin
-// resolver → participantes con lo puesto y sin pagos; nadie acertó → devolución.
+// porra_ranking (0031/0042). Resuelta → acertantes arriba con su pago; cerrada
+// sin resolver → participantes con lo puesto y sin pagos; nadie acertó →
+// devolución; impugnada ('disputed') → mismo reparto marcado como PROVISIONAL.
 export type RankingRow = {
   handle: string;
   avatar_url: string | null;
@@ -33,9 +34,10 @@ export function PorraRanking({ rows, options, winningOptionId, status }: {
   rows: RankingRow[];
   options: Opt[];
   winningOptionId: string | null;
-  status: "open" | "resolved" | "taken_down";
+  status: "open" | "resolved" | "disputed" | "taken_down";
 }) {
-  const resolved = status === "resolved";
+  const provisional = status === "disputed";
+  const resolved = status === "resolved" || provisional; // reparto calculado (firme o provisional)
   const pot = rows.reduce((a, r) => a + r.stake, 0);
   const winners = rows.filter((r) => r.won).length;
   const nobodyWon = resolved && rows.length > 0 && winners === 0;
@@ -47,11 +49,11 @@ export function PorraRanking({ rows, options, winningOptionId, status }: {
   let rank = 0;
 
   return (
-    <section aria-label={t(resolved ? "resolve.rankingTitle" : "resolve.rankingPending")}
+    <section aria-label={t(provisional ? "resolve.rankingProvisional" : resolved ? "resolve.rankingTitle" : "resolve.rankingPending")}
       className="flex flex-col gap-3 rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-4">
       <div className="flex items-baseline justify-between gap-2">
-        <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: resolved ? "var(--win)" : "var(--gold)" }}>
-          {t(resolved ? "resolve.rankingTitle" : "resolve.rankingPending")}
+        <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: resolved && !provisional ? "var(--win)" : "var(--gold)" }}>
+          {t(provisional ? "resolve.rankingProvisional" : resolved ? "resolve.rankingTitle" : "resolve.rankingPending")}
         </p>
         <p className="mono shrink-0 whitespace-nowrap text-[11px] text-[var(--muted)]">
           {rows.length === 1 ? t("resolve.player") : t("resolve.players", { n: String(rows.length) })}
@@ -134,8 +136,8 @@ export function PorraRanking({ rows, options, winningOptionId, status }: {
                       <span className="flex items-center gap-1 text-[var(--muted)]">{r.stake}<VinkoCoin size={13} /></span>
                     )}
                     {resolved && r.payout > 0 && (
-                      <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--muted2)]">
-                        {nobodyWon ? t("resolve.refund") : t("resolve.payout")}
+                      <div className="text-[9px] font-bold uppercase tracking-[0.1em]" style={{ color: provisional ? "var(--gold)" : "var(--muted2)" }}>
+                        {provisional ? t("resolve.provisional") : nobodyWon ? t("resolve.refund") : t("resolve.payout")}
                       </div>
                     )}
                   </div>

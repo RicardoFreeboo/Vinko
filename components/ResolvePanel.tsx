@@ -13,13 +13,14 @@ import { t } from "@/lib/i18n";
 type Opt = { id: string; label: string };
 const OPT_ACCENT = ["var(--win)", "var(--gold)", "var(--win)", "var(--gold)", "var(--win)", "var(--gold)"];
 
-export function ResolvePanel({ porraId, options, source, canResolve, canVoid, early = false }: {
+export function ResolvePanel({ porraId, options, source, canResolve, canVoid, early = false, criteria = null }: {
   porraId: string;
   options: Opt[];
   source: string;
   canResolve: boolean; // false = solo anular (creador antes del cierre)
   canVoid: boolean;
   early?: boolean; // admin resolviendo antes de la hora de cierre
+  criteria?: string | null; // "Se resuelve: …" (porras.resolution_criteria, 0041) — recordatorio al juez
 }) {
   const router = useRouter();
   const [chosen, setChosen] = useState<string | null>(null);
@@ -119,6 +120,7 @@ export function ResolvePanel({ porraId, options, source, canResolve, canVoid, ea
     <section className="flex flex-col gap-3 rounded-[16px] border border-[var(--win)] bg-[var(--ink2)] p-4">
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--win)]">{t("resolve.judgeTag")}</p>
       <p className="text-[17px] font-black leading-tight text-[var(--cream)]">{t("resolve.question")}</p>
+      {criteria && <p className="text-[13px] text-[var(--muted)]">{t("resolve.criteriaHint", { c: criteria })}</p>}
       {early && <p className="text-xs text-[var(--gold)]">{t("resolve.earlyWarn")}</p>}
 
       {!voidOpen && (

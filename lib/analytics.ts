@@ -26,6 +26,10 @@ export type EventName =
   | "push_opened" | "push_class_muted" | "push_permission_revoked"
   | "inbox_opened" | "inbox_item_clicked";
 
+function hasConsent(): boolean {
+  try { return /(?:^|;\s*)vinko_consent=1(?:;|$)/.test(document.cookie); } catch { return false; }
+}
+
 function distinctId(): string {
   try {
     let id = localStorage.getItem("vinko_did");
@@ -57,6 +61,8 @@ export function capture(
       );
     } catch { /* la analítica jamás rompe la UI */ }
   }
+  // RGPD (spec F-10): PostHog solo con consentimiento explícito del banner.
+  if (!hasConsent()) return;
   if (!KEY) return;
   try {
     const body = JSON.stringify({

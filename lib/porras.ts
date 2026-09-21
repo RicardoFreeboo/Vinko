@@ -2,7 +2,7 @@
 // (RLS: público solo open/resolved no-taken_down); si no, o si el slug no
 // existe aún, cae a las plantillas locales (mismo contenido que la seed 0004).
 import { cache } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { supabaseServer } from "@/lib/supabase/server";
 import { templateBySlug } from "@/lib/templates";
 import { editorialBySlug } from "@/lib/editorial";
@@ -14,7 +14,7 @@ export type Porra = {
   title: string;
   is_template: boolean;
   source: "user" | "template" | "editorial";
-  status: "open" | "resolved" | "taken_down";
+  status: "open" | "resolved" | "disputed" | "taken_down"; // disputed = reparto congelado (0042)
   closes_at: string;
   winning_option_id: string | null;
   options: PorraOption[];
@@ -82,4 +82,36 @@ export const getPorraBySlug = cache(async (slug: string): Promise<Porra | null> 
   // Fallback SSR sin backend: plantillas de ejemplo y porras editoriales
   // (creadas por el perfil oficial de Vinko) — sirven /p/[slug] y su OG.
   return templateBySlug(slug) ?? editorialBySlug(slug);
+});
+
+// Columnas que llegan con migraciones posteriores: resolved_at (0033),
+// resolution_criteria / resolves_at (0041), disputed_at / dispute_outcome
+// (0042). Se piden en una lectura aparte, de más a menos, para que /p nunca
+// se rompa si alguna migración aún no está aplicada.
+export type PorraExtras = {
+  resolved_at: string | null;
+  resolution_criteria: string | null;
+  resolves_at: string | null;
+  disputed_at: string | null;
+  dispute_outcome: "upheld" | "reversed" | null;
+};
+const EMPTY_EXTRAS: PorraExtras = {
+  resolved_at: null, resolution_criteria: null, resolves_at: null, disputed_at: null, dispute_outcome: null,
+};
+const EXTRA_SELECTS = [
+  "resolved_at, resolution_criteria, resolves_at, disputed_at, dispute_outcome",
+  "resolved_at, disputed_at, dispute_outcome",
+  "resolved_at, resolution_criteria, resolves_at",
+  "resolved_at",
+];
+
+export const getPorraExtras = cache(async (sb: SupabaseClient | null, id: string): Promise<PorraExtras> => {
+  const client = sb ?? supa();
+  if (!client) return EMPTY_EXTRAS;
+  for (const sel of EXTRA_SELECTS) {
+    const { data, error } = await client.from("porras").select(sel).eq("id", id).maybeSingle();
+    if (error) continue; // columna ausente → siguiente combinación
+    return { ...EMPTY_EXTRAS, ...((data ?? {}) as Partial<PorraExtras>) };
+  }
+  return EMPTY_EXTRAS;
 });

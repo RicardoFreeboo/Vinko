@@ -34,7 +34,9 @@ export function Analytics({ consent }: { consent: boolean }) {
     window.gtag("event", "page_view", { page_path: pathname });
   }, [pathname, consent]);
 
-  if (!GA_ID) return null;
+  // Modo básico de consentimiento (RGPD): sin «Aceptar» en el banner no se
+  // carga ni el script de GA. El banner hace router.refresh() al aceptar.
+  if (!GA_ID || !consent) return null;
   return (
     <>
       <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`} strategy="afterInteractive" />

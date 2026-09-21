@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { OnboardingFlow, type OnboardingProfile } from "@/components/OnboardingFlow";
+import { A2HSPrompt } from "@/components/A2HSPrompt";
 import onbEs from "@/messages/parts/onboarding.es.json";
 import { t } from "@/lib/i18n";
 
@@ -25,19 +26,23 @@ const MOCK: OnboardingProfile = {
 export default async function BienvenidaPreview({
   searchParams,
 }: {
-  searchParams: Promise<{ paso?: string; next?: string }>;
+  searchParams: Promise<{ paso?: string; next?: string; a2hs?: string }>;
 }) {
   if (process.env.NODE_ENV === "production") notFound();
-  const { paso, next } = await searchParams;
+  const { paso, next, a2hs } = await searchParams;
   const step = paso === "2" || paso === "3" ? (Number(paso) as 2 | 3) : 1;
   const safeNext = next && next.startsWith("/") ? next : "/feed";
+  const a2hsMode = a2hs === "ios" || a2hs === "android" ? a2hs : undefined;
   return (
-    <OnboardingFlow
-      mock
-      dict={onbEs as Record<string, string>}
-      next={safeNext}
-      profile={{ ...MOCK, interests: step >= 3 ? ["futbol", "memes", "series"] : [] }}
-      startStep={step}
-    />
+    <>
+      <OnboardingFlow
+        mock
+        dict={onbEs as Record<string, string>}
+        next={safeNext}
+        profile={{ ...MOCK, interests: step >= 3 ? ["futbol", "memes", "series"] : [] }}
+        startStep={step}
+      />
+      {a2hsMode && <A2HSPrompt preview={a2hsMode} />}
+    </>
   );
 }

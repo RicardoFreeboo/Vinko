@@ -2,6 +2,7 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { capture, type EventName } from "@/lib/analytics";
+import { supabaseBrowser } from "@/lib/supabase/client";
 
 // Captura el enlace de invitación y el evento de auth. No pinta nada.
 //
@@ -39,5 +40,20 @@ export function RefCatcher() {
     } catch { /* la analítica jamás rompe la UI */ }
   }, [path]);
 
+  // G-06 antiabuso: huella salada (UA + pantalla + idioma) una vez al día si hay
+  // sesión. Sin sesión la RPC falla y se ignora. No se guarda nada legible.
+  useEffect(() => {
+    try {
+      const key = "vinko_dh_" + new Date().toISOString().slice(0, 10);
+      if (localStorage.getItem(key)) return;
+      const raw = `vinko|${navigator.userAgent}|${screen.width}x${screen.height}|${navigator.language}|${Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+      void crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)).then((buf) => {
+        const hex = [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+        const sb = supabaseBrowser();
+        if (!sb) return;
+        void sb.rpc("set_device_hash", { p_hash: hex }).then(({ error }) => { if (!error) localStorage.setItem(key, "1"); });
+      });
+    } catch { /* sin crypto/storage: nada */ }
+  }, []);
   return null;
 }

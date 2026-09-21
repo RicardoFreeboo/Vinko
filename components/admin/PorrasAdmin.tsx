@@ -8,19 +8,31 @@ import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 
 // Consola de porras: resolver (resolve_porra), anular (void_porra) y ampliar el
-// cierre (update porras.closes_at vía la policy porras_admin_update). Debajo,
-// el pique del día sin resolver (resolve_daily). Todo con la sesión del admin
-// desde el navegador: RLS e is_admin() deciden en servidor.
+// cierre (update porras.closes_at vía la policy porras_admin_update). Arriba,
+// las IMPUGNADAS (admin_disputes, 0042): mantener o rectificar (resolve_dispute).
+// Debajo, el pique del día sin resolver (resolve_daily). Todo con la sesión del
+// admin desde el navegador: RLS e is_admin() deciden en servidor.
 export type AdminPorra = {
   id: string; slug: string; title: string; source: string;
-  status: "open" | "resolved" | "taken_down";
+  status: "open" | "resolved" | "disputed" | "taken_down";
   closes_at: string; created_at: string;
   winning_option_id: string | null; void_reason: string | null;
+  resolved_at: string | null;
+  sla_minutes: number | null; // minutos del cierre a la resolución (resueltas)
   options: { id: string; label: string }[];
   picks: number; pot: number;
   closed: boolean; // abierta pero pasada la hora de cierre
 };
 export type AdminDaily = { id: string; scheduled_for: string; question: string; options: string[] };
+// Fila de admin_disputes(): porra congelada con los motivos de sus participantes.
+export type AdminDispute = {
+  id: string; slug: string; title: string; source: string; judge: string | null;
+  closes_at: string; resolved_at: string | null; disputed_at: string | null;
+  winning_option_id: string | null; winning_label: string | null;
+  options: { id: string; label: string }[];
+  participants: number; pot: number; threshold: number;
+  disputes: { handle: string; reason: string; created_at: string }[];
+};
 
 type Mode = { id: string; kind: "resolve" | "void" | "extend" } | null;
 
@@ -34,12 +46,16 @@ function toLocalInput(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-export function PorrasAdmin({ initial, daily: initialDaily }: { initial: AdminPorra[]; daily: AdminDaily[] }) {
+export function PorrasAdmin({ initial, daily: initialDaily, disputes: initialDisputes = [] }: {
+  initial: AdminPorra[]; daily: AdminDaily[]; disputes?: AdminDispute[];
+}) {
   const router = useRouter();
   const [list, setList] = useState<AdminPorra[]>(initial);
   const [daily, setDaily] = useState<AdminDaily[]>(initialDaily);
+  const [disputes, setDisputes] = useState<AdminDispute[]>(initialDisputes);
   useEffect(() => { setList(initial); }, [initial]);
   useEffect(() => { setDaily(initialDaily); }, [initialDaily]);
+  useEffect(() => { setDisputes(initialDisputes); }, [initialDisputes]);
 
   const [mode, setMode] = useState<Mode>(null);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -47,10 +63,14 @@ export function PorrasAdmin({ initial, daily: initialDaily }: { initial: AdminPo
   const [when, setWhen] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  // Rectificar: porra impugnada en la que se está eligiendo la nueva ganadora.
+  const [rectify, setRectify] = useState<string | null>(null);
+  const [newWin, setNewWin] = useState<string | null>(null);
 
   const stuck = useMemo(() => list.filter((p) => p.status === "open" && p.closed), [list]);
   const open = useMemo(() => list.filter((p) => p.status === "open" && !p.closed), [list]);
-  const done = useMemo(() => list.filter((p) => p.status !== "open"), [list]);
+  // Las impugnadas tienen su propia sección arriba (con motivos).
+  const done = useMemo(() => list.filter((p) => p.status !== "open" && p.status !== "disputed"), [list]);
   const stuckPot = stuck.reduce((a, p) => a + p.pot, 0);
 
   function start(p: AdminPorra, kind: NonNullable<Mode>["kind"]) {
@@ -115,12 +135,38 @@ export function PorrasAdmin({ initial, daily: initialDaily }: { initial: AdminPo
     router.refresh();
   }
 
+  // Impugnación: uphold (mantener) / reverse (rectificar con ganadora, o reabrir
+  // sin ella). resolve_dispute deshace el reparto y la puntería en servidor.
+  async function decide(d: AdminDispute, action: "uphold" | "reverse", winning: string | null) {
+    if (busy) return;
+    const sb = supabaseBrowser(); if (!sb) return;
+    setBusy(true); setMsg(null);
+    const { error } = await sb.rpc("resolve_dispute", { p_porra: d.id, p_action: action, p_new_winning: winning });
+    setBusy(false);
+    if (error) { setMsg({ kind: "err", text: t("admin.porras.disputeErr") }); return; }
+    setDisputes((l) => l.filter((x) => x.id !== d.id));
+    setRectify(null); setNewWin(null);
+    if (action === "uphold") {
+      patch(d.id, (x) => ({ ...x, status: "resolved" }));
+      setMsg({ kind: "ok", text: t("admin.porras.kept") });
+    } else if (winning) {
+      const label = d.options.find((o) => o.id === winning)?.label ?? "";
+      capture("porra_resolved", { is_seed: d.source !== "user", source: d.source, via: "admin_dispute" });
+      patch(d.id, (x) => ({ ...x, status: "resolved", winning_option_id: winning }));
+      setMsg({ kind: "ok", text: t("admin.porras.rectified", { o: label }) });
+    } else {
+      patch(d.id, (x) => ({ ...x, status: "open", winning_option_id: null, closed: true, resolved_at: null, sla_minutes: null }));
+      setMsg({ kind: "ok", text: t("admin.porras.reopened") });
+    }
+    router.refresh();
+  }
+
   // Funciones de render (no componentes anidados): así el estado de los inputs
   // vive en el padre sin que cada tecla desmonte la fila y pierda el foco.
   function fila(p: AdminPorra) {
     const editing = mode?.id === p.id ? mode.kind : null;
     const statusKey = p.status === "open" ? (p.closed ? "closed" : "open") : p.status;
-    const statusTone = p.status === "open" ? (p.closed ? "gold" : "win") : p.status === "resolved" ? "muted" : "red";
+    const statusTone = p.status === "open" ? (p.closed ? "gold" : "win") : p.status === "resolved" ? "muted" : p.status === "disputed" ? "gold" : "red";
     const winner = p.options.find((o) => o.id === p.winning_option_id)?.label;
     return (
       <li key={p.id} className="flex flex-col gap-2 border-b border-[rgba(244,241,233,0.08)] py-3 last:border-0">
@@ -138,6 +184,12 @@ export function PorrasAdmin({ initial, daily: initialDaily }: { initial: AdminPo
             <div><dt className="text-[9px] uppercase tracking-[0.12em] text-[rgba(244,241,233,0.4)]">{t("admin.porras.col.closes")}</dt><dd>{fmt.format(new Date(p.closes_at))}</dd></div>
             <div><dt className="text-[9px] uppercase tracking-[0.12em] text-[rgba(244,241,233,0.4)]">{t("admin.porras.col.picks")}</dt><dd className="text-right">{p.picks}</dd></div>
             <div><dt className="text-[9px] uppercase tracking-[0.12em] text-[rgba(244,241,233,0.4)]">{t("admin.porras.col.pot")}</dt><dd className="text-right text-[var(--gold)]">{p.pot}</dd></div>
+            {p.sla_minutes !== null && (
+              <div><dt className="text-[9px] uppercase tracking-[0.12em] text-[rgba(244,241,233,0.4)]">{t("admin.porras.col.sla")}</dt>
+                <dd className="text-right" style={{ color: p.sla_minutes <= 60 ? "var(--win)" : p.sla_minutes <= 1440 ? "var(--gold)" : "var(--red)" }}>
+                  {t("admin.porras.slaMin", { n: String(p.sla_minutes) })}
+                </dd></div>
+            )}
           </dl>
           {p.status === "open" && !editing && (
             <div className="flex shrink-0 flex-wrap gap-1.5">
@@ -200,6 +252,81 @@ export function PorrasAdmin({ initial, daily: initialDaily }: { initial: AdminPo
     );
   }
 
+  // Impugnada: motivos + Mantener / Rectificar (elegir ganadora) / Reabrir.
+  function filaDisputa(d: AdminDispute) {
+    const editing = rectify === d.id;
+    return (
+      <li key={d.id} className="flex flex-col gap-2.5 border-b border-[rgba(244,241,233,0.08)] py-3 last:border-0">
+        <div className="flex flex-wrap items-start gap-x-4 gap-y-1.5">
+          <div className="min-w-[200px] flex-1">
+            <Link href={`/p/${d.slug}`} target="_blank" className="font-bold text-[var(--cream)] hover:text-[var(--win)]">{d.title}</Link>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <Chip tone="muted">{t(`admin.porras.source.${d.source}`)}</Chip>
+              <Chip tone="gold">{t("admin.porras.status.disputed")}</Chip>
+              {d.judge && <span className="text-[11px] text-[rgba(244,241,233,0.6)]">{t("admin.porras.judge")}: <b className="text-[var(--cream)]">@{d.judge}</b></span>}
+              {d.winning_label && <span className="text-[11px] text-[rgba(244,241,233,0.6)]">{t("admin.porras.current")}: <b className="text-[var(--gold)]">{d.winning_label}</b></span>}
+            </div>
+            <p className="mono mt-1 text-[11px] text-[rgba(244,241,233,0.55)]">
+              {t("admin.porras.disputesN", { n: String(d.disputes.length), m: String(d.threshold), p: String(d.participants) })}
+              {d.disputed_at && <> · {fmt.format(new Date(d.disputed_at))}</>}
+            </p>
+          </div>
+          <dl className="mono flex shrink-0 gap-4 text-[12px] text-[rgba(244,241,233,0.7)]">
+            <div><dt className="text-[9px] uppercase tracking-[0.12em] text-[rgba(244,241,233,0.4)]">{t("admin.porras.col.closes")}</dt><dd>{fmt.format(new Date(d.closes_at))}</dd></div>
+            <div><dt className="text-[9px] uppercase tracking-[0.12em] text-[rgba(244,241,233,0.4)]">{t("admin.porras.col.pot")}</dt><dd className="text-right text-[var(--gold)]">{d.pot}</dd></div>
+          </dl>
+        </div>
+
+        <ul className="flex flex-col gap-1 rounded-[12px] border border-[rgba(255,194,61,0.25)] bg-[rgba(255,194,61,0.04)] px-3 py-2">
+          {d.disputes.map((x, i) => (
+            <li key={i} className="flex flex-wrap items-baseline gap-x-2 text-[12px]">
+              <span className="font-bold text-[var(--cream)]">@{x.handle}</span>
+              <span className="text-[rgba(244,241,233,0.75)]">{x.reason || t("admin.porras.noReason")}</span>
+              <span className="mono ml-auto text-[10px] text-[rgba(244,241,233,0.4)]">{fmt.format(new Date(x.created_at))}</span>
+            </li>
+          ))}
+        </ul>
+
+        {!editing ? (
+          <div className="flex flex-wrap gap-1.5">
+            <button onClick={() => decide(d, "uphold", null)} disabled={busy}
+              className="rounded-[10px] bg-[var(--win)] px-3 py-1.5 text-[12px] font-black text-[#060b09] disabled:opacity-50">
+              {t("admin.porras.keep")}
+            </button>
+            <button onClick={() => { setRectify(d.id); setNewWin(null); setMsg(null); }} disabled={busy}
+              className="rounded-[10px] border border-[var(--gold)] px-3 py-1.5 text-[12px] font-black text-[var(--gold)] disabled:opacity-50">
+              {t("admin.porras.rectify")}
+            </button>
+            <button onClick={() => decide(d, "reverse", null)} disabled={busy}
+              className="rounded-[10px] border border-[rgba(244,241,233,0.2)] px-3 py-1.5 text-[12px] font-bold text-[rgba(244,241,233,0.6)] disabled:opacity-50">
+              {t("admin.porras.reopen")}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 rounded-[12px] border border-[rgba(255,194,61,0.35)] bg-[rgba(255,194,61,0.05)] p-3">
+            <span className="text-[12px] font-bold text-[var(--cream)]">{t("admin.porras.rectifyPick")}</span>
+            {d.options.map((o) => {
+              const on = newWin === o.id;
+              const current = o.id === d.winning_option_id;
+              return (
+                <button key={o.id} onClick={() => setNewWin(o.id)} aria-pressed={on} disabled={busy}
+                  className="rounded-[10px] border px-3 py-1.5 text-[12px] font-bold disabled:opacity-50"
+                  style={{ borderColor: on ? "var(--gold)" : "rgba(244,241,233,0.2)", color: on ? "var(--gold)" : current ? "rgba(244,241,233,0.4)" : "rgba(244,241,233,0.7)" }}>
+                  {o.label}{current ? " ·" : ""}
+                </button>
+              );
+            })}
+            <button onClick={() => decide(d, "reverse", newWin)} disabled={busy || !newWin}
+              className="rounded-[10px] bg-[var(--gold)] px-3 py-1.5 text-[12px] font-black text-[#060b09] disabled:opacity-40">
+              {t("admin.porras.rectifyConfirm")}
+            </button>
+            <button onClick={() => { setRectify(null); setNewWin(null); }} className="text-[12px] font-bold text-[rgba(244,241,233,0.5)] underline">{t("admin.porras.cancel")}</button>
+          </div>
+        )}
+      </li>
+    );
+  }
+
   function seccion(title: string, rows: AdminPorra[], glow: "win" | "gold" | "none") {
     return (
       <div key={title} className="flex flex-col gap-3">
@@ -225,6 +352,20 @@ export function PorrasAdmin({ initial, daily: initialDaily }: { initial: AdminPo
       )}
       {msg && (
         <p className={`text-sm font-bold ${msg.kind === "ok" ? "text-[var(--win)]" : "text-[var(--red)]"}`}>{msg.text}</p>
+      )}
+
+      {/* IMPUGNADAS: reparto congelado hasta que el admin decida */}
+      {disputes.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-lg font-bold text-[var(--gold)]">{t("admin.porras.disputed")}</h2>
+            <span className="mono text-[12px] text-[rgba(244,241,233,0.5)]">{disputes.length}</span>
+          </div>
+          <p className="-mt-2 text-[12px] text-[rgba(244,241,233,0.5)]">{t("admin.porras.disputedHow")}</p>
+          <GlassCard glow="gold">
+            <ul className="flex flex-col">{disputes.map((d) => filaDisputa(d))}</ul>
+          </GlassCard>
+        </div>
       )}
 
       {seccion(t("admin.porras.closedUnresolved"), stuck, "gold")}
