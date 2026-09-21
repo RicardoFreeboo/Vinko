@@ -352,6 +352,9 @@
   "nueva.badOpts": "Add at least 2 options.",
   "nueva.share": "Share it on WhatsApp 👇",
   "nueva.shareText": "I challenge you on this pool 🔥 {title} — {url}",
+  "share.reward": "+{n} Vinkos for sharing",
+  "admin.nav.porras": "Pools",
+  "admin.nav.catalogo": "Catalog",
   "nueva.shareCta": "Share on WhatsApp",
   "nueva.view": "View the pool →",
 

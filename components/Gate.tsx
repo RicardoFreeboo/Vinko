@@ -19,9 +19,14 @@ const KEY = "vinko_gate";
 //  · /secret              donde el fundador lee el código del día.
 const ABIERTAS = ["/secret", "/privacidad", "/terminos", "/p/", "/login", "/auth", "/bienvenida"];
 
-export function Gate({ children }: { children: React.ReactNode }) {
+// Soft launch: quien ya tiene sesión (ha entrado con Google desde un enlace
+// compartido) entra sin código. El código diario solo frena la navegación
+// anónima. NEXT_PUBLIC_ALPHA_GATE=off apaga el candado del todo (lanzamiento).
+const GATE_OFF = process.env.NEXT_PUBLIC_ALPHA_GATE === "off";
+
+export function Gate({ children, hasSession = false }: { children: React.ReactNode; hasSession?: boolean }) {
   const path = usePathname();
-  const bypass = path === "/" || ABIERTAS.some((r) => path?.startsWith(r));
+  const bypass = GATE_OFF || hasSession || path === "/" || ABIERTAS.some((r) => path?.startsWith(r));
   const [ok, setOk] = useState(false);
   const [ready, setReady] = useState(false);
   const [input, setInput] = useState("");

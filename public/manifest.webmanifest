@@ -2,7 +2,7 @@
   "name": "Vinko",
   "short_name": "Vinko",
   "description": "Porra social con puntos virtuales",
-  "start_url": "/hoy",
+  "start_url": "/feed",
   "display": "standalone",
   "background_color": "#0c1011",
   "theme_color": "#0c1011",

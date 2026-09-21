@@ -352,6 +352,9 @@
   "nueva.badOpts": "Pon al menos 2 opciones.",
   "nueva.share": "Compártela por WhatsApp 👇",
   "nueva.shareText": "Te reto en esta porra 🔥 {title} — {url}",
+  "share.reward": "+{n} Vinkos por compartir",
+  "admin.nav.porras": "Porras",
+  "admin.nav.catalogo": "Catálogo",
   "nueva.shareCta": "Compartir por WhatsApp",
   "nueva.view": "Ver la porra →",
 

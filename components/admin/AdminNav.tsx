@@ -8,6 +8,8 @@ const ITEMS = [
   { href: "/admin/flujo", key: "admin.nav.flujo" },
   { href: "/admin/moderacion", key: "admin.nav.moderacion" },
   { href: "/admin/temas", key: "admin.nav.temas" },
+  { href: "/admin/porras", key: "admin.nav.porras" },
+  { href: "/admin/catalogo", key: "admin.nav.catalogo" },
   { href: "/admin/health", key: "admin.nav.health" },
   { href: "/admin/live", key: "admin.nav.live" },
 ];

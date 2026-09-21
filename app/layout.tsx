@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import { Gate } from "@/components/Gate";
 import { Analytics } from "@/components/Analytics";
+import { AdsLoader } from "@/components/ads/AdsLoader";
 import { getSession } from "@/lib/session";
 import { t } from "@/lib/i18n";
 import "./globals.css";
 
-// AdSense: solo el cargador (verificación del sitio + display cuando se active).
-// NO renderiza unidades de anuncio aquí. Mantener Auto Ads OFF en el panel para
-// no inyectar en /p (regla del ALPHA FREEZE: cero ads en /p, display solo HOME).
-const ADSENSE_CLIENT =
-  process.env.NEXT_PUBLIC_ADSENSE_CLIENT ?? "ca-pub-7388549278894123";
+// AdSense: solo el cargador, y solo fuera de /p (ver AdsLoader). Mantener Auto
+// Ads OFF en el panel para no inyectar en /p (freeze: cero ads en /p).
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://vinko.fun";
 
@@ -44,15 +41,8 @@ export default async function RootLayout({
     <html lang="es">
       <body className="min-h-dvh antialiased [font-family:system-ui,-apple-system,'Segoe_UI',Roboto,sans-serif]">
         <Analytics consent={consent} />
-        <Gate>{children}</Gate>
-        {ADSENSE_CLIENT && (
-          <Script
-            id="adsbygoogle-init"
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
-          />
-        )}
+        <Gate hasSession={!!session}>{children}</Gate>
+        <AdsLoader />
       </body>
     </html>
   );
