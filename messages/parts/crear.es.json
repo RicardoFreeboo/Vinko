@@ -26,12 +26,10 @@
   "crear.tpl.serie.crit": "Lo que se vea en el último capítulo emitido. Lo confirma el juez.",
   "crear.tpl.libre": "Pregunta libre",
   "crear.tpl.libre.opts": "Sí|No",
-
   "crear.step1": "La pregunta",
   "crear.step2": "Opciones (2 a 6)",
   "crear.step3": "Cierre y resolución",
   "crear.removeOpt": "Quitar la opción {n}",
-
   "crear.close.1h": "1 hora",
   "crear.close.tonight": "Esta noche",
   "crear.close.tomorrow": "Mañana",
@@ -39,24 +37,29 @@
   "crear.close.custom": "📅 Fecha",
   "crear.closesAt": "Cierra {date}",
   "crear.customHint": "Mínimo 15 minutos · máximo 12 meses (cápsula del tiempo).",
-
   "crear.criteria": "Criterio de resolución",
   "crear.criteriaHelp": "¿Cómo se sabrá quién acierta?",
   "crear.criteriaPh": "Ej.: resultado oficial al final del partido. Lo decide el juez.",
   "crear.resolvesAt": "Se sabrá el resultado",
   "crear.resolvesHint": "Fecha esperada de resolución. Puede ser la misma del cierre.",
-
   "crear.more": "Más ajustes",
   "crear.moreSummary": "Juez: {judge} · {vis} · {media}",
   "crear.judgeMe": "tú",
   "crear.mediaNone": "sin vídeo",
   "crear.mediaYes": "con vídeo, foto o voz",
-
   "crear.errCriteria": "Escribe cómo se sabrá quién acierta (mínimo 5 letras).",
   "crear.errCloseRange": "El cierre tiene que estar entre 15 minutos y 12 meses desde ahora.",
   "crear.errUnsafe": "Esa pregunta no se puede publicar. Cambia el texto.",
   "crear.errGeneric": "No se pudo crear la porra. Inténtalo otra vez.",
-
   "crear.shareNative": "Te reto en esta porra 🔥 {title}",
-  "crear.publishing": "Creando tu porra…"
+  "crear.publishing": "Creando tu porra…",
+  "crear.ideasLabel": "O apuéstate lo que sea:",
+  "crear.idea.cena": "🍽️ Una cena",
+  "crear.idea.cena.q": "¿Quién paga la cena?",
+  "crear.idea.cafe": "☕ El café",
+  "crear.idea.cafe.q": "¿Quién invita al café?",
+  "crear.idea.finde": "🎉 El finde",
+  "crear.idea.finde.q": "¿Quién la lía este finde?",
+  "crear.idea.premio": "🎁 Premio patrocinado",
+  "crear.idea.premio.q": "¿Quién gana el premio del patrocinador?"
 }

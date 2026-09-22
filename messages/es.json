@@ -1516,5 +1516,14 @@
   "demo.wallet.doneDeposit": "Ingreso simulado de {amount}",
   "demo.wallet.doneWithdraw": "Retirada simulada de {amount}",
   "demo.wallet.note": "Función en preparación.",
-  "demo.wallet.adminOnly": "Solo tú (admin) ves esto. El público no."
+  "demo.wallet.adminOnly": "Solo tú (admin) ves esto. El público no.",
+  "crear.ideasLabel": "O apuéstate lo que sea:",
+  "crear.idea.cena": "🍽️ Una cena",
+  "crear.idea.cena.q": "¿Quién paga la cena?",
+  "crear.idea.cafe": "☕ El café",
+  "crear.idea.cafe.q": "¿Quién invita al café?",
+  "crear.idea.finde": "🎉 El finde",
+  "crear.idea.finde.q": "¿Quién la lía este finde?",
+  "crear.idea.premio": "🎁 Premio patrocinado",
+  "crear.idea.premio.q": "¿Quién gana el premio del patrocinador?"
 }

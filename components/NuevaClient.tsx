@@ -267,6 +267,19 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
           aria-invalid={err?.field === "title"}
           className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
         <ErrLine err={err} field="title" />
+        {/* Ejemplos: dejar claro que te puedes apostar lo que sea (una cena, el
+            café, un premio de patrocinador). Un toque rellena la pregunta. */}
+        <div className="mt-1 flex flex-col gap-1.5">
+          <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{tr("crear.ideasLabel")}</span>
+          <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {(["cena", "cafe", "finde", "premio"] as const).map((k) => (
+              <button key={k} type="button" onClick={() => { setTitle(tr(`crear.idea.${k}.q`)); setErr(null); }}
+                className="shrink-0 whitespace-nowrap rounded-full border border-[var(--line)] bg-[var(--ink2)] px-3 py-1.5 text-[12px] font-bold text-[var(--muted)]">
+                {tr(`crear.idea.${k}`)}
+              </button>
+            ))}
+          </div>
+        </div>
         <VoiceToPorra onFilled={(q, o) => {
           setTitle(q);
           setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
