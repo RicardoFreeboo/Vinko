@@ -78,5 +78,6 @@
   "crear.prize.sponsorNote": "Pronto los patrocinadores podrán poner aquí su premio (p. ej. un menú de McDonald's).",
   "crear.next": "Siguiente →",
   "crear.back": "← Atrás",
-  "crear.nextHint": "Completa la pregunta y al menos 2 opciones."
+  "crear.nextHint": "Completa la pregunta y al menos 2 opciones.",
+  "crear.stakeAmount": "Cantidad que se juega"
 }

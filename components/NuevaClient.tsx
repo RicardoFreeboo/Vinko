@@ -104,6 +104,8 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
   // Asistente en 2 fases: 1) pregunta + opciones, 2) qué te juegas + cierre.
   const [phase, setPhase] = useState<1 | 2>(1);
   const [stakeKind, setStakeKind] = useState<"vinkos" | "dinero" | "premio">("vinkos");
+  const [stakeVinkos, setStakeVinkos] = useState(10);   // cantidad en Vinkos
+  const [stakeEur, setStakeEur] = useState(500);        // cantidad en € (céntimos, maqueta)
   const [prizeChoice, setPrizeChoice] = useState("");
   const [prizeCustom, setPrizeCustom] = useState("");
   const [err, setErr] = useState<Err | null>(null);
@@ -263,11 +265,11 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
               aria-invalid={err?.field === "title"}
               className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
             <ErrLine err={err} field="title" />
-            <VoiceToPorra onFilled={(q, o) => {
-              setTitle(q);
-              setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
-              setErr(null);
-            }} />
+            {/* Grabar vídeo / grabar voz / subir archivo desde el móvil (opcional),
+                junto a la pregunta. Sustituye al botón de dictado que había aquí. */}
+            <Field label={tr("nueva.media")}>
+              <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)} />
+            </Field>
           </Block>
 
           {/* PASO 2 — OPCIONES */}
@@ -320,9 +322,32 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
                 );
               })}
             </div>
-            {stakeKind === "vinkos" && <p className="text-[12px] text-[var(--muted)]">{tr("crear.stake.vinkosNote")}</p>}
+            {stakeKind === "vinkos" && (
+              <div className="flex flex-col gap-2">
+                <Field label={tr("crear.stakeAmount")}>
+                  <div className="flex items-center gap-2 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5">
+                    <span className="text-[15px]">🪙</span>
+                    <input type="number" inputMode="numeric" min={10} max={1000} value={stakeVinkos}
+                      onChange={(e) => setStakeVinkos(Math.max(10, Math.min(1000, Math.round(Number(e.target.value)))))}
+                      className="w-full bg-transparent text-[15px] font-black text-[var(--cream)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                    <span className="mono text-[10px] text-[var(--muted)]">10–1000</span>
+                  </div>
+                </Field>
+                <p className="text-[12px] text-[var(--muted)]">{tr("crear.stake.vinkosNote")}</p>
+              </div>
+            )}
             {stakeKind === "dinero" && (
-              <p className="rounded-[10px] border border-[var(--gold)]/40 bg-[var(--gold)]/8 px-3 py-2 text-[12px] text-[var(--gold)]">{tr("crear.stake.dineroNote")}</p>
+              <div className="flex flex-col gap-2">
+                <Field label={tr("crear.stakeAmount")}>
+                  <div className="flex items-center gap-2 rounded-[12px] border border-[var(--gold)]/50 bg-[var(--ink2)] px-4 py-2.5">
+                    <span className="text-[15px] font-bold text-[var(--gold)]">€</span>
+                    <input type="number" inputMode="decimal" min={1} max={500} value={stakeEur / 100}
+                      onChange={(e) => setStakeEur(Math.max(100, Math.min(50000, Math.round(Number(e.target.value) * 100))))}
+                      className="w-full bg-transparent text-[15px] font-black text-[var(--cream)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+                  </div>
+                </Field>
+                <p className="rounded-[10px] border border-[var(--gold)]/40 bg-[var(--gold)]/8 px-3 py-2 text-[12px] text-[var(--gold)]">{tr("crear.stake.dineroNote")}</p>
+              </div>
             )}
             {stakeKind === "premio" && (
               <div className="flex flex-col gap-2">
@@ -408,11 +433,6 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
                 <Chip active={visibility === "private"} onClick={() => setVisibility("private")}>{tr("nueva.private")}</Chip>
               </div>
               <p className="mt-1 text-[11px] text-[var(--muted)]">{visibility === "private" ? tr("nueva.privateHint") : tr("nueva.publicHint")}</p>
-            </Field>
-
-            {/* MEDIA: grabar/subir vídeo, foto o voz */}
-            <Field label={tr("nueva.media")}>
-              <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)} />
             </Field>
 
             {/* CRITERIO + RESULTADO ESPERADO — movidos aquí para no estorbar el

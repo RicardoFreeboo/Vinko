@@ -1542,5 +1542,6 @@
   "crear.prize.sponsorNote": "Soon sponsors will be able to put their prize here (e.g. a McDonald's menu).",
   "crear.next": "Next →",
   "crear.back": "← Back",
-  "crear.nextHint": "Fill in the question and at least 2 options."
+  "crear.nextHint": "Fill in the question and at least 2 options.",
+  "crear.stakeAmount": "Amount at stake"
 }
