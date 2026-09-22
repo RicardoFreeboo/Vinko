@@ -98,7 +98,6 @@ export function DemoWallet({ points }: { points: number }) {
 
           {toast && <p className="rounded-[10px] bg-[var(--win)]/15 px-3 py-2 text-center text-[13px] font-bold text-[var(--win)]">✓ {toast}</p>}
 
-          <p className="text-[11px] leading-snug text-[var(--muted)]">{t("demo.wallet.note")}</p>
         </>
       )}
     </section>
