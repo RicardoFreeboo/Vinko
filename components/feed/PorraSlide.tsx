@@ -150,8 +150,9 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
           </div>
         </div>
 
-        {/* Toggle Puntos/Dinero — SOLO admin, maqueta del modo dinero (como el modo $ de la APK) */}
-        {isAdmin && loggedIn && !pick && (
+        {/* Toggle Puntos/Dinero — SOLO admin, maqueta del modo dinero (como el modo $ de la APK).
+            Siempre visible para admin: puede pasar cualquier porra a dinero aunque ya la haya jugado en puntos. */}
+        {isAdmin && loggedIn && (
           <div className="flex w-max items-center gap-1 rounded-full border border-white/20 bg-black/45 p-1 backdrop-blur">
             <button type="button" onClick={() => { setMoney(false); setMoneyPick(null); }}
               className={`rounded-full px-3 py-1 text-[12px] font-black ${!money ? "bg-[var(--win)] text-[var(--ink)]" : "text-white/70"}`}>🪙 {t("pick.modePoints")}</button>
@@ -163,20 +164,19 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
           </div>
         )}
 
-        {!pick && (loggedIn
-          ? (money
-              ? (
-                <div className="flex items-center gap-2 rounded-[10px] border border-[var(--gold)]/50 bg-black/50 px-3 py-2 backdrop-blur">
-                  <span className="text-[14px] font-bold text-[var(--gold)]">€</span>
-                  <input type="number" inputMode="decimal" min={1} max={500} value={eurCents / 100}
-                    onChange={(e) => setEurCents(Math.max(100, Math.min(50000, Math.round(Number(e.target.value) * 100))))}
-                    aria-label={t("pick.modeMoney")}
-                    className="w-full bg-transparent text-[15px] font-black text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                  <span className="mono text-[10px] text-white/60">{t("pick.soon")}</span>
-                </div>
-              )
-              : <StakePicker value={stake} onChange={onStake} />)
-          : <p className="text-[12px] font-bold text-white/80">{t("feed.loginToPlay")}</p>)}
+        {/* Dinero (maqueta): entrada en € aunque la porra ya esté jugada en puntos */}
+        {loggedIn && money && (
+          <div className="flex items-center gap-2 rounded-[10px] border border-[var(--gold)]/50 bg-black/50 px-3 py-2 backdrop-blur">
+            <span className="text-[14px] font-bold text-[var(--gold)]">€</span>
+            <input type="number" inputMode="decimal" min={1} max={500} value={eurCents / 100}
+              onChange={(e) => setEurCents(Math.max(100, Math.min(50000, Math.round(Number(e.target.value) * 100))))}
+              aria-label={t("pick.modeMoney")}
+              className="w-full bg-transparent text-[15px] font-black text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
+            <span className="mono text-[10px] text-white/60">{t("pick.soon")}</span>
+          </div>
+        )}
+        {loggedIn && !money && !pick && <StakePicker value={stake} onChange={onStake} />}
+        {!loggedIn && !pick && <p className="text-[12px] font-bold text-white/80">{t("feed.loginToPlay")}</p>}
 
         <div className="flex flex-col gap-2">
           {p.options.map((o) => {
