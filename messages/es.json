@@ -1495,5 +1495,6 @@
   "demo.commission.note": "Comisión para el mantenimiento de la app. El dinero de usuarios vive en el proveedor licenciado; Vinko nunca lo custodia: solo cobra su parte.",
   "demo.next": "Siguiente",
   "demo.restart": "Reiniciar demo",
-  "demo.footer": "Vinko · Capa de dinero (roadmap). El producto real funciona con puntos virtuales."
+  "demo.footer": "Vinko · Capa de dinero (roadmap). El producto real funciona con puntos virtuales.",
+  "admin.nav.negocio": "Negocio"
 }

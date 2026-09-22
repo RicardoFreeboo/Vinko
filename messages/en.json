@@ -1495,5 +1495,6 @@
   "demo.commission.note": "Commission for running the app. Users' money lives in the licensed provider; Vinko never custodies it, it only takes its share.",
   "demo.next": "Next",
   "demo.restart": "Restart demo",
-  "demo.footer": "Vinko · Money layer (roadmap). The real product runs on virtual points."
+  "demo.footer": "Vinko · Money layer (roadmap). The real product runs on virtual points.",
+  "admin.nav.negocio": "Business"
 }
