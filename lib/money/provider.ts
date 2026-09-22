@@ -1,5 +1,11 @@
 import "server-only";
-import { MockMoneyProvider, type MoneyProvider, type MoneyWebhookEvent } from "@/packages/money-provider/src";
+import {
+  MockMoneyProvider,
+  HttpMoneyProvider,
+  providerEnvSuffix,
+  type MoneyProvider,
+  type MoneyWebhookEvent,
+} from "@/packages/money-provider/src";
 import { signBody } from "@/packages/money-provider/src/signing";
 
 // Fábrica del proveedor de dinero (M0). El módulo está APAGADO: en producción
@@ -35,6 +41,18 @@ export function getMoneyProvider(providerId: string | null | undefined, ctx: Pro
       emit: (evt) => postSignedWebhook(webhookUrl, secret, evt).then(() => undefined),
     });
   }
-  // partner_* / vinko_money: adaptador real, M1. Aún no existe.
+  // Proveedores reales (licenciados): 'vinko_money' (licencia propia) y
+  // 'partner_*' (operador con licencia). SÍ pueden vivir en producción. Se
+  // instancian solo si sus credenciales están en el entorno; si faltan → null
+  // (país no configurado todavía). El día que Ricardo tenga sandbox o contrato,
+  // basta con pegar estas tres variables en Vercel y encender el país en admin.
+  if (providerId === "vinko_money" || (typeof providerId === "string" && providerId.startsWith("partner_"))) {
+    const suf = providerEnvSuffix(providerId);
+    const baseUrl = process.env[`MONEY_PROVIDER_BASE_URL_${suf}`];
+    const apiKey = process.env[`MONEY_PROVIDER_APIKEY_${suf}`];
+    const signingSecret = process.env[`MONEY_PROVIDER_SECRET_${suf}`];
+    if (!baseUrl || !apiKey || !signingSecret) return null;
+    return new HttpMoneyProvider({ id: providerId as "vinko_money" | `partner_${string}`, baseUrl, apiKey, signingSecret });
+  }
   return null;
 }

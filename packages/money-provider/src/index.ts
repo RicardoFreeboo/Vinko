@@ -4,3 +4,4 @@
 export * from "./types";
 export * from "./signing";
 export * from "./mock";
+export * from "./http";
