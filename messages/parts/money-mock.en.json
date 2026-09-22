@@ -1,0 +1,12 @@
+{
+  "moneyMock.cashier.title": "Test cashier",
+  "moneyMock.cashier.intro": "Test environment. Nothing moves here: only the provider confirmation is simulated.",
+  "moneyMock.cashier.pool": "Pool",
+  "moneyMock.cashier.option": "Option",
+  "moneyMock.cashier.confirm": "Simulate confirmed payment",
+  "moneyMock.cashier.fail": "Simulate failed payment",
+  "moneyMock.kyc.title": "Test verification",
+  "moneyMock.kyc.intro": "Test environment. Mark verification as completed to continue the flow.",
+  "moneyMock.kyc.confirm": "Mark verification completed",
+  "moneyMock.back": "Back"
+}

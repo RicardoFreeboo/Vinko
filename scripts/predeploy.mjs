@@ -4,7 +4,7 @@
 //   node scripts/predeploy.mjs --no-build   → sin build (rápido, para iterar)
 //   node scripts/predeploy.mjs --e2e        → además, smoke E2E contra BASE_URL
 //                                             (producción por defecto; solo lectura)
-// Orden: léxico → paridad i18n → tests unitarios → tsc → build [→ e2e].
+// Orden: léxico → paridad i18n → tests unitarios → invariante de esquema → tsc → build [→ e2e].
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -17,6 +17,7 @@ const STEPS = [
   { name: "Léxico prohibido (copy pública + migraciones ≥ 0030)", cmd: "node scripts/lexicon-check.mjs" },
   { name: "Paridad i18n es/en", cmd: "node scripts/i18n-parity.mjs", needsFile: "scripts/i18n-parity.mjs" },
   { name: "Tests unitarios", cmd: "node tests/unit/run.mjs" },
+  { name: "Invariante de esquema de dinero (base real)", cmd: "node scripts/schema-invariant.mjs", needsFile: "scripts/schema-invariant.mjs" },
   { name: "TypeScript (tsc --noEmit)", cmd: "npx tsc --noEmit" },
   { name: "Build de Next (npm run build)", cmd: "npm run build", skipFlag: "--no-build" },
   { name: "Smoke E2E (tests/e2e/smoke.mjs)", cmd: "node tests/e2e/smoke.mjs", onlyFlag: "--e2e" },

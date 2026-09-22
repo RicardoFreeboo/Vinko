@@ -24,6 +24,7 @@ export type OnboardingProfile = {
   interests: string[];
   onboarded: boolean;
   shields: number | null;
+  country?: string | null; // país declarado (ISO-2). Opcional: el preview no lo trae
 };
 
 export const INTERESTS = [
@@ -58,6 +59,75 @@ function detectLang(): Lang {
   try { return /^en\b/i.test(navigator.language ?? "") ? "en" : "es"; } catch { return "es"; }
 }
 
+// --- Selector de país (compartido con Ajustes) ---------------------------
+// Pregunta el país para personalizar el contenido; NO menciona dinero. La
+// elegibilidad de dinero (M0) lo lee, pero aquí es solo una preferencia.
+export const COUNTRY_ISO = ["ES", "GB", "PT", "FR", "IT", "DE", "MX", "CO", "PE", "AR", "CL", "BR", "US"] as const;
+const OTHER = "__other";
+
+// ISO-2 válido (dos letras en mayúsculas) o null.
+export function normIso(v: string | null | undefined): string | null {
+  if (!v) return null;
+  const s = v.trim().toUpperCase();
+  return /^[A-Z]{2}$/.test(s) ? s : null;
+}
+
+export function CountrySelect({
+  t, lang, prefix, value, onChange, disabled = false, bare = false,
+}: {
+  t: T;
+  lang: Lang;
+  prefix: "onb" | "ajustes";
+  value: string | null;
+  onChange: (iso: string | null) => void;
+  disabled?: boolean;
+  bare?: boolean; // sin etiqueta ni pista propias (las pone el contenedor, p. ej. Ajustes)
+}) {
+  const known = COUNTRY_ISO.includes((value ?? "") as (typeof COUNTRY_ISO)[number]);
+  const init = normIso(value);
+  const [sel, setSel] = useState<string>(init ? (known ? init : OTHER) : "");
+  const [other, setOther] = useState<string>(init && !known ? init : "");
+
+  const names = useMemo(() => {
+    try { return new Intl.DisplayNames([lang], { type: "region" }); } catch { return null; }
+  }, [lang]);
+  const nameOf = (iso: string) => { try { return names?.of(iso) ?? iso; } catch { return iso; } };
+
+  function emit(nextSel: string, nextOther: string) {
+    setSel(nextSel);
+    setOther(nextOther);
+    if (nextSel === OTHER) onChange(normIso(nextOther));
+    else if (nextSel === "") onChange(null);
+    else onChange(nextSel);
+  }
+
+  const id = `${prefix}-country`;
+  const inputCls = "w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm font-bold text-[var(--cream)] outline-none focus:border-[var(--win)] disabled:opacity-40";
+
+  return (
+    <div>
+      {!bare && <label htmlFor={id} className="mb-2 block text-xs font-bold text-[var(--muted)]">{t(`${prefix}.country`)}</label>}
+      <select id={id} value={sel} disabled={disabled} aria-label={bare ? t(`${prefix}.country`) : undefined}
+        onChange={(e) => emit(e.target.value, other)} className={inputCls}>
+        <option value="">{t(`${prefix}.countryPick`)}</option>
+        {COUNTRY_ISO.map((iso) => <option key={iso} value={iso}>{nameOf(iso)}</option>)}
+        <option value={OTHER}>{t(`${prefix}.countryOther`)}</option>
+      </select>
+      {sel === OTHER && (
+        <input
+          value={other}
+          disabled={disabled}
+          onChange={(e) => emit(OTHER, e.target.value.replace(/[^a-zA-Z]/g, "").slice(0, 2).toUpperCase())}
+          placeholder={t(`${prefix}.countryOtherPh`)}
+          aria-label={t(`${prefix}.countryOther`)}
+          className={`mono mt-2 text-center tracking-[0.2em] ${inputCls}`}
+        />
+      )}
+      {!bare && <p className="mt-2 text-[11px] leading-snug text-[var(--muted2)]">{t(`${prefix}.countryHint`)}</p>}
+    </div>
+  );
+}
+
 // Migración 0036 sin aplicar → la RPC no existe. No bloquea al usuario.
 function isMissingRpc(msg: string): boolean {
   return /complete_onboarding|set_avatar|schema cache|does not exist|PGRST202/i.test(msg);
@@ -67,13 +137,14 @@ const BTN_PRIMARY = "w-full rounded-[13px] bg-[var(--win)] px-4 py-3.5 text-[15p
 const BTN_SECONDARY = "w-full rounded-[13px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3.5 text-[15px] font-bold text-[var(--cream)]";
 
 export function OnboardingFlow({
-  next, profile, startStep, mock = false, dict,
+  next, profile, startStep, mock = false, dict, suggestedCountry = null,
 }: {
   next: string;
   profile: OnboardingProfile;
   startStep?: Step;
   mock?: boolean;
   dict?: Record<string, string>;
+  suggestedCountry?: string | null;
 }) {
   const t = useMemo(() => makeT(dict), [dict]);
   const router = useRouter();
@@ -99,6 +170,7 @@ export function OnboardingFlow({
       )}
       {step === 1 && (
         <StepAge t={t} profile={profile} lang={lang} setLang={setLang} mock={mock}
+          suggestedCountry={suggestedCountry}
           onDone={() => { setNotice(""); setStep(2); }} onLogin={() => go("/login")} />
       )}
       {step === 2 && (
@@ -123,11 +195,13 @@ function Dots({ step }: { step: Step }) {
 }
 
 // ---------- 1) Año de nacimiento + idioma ----------
-function StepAge({ t, profile, lang, setLang, mock, onDone, onLogin }: {
+function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, onLogin }: {
   t: T; profile: OnboardingProfile; lang: Lang; setLang: (l: Lang) => void; mock: boolean;
-  onDone: () => void; onLogin: () => void;
+  suggestedCountry: string | null; onDone: () => void; onLogin: () => void;
 }) {
   const [year, setYear] = useState(profile.birthYear ? String(profile.birthYear) : "");
+  // País: lo declarado gana; si no, la sugerencia por IP (personaliza el contenido).
+  const [country, setCountry] = useState<string | null>(normIso(profile.country ?? suggestedCountry));
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const thisYear = new Date().getFullYear();
@@ -147,7 +221,10 @@ function StepAge({ t, profile, lang, setLang, mock, onDone, onLogin }: {
     setBusy(true);
     const { data: { user } } = await sb.auth.getUser();
     if (!user) { setBusy(false); onLogin(); return; }
-    const { error } = await sb.from("profiles").update({ birth_year: y, lang }).eq("id", user.id);
+    // 0045 añade profiles.country; si aún no está aplicada, guardamos lo básico
+    // (año + idioma) para no bloquear el onboarding.
+    let error = (await sb.from("profiles").update({ birth_year: y, lang, country }).eq("id", user.id)).error;
+    if (error) error = (await sb.from("profiles").update({ birth_year: y, lang }).eq("id", user.id)).error;
     setBusy(false);
     if (error) { setErr(error.message); return; }
     onDone();
@@ -178,6 +255,7 @@ function StepAge({ t, profile, lang, setLang, mock, onDone, onLogin }: {
         </div>
         {lang === "en" && <p className="mt-2 text-[11px] leading-snug text-[var(--muted2)]">{t("onb.lang.hint")}</p>}
       </div>
+      <CountrySelect t={t} lang={lang} prefix="onb" value={country} onChange={setCountry} disabled={busy} />
       {err && <span role="alert" className="text-xs text-[var(--red)]">{err}</span>}
       <div className="mt-auto flex flex-col gap-3">
         <button type="submit" disabled={busy || year.length < 4} className={BTN_PRIMARY}>{busy ? "…" : t("onb.next")}</button>

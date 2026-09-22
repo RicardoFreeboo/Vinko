@@ -5,6 +5,9 @@ import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
+import { MoneyMount } from "@/components/money/MoneyMount";
+import { moneyForPorra } from "@/lib/money/server";
+import { loadMoneyDict } from "@/lib/money/i18n";
 import { ResolvePanel } from "@/components/ResolvePanel";
 import { ArbiterPanel } from "@/components/ArbiterPanel";
 import { DisputePanel, type DisputeState } from "@/components/DisputePanel";
@@ -121,6 +124,12 @@ export default async function PorraPage({ params }: Props) {
   const resolvesAt = extras?.resolves_at ?? null;
   const outcome = extras?.dispute_outcome ?? null;
 
+  // Modalidad de dinero (M0, §B4): solo si la porra tiene bolsa elegible y está
+  // abierta. moneyForPorra devuelve null salvo bolsa real; loadMoneyDict devuelve
+  // null en producción sin copy aprobado → la UI de dinero no se monta.
+  const money = isReal && open && !closed ? await moneyForPorra(porra.id, session) : null;
+  const moneyDict = money ? await loadMoneyDict("es") : null;
+
   return (
     // ESCRITORIO (lg+): dos columnas — el vídeo/portada a la izquierda como
     // tarjeta 9:16 pegajosa y el resto a la derecha. Móvil: intacto (una sola
@@ -234,6 +243,8 @@ export default async function PorraPage({ params }: Props) {
           isTemplate={porra.is_template}
           closesAt={porra.closes_at}
         />
+
+        {money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
 
         {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
         {rows && (

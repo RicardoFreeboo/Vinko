@@ -1,0 +1,35 @@
+{
+  "_meta": { "country": "ES", "legal_approved": false, "approved_by": null, "approved_at": null },
+
+  "money.cta": "Play with money",
+  "money.entry": "Entry",
+  "money.chooseOption": "Choose your option",
+  "money.pay": "Pay {amount}",
+  "money.pending": "Payment in progress. The provider will confirm it shortly.",
+  "money.confirmed": "Participation confirmed by the provider.",
+  "money.withdraw": "Withdraw before close",
+  "money.withdrawn": "You have withdrawn. The provider is processing the refund.",
+  "money.kyc": "Verify identity",
+  "money.closed": "This mode is now closed.",
+  "money.error": "Something went wrong. Please try again.",
+
+  "money.legal.age": "+18",
+  "money.legal.rg": "Play responsibly",
+  "money.legal.selfExclusion": "Self-exclusion",
+  "money.legal.operator": "Operated by {operator} · Licence {licence}",
+  "money.legal.help": "If gambling stops being fun, seek help.",
+
+  "money.reason.anonymous": "Sign in with your account to use this mode.",
+  "money.reason.kill_switch": "This mode is temporarily paused.",
+  "money.reason.country_disabled": "This mode isn't available in your country.",
+  "money.reason.country_undeclared": "Set your country in Settings to continue.",
+  "money.reason.geo_unknown": "We can't determine your country right now.",
+  "money.reason.geo_mismatch": "Your declared country doesn't match your location.",
+  "money.reason.underage": "You must be 18 or older.",
+  "money.reason.kyc_required": "Verify your identity to continue.",
+  "money.reason.kyc_pending": "Your identity verification is under review.",
+  "money.reason.self_excluded": "Your account is self-excluded.",
+  "money.reason.limit_reached": "You've reached your daily limit.",
+  "money.reason.cooling_off": "Your account is in a cooling-off period.",
+  "money.reason.provider_unavailable": "The provider isn't available right now."
+}

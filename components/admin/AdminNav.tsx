@@ -11,6 +11,7 @@ const ITEMS = [
   { href: "/admin/porras", key: "admin.nav.porras" },
   { href: "/admin/catalogo", key: "admin.nav.catalogo" },
   { href: "/admin/sponsors", key: "admin.nav.sponsors" },
+  { href: "/admin/money", key: "admin.nav.money" },
   { href: "/admin/health", key: "admin.nav.health" },
   { href: "/admin/live", key: "admin.nav.live" },
 ];

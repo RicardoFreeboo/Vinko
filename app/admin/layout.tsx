@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 // protegidos y el HTML del panel salía para cualquiera).
 const NAV_KEYS = [
   "admin.nav.hub", "admin.nav.metricas", "admin.nav.flujo", "admin.nav.moderacion",
-  "admin.nav.temas", "admin.nav.porras", "admin.nav.catalogo", "admin.nav.sponsors", "admin.nav.health", "admin.nav.live",
+  "admin.nav.temas", "admin.nav.porras", "admin.nav.catalogo", "admin.nav.sponsors", "admin.nav.money", "admin.nav.health", "admin.nav.live",
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

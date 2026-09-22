@@ -243,6 +243,20 @@ await check(`g) Rendimiento /p/${CANARY.slug}: TTFB < 1500 ms y HTML < 200 KB`, 
   return info;
 });
 
+// h) Cero dinero en público ------------------------------------------------
+await check("h) Cero dinero en público: ninguna página pública muestra la modalidad de dinero", async () => {
+  const MONEY_RX = /jugar con dinero|money-cta|MoneyCta|verificar identidad|bolsa de dinero/i;
+  const paths = ["/", "/feed", `/p/${CANARY.slug}`, "/hoy", "/nueva", "/login"];
+  const bad = [];
+  for (const path of paths) {
+    const r = pages[path]?.body ? pages[path] : (pages[path] = await get(path));
+    const m = r.body.match(MONEY_RX);
+    if (m) bad.push(`${path}: «${m[0]}»`);
+  }
+  if (bad.length) fail(bad.join(" · "));
+  return `${paths.length} páginas sin rastro de dinero`;
+});
+
 console.log(`\n${out.pass} PASS · ${out.fail} FAIL · ${out.skip} SKIP · ${BASE}`);
 if (out.fail) {
   console.log(`Fallan: ${out.failures.join(" | ")}`);

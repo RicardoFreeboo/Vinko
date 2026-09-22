@@ -1,0 +1,35 @@
+{
+  "_meta": { "country": "ES", "legal_approved": false, "approved_by": null, "approved_at": null },
+
+  "money.cta": "Jugar con dinero",
+  "money.entry": "Entrada",
+  "money.chooseOption": "Elige tu opción",
+  "money.pay": "Pagar {amount}",
+  "money.pending": "Pago en proceso. El proveedor lo confirmará en un momento.",
+  "money.confirmed": "Participación confirmada por el proveedor.",
+  "money.withdraw": "Retirarme antes del cierre",
+  "money.withdrawn": "Te has retirado. El proveedor tramita la devolución.",
+  "money.kyc": "Verificar identidad",
+  "money.closed": "Esta modalidad ya está cerrada.",
+  "money.error": "No se ha podido completar. Inténtalo de nuevo.",
+
+  "money.legal.age": "+18",
+  "money.legal.rg": "Juega con responsabilidad",
+  "money.legal.selfExclusion": "Autoexclusión",
+  "money.legal.operator": "Operado por {operator} · Licencia {licence}",
+  "money.legal.help": "Si el juego deja de ser un juego, pide ayuda.",
+
+  "money.reason.anonymous": "Entra con tu cuenta para usar esta modalidad.",
+  "money.reason.kill_switch": "Esta modalidad está en pausa temporalmente.",
+  "money.reason.country_disabled": "Esta modalidad no está disponible en tu país.",
+  "money.reason.country_undeclared": "Indica tu país en Ajustes para continuar.",
+  "money.reason.geo_unknown": "No podemos determinar tu país ahora mismo.",
+  "money.reason.geo_mismatch": "Tu país declarado no coincide con tu ubicación.",
+  "money.reason.underage": "Tienes que ser mayor de 18 años.",
+  "money.reason.kyc_required": "Verifica tu identidad para continuar.",
+  "money.reason.kyc_pending": "Tu verificación de identidad está en revisión.",
+  "money.reason.self_excluded": "Tu cuenta está en autoexclusión.",
+  "money.reason.limit_reached": "Has alcanzado tu límite diario.",
+  "money.reason.cooling_off": "Tu cuenta está en periodo de reflexión.",
+  "money.reason.provider_unavailable": "El proveedor no está disponible ahora mismo."
+}

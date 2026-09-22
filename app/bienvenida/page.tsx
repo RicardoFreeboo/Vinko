@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { OnboardingFlow, type OnboardingProfile } from "@/components/OnboardingFlow";
+import { ipCountry } from "@/lib/geo";
 import { t } from "@/lib/i18n";
 
 // /bienvenida — onboarding en 3 pantallas (spec F-08). El servidor decide en
@@ -13,6 +14,7 @@ export const metadata: Metadata = { title: t("age.title"), robots: { index: fals
 type Row = {
   handle: string; birth_year: number | null; lang: string | null; avatar_url: string | null;
   interests?: string[] | null; onboarded_at?: string | null; streak_shields?: number | null;
+  country?: string | null;
 };
 
 export default async function Bienvenida({
@@ -31,7 +33,7 @@ export default async function Bienvenida({
   // Con 0036 aplicada hay interests/onboarded_at; si no, se lee lo básico.
   let row: Row | null = null;
   const full = await sb.from("profiles")
-    .select("handle, birth_year, lang, avatar_url, interests, onboarded_at, streak_shields")
+    .select("handle, birth_year, lang, avatar_url, interests, onboarded_at, streak_shields, country")
     .eq("id", user.id).maybeSingle();
   if (full.error) {
     const basic = await sb.from("profiles")
@@ -52,10 +54,14 @@ export default async function Bienvenida({
     interests: row.interests ?? [],
     onboarded: !!row.onboarded_at,
     shields: row.streak_shields ?? null,
+    country: row.country ?? null,
   };
 
   const forced = paso === "1" || paso === "2" || paso === "3" ? (Number(paso) as 1 | 2 | 3) : undefined;
   if (!forced && profile.birthYear && profile.onboarded) redirect(safeNext);
 
-  return <OnboardingFlow next={safeNext} profile={profile} startStep={forced} />;
+  // Sugerencia de país por IP (Vercel); null en local. No bloquea nada.
+  const suggestedCountry = await ipCountry();
+
+  return <OnboardingFlow next={safeNext} profile={profile} startStep={forced} suggestedCountry={suggestedCountry} />;
 }

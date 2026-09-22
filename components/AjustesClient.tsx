@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { writeConsent } from "@/components/ConsentBanner";
+import { CountrySelect } from "@/components/OnboardingFlow";
 import { t } from "@/lib/i18n";
 
 // Ajustes de cuenta (RGPD, spec F-10): datos de la cuenta, idioma, consentimiento
@@ -14,14 +15,15 @@ type Lang = "es" | "en";
 type Msg = { kind: "ok" | "err"; text: string } | null;
 
 export function AjustesClient({
-  userId, handle, email, lang: initialLang, consent: initialConsent,
+  userId, handle, email, lang: initialLang, consent: initialConsent, country: initialCountry = null,
 }: {
-  userId: string; handle: string | null; email: string | null; lang: Lang; consent: boolean;
+  userId: string; handle: string | null; email: string | null; lang: Lang; consent: boolean; country?: string | null;
 }) {
   const router = useRouter();
   const [lang, setLang] = useState<Lang>(initialLang);
   const [consent, setConsent] = useState(initialConsent);
   const [langMsg, setLangMsg] = useState<Msg>(null);
+  const [countryMsg, setCountryMsg] = useState<Msg>(null);
   const [confirming, setConfirming] = useState(false);
   const [word, setWord] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -40,6 +42,18 @@ export function AjustesClient({
     const { error } = await sb.from("profiles").update({ lang: next }).eq("id", userId);
     if (error) { setLang(prev); setLangMsg({ kind: "err", text: t("ajustes.error") }); return; }
     setLangMsg({ kind: "ok", text: t("ajustes.saved") });
+    router.refresh();
+  }
+
+  // profiles.country: el cliente puede escribirla (grant de columna en 0045).
+  // Personaliza el contenido; no es un dato de dinero de cara al usuario.
+  async function changeCountry(next: string | null) {
+    setCountryMsg(null);
+    const sb = supabaseBrowser();
+    if (!sb) { setCountryMsg({ kind: "err", text: t("ajustes.noBackend") }); return; }
+    const { error } = await sb.from("profiles").update({ country: next }).eq("id", userId);
+    if (error) { setCountryMsg({ kind: "err", text: t("ajustes.error") }); return; }
+    setCountryMsg({ kind: "ok", text: t("ajustes.saved") });
     router.refresh();
   }
 
@@ -113,6 +127,12 @@ export function AjustesClient({
           ))}
         </div>
         {langMsg && <Note msg={langMsg} />}
+      </Section>
+
+      {/* país */}
+      <Section title={t("ajustes.country")} hint={t("ajustes.countryHint")}>
+        <CountrySelect t={t} lang={lang} prefix="ajustes" value={initialCountry} onChange={changeCountry} bare />
+        {countryMsg && <Note msg={countryMsg} />}
       </Section>
 
       {/* analítica */}

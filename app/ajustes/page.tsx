@@ -43,6 +43,7 @@ export default async function Ajustes() {
         email={session.email}
         lang={lang}
         consent={consent}
+        country={session.country}
       />
       <AppNav />
     </main>

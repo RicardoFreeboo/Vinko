@@ -1,0 +1,12 @@
+{
+  "moneyMock.cashier.title": "Cajero de pruebas",
+  "moneyMock.cashier.intro": "Entorno de pruebas. Aquí no se mueve nada: solo se simula la confirmación del proveedor.",
+  "moneyMock.cashier.pool": "Bolsa",
+  "moneyMock.cashier.option": "Opción",
+  "moneyMock.cashier.confirm": "Simular pago confirmado",
+  "moneyMock.cashier.fail": "Simular pago fallido",
+  "moneyMock.kyc.title": "Verificación de pruebas",
+  "moneyMock.kyc.intro": "Entorno de pruebas. Marca la verificación como completada para seguir el flujo.",
+  "moneyMock.kyc.confirm": "Marcar verificación completada",
+  "moneyMock.back": "Volver"
+}
