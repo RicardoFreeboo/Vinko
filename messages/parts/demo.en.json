@@ -52,5 +52,8 @@
   "demo.wallet.doneDeposit": "Simulated deposit of {amount}",
   "demo.wallet.doneWithdraw": "Simulated withdrawal of {amount}",
   "demo.wallet.note": "Feature in preparation.",
-  "demo.wallet.adminOnly": "Only you (admin) see this. The public does not."
+  "demo.wallet.adminOnly": "Only you (admin) see this. The public does not.",
+  "demo.wallet.all": "All",
+  "demo.wallet.withdrawInitiated": "Withdrawal started for {amount} · ref {ref}",
+  "demo.wallet.title": "Your balance"
 }

@@ -1544,5 +1544,8 @@
   "crear.back": "← Back",
   "crear.nextHint": "Fill in the question and at least 2 options.",
   "crear.stakeAmount": "Amount at stake",
-  "nueva.dictate": "Dictate"
+  "nueva.dictate": "Dictate",
+  "demo.wallet.all": "All",
+  "demo.wallet.withdrawInitiated": "Withdrawal started for {amount} · ref {ref}",
+  "demo.wallet.title": "Your balance"
 }

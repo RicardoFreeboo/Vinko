@@ -27,11 +27,14 @@ export function DemoWallet({ points }: { points: number }) {
     if (tab === "deposit") {
       setBalance((b) => b + amtCents);
       setToast(t("demo.wallet.doneDeposit", { amount: eur(amtCents) }));
+      setTimeout(() => setToast(null), 3000);
     } else {
+      // Como el modo $ de la APK: "Retirada iniciada" con referencia.
+      const ref = "VNK-" + Math.random().toString(36).slice(2, 7).toUpperCase();
       setBalance((b) => Math.max(0, b - amtCents));
-      setToast(t("demo.wallet.doneWithdraw", { amount: eur(amtCents) }));
+      setToast(t("demo.wallet.withdrawInitiated", { amount: eur(amtCents), ref }));
+      setTimeout(() => setToast(null), 5000);
     }
-    setTimeout(() => setToast(null), 2500);
   }
 
   const pill = (on: boolean) =>
@@ -69,9 +72,21 @@ export function DemoWallet({ points }: { points: number }) {
 
           <label className="flex flex-col gap-1">
             <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{t("demo.wallet.amount")}</span>
+            {/* Botones rápidos: retirar 25/50/todo del saldo; ingresar importes fijos (como la APK) */}
+            <div className="flex gap-1.5">
+              {tab === "withdraw"
+                ? ([["25%", 0.25], ["50%", 0.5], [t("demo.wallet.all"), 1]] as const).map(([label, f]) => (
+                    <button key={label} type="button" onClick={() => setAmount(Math.max(100, Math.round(balance * (f as number))))}
+                      className="flex-1 rounded-[10px] border border-[var(--line)] py-1.5 text-[12px] font-bold text-[var(--muted)]">{label}</button>
+                  ))
+                : ([500, 1000, 2500] as const).map((c) => (
+                    <button key={c} type="button" onClick={() => setAmount(c)}
+                      className="flex-1 rounded-[10px] border border-[var(--line)] py-1.5 text-[12px] font-bold text-[var(--muted)]">{eur(c)}</button>
+                  ))}
+            </div>
             <div className="flex items-center gap-2 rounded-[10px] border border-[var(--line)] px-3 py-2">
               <input
-                type="number" inputMode="decimal" min={1} max={500} value={amount / 100}
+                type="number" inputMode="decimal" min={1} max={5000} value={amount / 100}
                 onChange={(e) => setAmount(Math.round(Number(e.target.value) * 100))}
                 className="w-full bg-transparent text-[16px] font-black text-[var(--cream)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
               />
