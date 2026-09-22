@@ -54,12 +54,13 @@
   "crear.shareNative": "Te reto en esta porra 🔥 {title}",
   "crear.publishing": "Creando tu porra…",
   "crear.ideasLabel": "O apuéstate lo que sea:",
-  "crear.idea.cena": "🍽️ Una cena",
+  "crear.idea.cena": "Una cena",
   "crear.idea.cena.q": "¿Quién paga la cena?",
-  "crear.idea.cafe": "☕ El café",
+  "crear.idea.cafe": "El café",
   "crear.idea.cafe.q": "¿Quién invita al café?",
-  "crear.idea.finde": "🎉 El finde",
+  "crear.idea.finde": "El finde",
   "crear.idea.finde.q": "¿Quién la lía este finde?",
-  "crear.idea.premio": "🎁 Premio patrocinado",
-  "crear.idea.premio.q": "¿Quién gana el premio del patrocinador?"
+  "crear.idea.premio": "Premio",
+  "crear.idea.premio.q": "¿Quién gana el premio del patrocinador?",
+  "crear.criteriaDefault": "Lo decide el creador al cerrar la porra."
 }

@@ -1518,12 +1518,13 @@
   "demo.wallet.note": "Feature in preparation.",
   "demo.wallet.adminOnly": "Only you (admin) see this. The public does not.",
   "crear.ideasLabel": "Or play for anything:",
-  "crear.idea.cena": "🍽️ A dinner",
+  "crear.idea.cena": "Dinner",
   "crear.idea.cena.q": "Who pays for dinner?",
-  "crear.idea.cafe": "☕ Coffee",
+  "crear.idea.cafe": "Coffee",
   "crear.idea.cafe.q": "Who buys the coffee?",
-  "crear.idea.finde": "🎉 The weekend",
+  "crear.idea.finde": "Weekend",
   "crear.idea.finde.q": "Who makes a scene this weekend?",
-  "crear.idea.premio": "🎁 Sponsored prize",
-  "crear.idea.premio.q": "Who wins the sponsor's prize?"
+  "crear.idea.premio": "Prize",
+  "crear.idea.premio.q": "Who wins the sponsor's prize?",
+  "crear.criteriaDefault": "Decided by the creator when the pool closes."
 }

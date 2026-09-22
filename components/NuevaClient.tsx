@@ -149,7 +149,10 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
     if (preset === "custom" && !custom) { setErr({ field: "close", msg: tr("nueva.badDate") }); return; }
     const close = closeFromPreset(preset, custom);
     if (!close || !closeRangeOk(close)) { setErr({ field: "close", msg: tr("crear.errCloseRange") }); return; }
-    if (crit.length < 5) { setErr({ field: "criteria", msg: tr("crear.errCriteria") }); return; }
+    // El criterio ya no es un paso obligatorio de la UI: si no se rellena (o es
+    // muy corto), se usa uno por defecto para que la porra pueda resolverse e
+    // impugnarse. La plantilla ya lo precarga en la mayoría de casos.
+    const critFinal = crit.length >= 5 ? crit : tr("crear.criteriaDefault");
     if (arbiter === "friend" && !arb) { setErr({ field: "arb", msg: tr("nueva.badArb") }); return; }
     if (arbiter === "friend" && !HANDLE_RX.test(arb)) { setErr({ field: "arb", msg: tr("nueva.arbNotFound") }); return; }
     if (arbiter === "friend" && myHandle && arb === myHandle.toLowerCase()) { setErr({ field: "arb", msg: tr("nueva.arbSelf") }); return; }
@@ -176,7 +179,7 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
       video_status: media ? "pending" : "none",
     };
     let res = await sb.from("porras")
-      .insert({ ...base, resolution_criteria: crit.slice(0, 280), resolves_at: resolvesAt.toISOString(), template_key: tpl })
+      .insert({ ...base, resolution_criteria: critFinal.slice(0, 280), resolves_at: resolvesAt.toISOString(), template_key: tpl })
       .select("id, slug").single();
     if (res.error?.code === "PGRST204") { // 0041 aún sin aplicar: sin las columnas nuevas
       res = await sb.from("porras").insert(base).select("id, slug").single();
@@ -267,14 +270,15 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
           aria-invalid={err?.field === "title"}
           className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
         <ErrLine err={err} field="title" />
-        {/* Ejemplos: dejar claro que te puedes apostar lo que sea (una cena, el
-            café, un premio de patrocinador). Un toque rellena la pregunta. */}
+        {/* ¿Qué te apuestas? — iconos arriba (como el bloque de subir): un toque
+            rellena la pregunta. Deja claro que te puedes apostar lo que sea. */}
         <div className="mt-1 flex flex-col gap-1.5">
           <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{tr("crear.ideasLabel")}</span>
-          <div className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {(["cena", "cafe", "finde", "premio"] as const).map((k) => (
+          <div className="grid grid-cols-4 gap-2">
+            {([["cena", "🍽️"], ["cafe", "☕"], ["finde", "🎉"], ["premio", "🎁"]] as const).map(([k, icon]) => (
               <button key={k} type="button" onClick={() => { setTitle(tr(`crear.idea.${k}.q`)); setErr(null); }}
-                className="shrink-0 whitespace-nowrap rounded-full border border-[var(--line)] bg-[var(--ink2)] px-3 py-1.5 text-[12px] font-bold text-[var(--muted)]">
+                className="flex flex-col items-center justify-center gap-1 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-1 py-2.5 text-center text-[11px] font-bold leading-tight text-[var(--muted)]">
+                <span className="text-xl leading-none">{icon}</span>
                 {tr(`crear.idea.${k}`)}
               </button>
             ))}
@@ -332,23 +336,6 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
           )}
           <ErrLine err={err} field="close" />
         </Field>
-
-        <Field label={tr("crear.criteria")}>
-          <p className="mb-1.5 text-[13px] font-bold text-[var(--cream)]">{tr("crear.criteriaHelp")}</p>
-          <textarea value={criteria} onChange={(e) => { setCriteria(e.target.value); setErr(null); }}
-            placeholder={tr("crear.criteriaPh")} rows={2} maxLength={280} required
-            aria-invalid={err?.field === "criteria"}
-            className="w-full resize-none rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-sm leading-snug text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
-          <ErrLine err={err} field="criteria" />
-        </Field>
-
-        <Field label={tr("crear.resolvesAt")}>
-          <input type="datetime-local" value={resolves}
-            min={closeDate ? toLocalInput(closeDate) : undefined}
-            onChange={(e) => { setResolves(e.target.value); setResolvesTouched(true); }}
-            className="mono w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-          <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("crear.resolvesHint")}</p>
-        </Field>
       </Block>
 
       {/* MÁS AJUSTES (plegado): juez, quién la ve, vídeo/foto/voz */}
@@ -396,6 +383,25 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
             {/* MEDIA: grabar/subir vídeo, foto o voz */}
             <Field label={tr("nueva.media")}>
               <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)} />
+            </Field>
+
+            {/* CRITERIO + RESULTADO ESPERADO — movidos aquí para no estorbar el
+                flujo rápido de crear. Opcional: si se deja vacío, se usa uno por defecto. */}
+            <Field label={tr("crear.criteria")}>
+              <p className="mb-1.5 text-[13px] font-bold text-[var(--cream)]">{tr("crear.criteriaHelp")}</p>
+              <textarea value={criteria} onChange={(e) => { setCriteria(e.target.value); setErr(null); }}
+                placeholder={tr("crear.criteriaPh")} rows={2} maxLength={280}
+                aria-invalid={err?.field === "criteria"}
+                className="w-full resize-none rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-sm leading-snug text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
+              <ErrLine err={err} field="criteria" />
+            </Field>
+
+            <Field label={tr("crear.resolvesAt")}>
+              <input type="datetime-local" value={resolves}
+                min={closeDate ? toLocalInput(closeDate) : undefined}
+                onChange={(e) => { setResolves(e.target.value); setResolvesTouched(true); }}
+                className="mono w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+              <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("crear.resolvesHint")}</p>
             </Field>
           </div>
         )}
