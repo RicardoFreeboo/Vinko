@@ -37,5 +37,20 @@
   "demo.commission.note": "Comisión para el mantenimiento de la app. El dinero de usuarios vive en el proveedor licenciado; Vinko nunca lo custodia: solo cobra su parte.",
   "demo.next": "Siguiente",
   "demo.restart": "Reiniciar demo",
-  "demo.footer": "Vinko · Capa de dinero (roadmap). El producto real funciona con puntos virtuales."
+  "demo.footer": "Vinko · Capa de dinero (roadmap). El producto real funciona con puntos virtuales.",
+  "demo.wallet.badge": "SIMULACIÓN · demo del modelo con partner licenciado",
+  "demo.wallet.points": "Puntos",
+  "demo.wallet.money": "Dinero",
+  "demo.wallet.toggleHint": "Cambia entre puntos y dinero",
+  "demo.wallet.balance": "Saldo",
+  "demo.wallet.deposit": "Ingresar",
+  "demo.wallet.withdraw": "Retirar",
+  "demo.wallet.amount": "Cantidad",
+  "demo.wallet.method": "Método",
+  "demo.wallet.confirmDeposit": "Simular ingreso",
+  "demo.wallet.confirmWithdraw": "Simular retirada",
+  "demo.wallet.doneDeposit": "Ingreso simulado de {amount}",
+  "demo.wallet.doneWithdraw": "Retirada simulada de {amount}",
+  "demo.wallet.note": "Ejemplo. No hay dinero de verdad: el cobro y el pago los haría el proveedor licenciado, no Vinko.",
+  "demo.wallet.adminOnly": "Solo tú (admin) ves esto. El público no."
 }

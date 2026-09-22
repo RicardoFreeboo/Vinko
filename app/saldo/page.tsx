@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SaldoClient } from "@/components/SaldoClient";
+import { DemoWallet } from "@/components/DemoWallet";
 import { VinkosStreak } from "@/components/VinkosStreak";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { Logo } from "@/components/Logo";
@@ -100,7 +101,7 @@ export default async function Saldo() {
   const sb = await supabaseServer();
   const [{ data: p }, { data: cfgRows }] = await Promise.all([
     sb!.from("profiles")
-      .select("points, xp, marcador_total, streak_days, streak_best, streak_last, streak_shields, streak_broken_days, streak_recover_until, division, daily_bonus_last, daily_bonus_step")
+      .select("points, xp, marcador_total, streak_days, streak_best, streak_last, streak_shields, streak_broken_days, streak_recover_until, division, daily_bonus_last, daily_bonus_step, role")
       .eq("id", session.id)
       .maybeSingle(),
     sb!.from("remote_config").select("key, value").in("key", ["economy", "ads"]),
@@ -155,6 +156,11 @@ export default async function Saldo() {
         recoverable={recoverable}
         brokenDays={p?.streak_broken_days ?? 0}
       />
+
+      {/* Demo del modo dinero (SIMULACIÓN), SOLO admin: cartera con toggle
+          puntos/dinero e ingresar/retirar para enseñar en el pitch. El público
+          no lo ve; no mueve dinero real. Se retira cuando haya partner/licencia. */}
+      {p?.role === "admin" && <DemoWallet points={p?.points ?? 0} />}
 
       {/* TU ENLACE: la invitación validada (0030). Se pagan los dos en el primer pick. */}
       <section className="flex flex-col gap-2 rounded-[16px] border border-[var(--gold)]/40 bg-[var(--ink2)] p-4">
