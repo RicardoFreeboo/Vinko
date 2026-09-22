@@ -300,6 +300,7 @@
   "tienda.bought": "¡Conseguido! ✓",
   "pick.spend": "Elige y gasta 10 Vinkos",
   "pick.stake": "Pones",
+  "pick.stakeCustom": "Cantidad libre",
   "pick.meter": "El termómetro",
   "pick.yours": "tu pick",
   "pick.locked": "Tu pick no se cambia (salvo Cambiazo).",

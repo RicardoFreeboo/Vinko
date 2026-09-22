@@ -300,6 +300,7 @@
   "tienda.bought": "Got it! ✓",
   "pick.spend": "Pick one and spend 10 Vinkos",
   "pick.stake": "Stake",
+  "pick.stakeCustom": "Custom amount",
   "pick.meter": "The Meter",
   "pick.yours": "your pick",
   "pick.locked": "Your pick can't be changed (unless you Swap).",
