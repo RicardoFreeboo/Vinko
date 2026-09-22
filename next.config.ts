@@ -1,16 +1,20 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
-// Vercel: SSR completo. Alfa privada: noindex. /dossier sirve el investment
-// dossier (HTML estático en public/dossier), reescrito a URL limpia.
+// Vercel: SSR completo. Lanzamiento (21-sep): el sitio es público e indexable
+// (AdSense y Google lo exigen); la cabecera X-Robots-Tag de la alfa privada
+// anulaba el <meta robots> de app/layout.tsx, así que ahora solo cubre las
+// zonas con sesión/consola (mismas rutas que app/robots.ts). /dossier sirve el
+// investment dossier (HTML estático en public/dossier), reescrito a URL limpia.
 const nextConfig: NextConfig = {
   async headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-      },
-    ];
+    return ["/admin", "/api", "/ajustes", "/buzon", "/saldo", "/secret", "/auth", "/s", "/dossier"].map((p) => ({
+      source: `${p}/:path*`,
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    })).concat(["/admin", "/ajustes", "/buzon", "/saldo", "/secret", "/dossier"].map((p) => ({
+      source: p,
+      headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+    })));
   },
   async rewrites() {
     return [{ source: "/dossier", destination: "/dossier/index.html" }];
