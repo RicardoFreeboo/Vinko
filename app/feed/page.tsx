@@ -24,7 +24,7 @@ export default async function Feed() {
   const sb = await supabaseServer();
   const today = madridDay(), yesterday = madridDay(-1);
 
-  let streak = 0, unread = 0;
+  let streak = 0, unread = 0, isAdmin = false;
   let daily: { id: string; question: string; options: string[]; status: string; correct_idx: number | null } | null = null;
   let myAnswer: number | null = null;
   let prev: { question: string; options: string[]; correct_idx: number | null;
@@ -33,13 +33,14 @@ export default async function Feed() {
 
   if (session && sb) {
     const [{ data: p }, { data: d }, { data: pv }, { count: n }] = await Promise.all([
-      sb.from("profiles").select("streak_days").eq("id", session.id).maybeSingle(),
+      sb.from("profiles").select("streak_days, role").eq("id", session.id).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", today).eq("lang", "es").in("status", ["open", "resolved"]).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", yesterday).eq("lang", "es").eq("status", "resolved").maybeSingle(),
       sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", session.id).is("read_at", null),
     ]);
     streak = p?.streak_days ?? 0;
     unread = n ?? 0;
+    isAdmin = (p as { role?: string } | null)?.role === "admin";
     if (d) {
       daily = { id: d.id, question: d.question, options: d.options as string[], status: d.status, correct_idx: d.correct_idx };
       const { data: a } = await sb.from("daily_pick_answers").select("option_idx").eq("day_id", d.id).eq("user_id", session.id).maybeSingle();
@@ -88,7 +89,7 @@ export default async function Feed() {
         </div>
       </header>
 
-      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()}
+      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} isAdmin={isAdmin}
         intro={session ? (
           <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
         ) : (

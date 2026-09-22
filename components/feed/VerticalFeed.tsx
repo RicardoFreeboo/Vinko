@@ -21,12 +21,13 @@ type Slide =
   | { kind: "porra"; p: FeedPorra; k: number }
   | { kind: "ad"; seed: number };
 
-export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro }: {
+export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro, isAdmin = false }: {
   porras: FeedPorra[];
   initialPicks: Record<string, string>;
   loggedIn: boolean;
   now: number;        // reloj del servidor: "cierra en X h" igual en SSR y cliente
   intro: ReactNode;   // primer slide (DailyPick con sesión, login sin ella)
+  isAdmin?: boolean;  // demo del modo dinero en el pick (solo admin)
 }) {
   const slides = useMemo<Slide[]>(() => {
     const out: Slide[] = [{ kind: "intro" }];
@@ -154,7 +155,7 @@ export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro }: {
             <PorraSlide key={s.p.id} p={s.p} index={i} first={s.k === 0}
               isCurrent={i === current} near={Math.abs(i - current) <= 1}
               pick={picks[s.p.id]} stake={stake} onStake={setStake}
-              social={social[s.p.id]} loggedIn={loggedIn} now={now}
+              social={social[s.p.id]} loggedIn={loggedIn} now={now} isAdmin={isAdmin}
               onPick={onPick} onLike={onLike} onComments={abrirComentarios} />
           );
         })}
