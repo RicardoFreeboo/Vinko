@@ -108,6 +108,7 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
   const [stakeEur, setStakeEur] = useState(500);        // cantidad en € (céntimos, maqueta)
   const [prizeChoice, setPrizeChoice] = useState("");
   const [prizeCustom, setPrizeCustom] = useState("");
+  const [showDictar, setShowDictar] = useState(false);
   const [err, setErr] = useState<Err | null>(null);
   const [warn, setWarn] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -265,10 +266,27 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
               aria-invalid={err?.field === "title"}
               className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
             <ErrLine err={err} field="title" />
-            {/* Grabar vídeo / grabar voz / subir archivo desde el móvil (opcional),
-                junto a la pregunta. Sustituye al botón de dictado que había aquí. */}
+            {/* 4 opciones junto a la pregunta: grabar vídeo, grabar voz, subir
+                archivo y dictar (rellena pregunta y opciones hablando). */}
             <Field label={tr("nueva.media")}>
-              <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)} />
+              <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)}
+                extra={
+                  <button type="button" onClick={() => setShowDictar((s) => !s)} aria-pressed={showDictar}
+                    className="flex flex-col items-center gap-1 rounded-[10px] border px-2 py-3 text-center"
+                    style={{ borderColor: showDictar ? "var(--gold)" : "var(--line)" }}>
+                    <span className="text-xl leading-none">🎙️</span>
+                    <span className="text-[11px] font-bold text-[var(--cream)]">{tr("nueva.dictate")}</span>
+                  </button>
+                } />
+              {showDictar && (
+                <div className="mt-2">
+                  <VoiceToPorra onFilled={(q, o) => {
+                    setTitle(q);
+                    setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
+                    setErr(null); setShowDictar(false);
+                  }} />
+                </div>
+              )}
             </Field>
           </Block>
 

@@ -195,7 +195,7 @@
   "hoy.toFeed": "Ver el feed de porras",
   "nav.grupos": "Grupos",
   "nav.liga": "Liga",
-  "nav.saldo": "Vinkos",
+  "nav.saldo": "Saldo",
   "nav.buzon": "Novedades",
   "hoy.title": "Hoy",
   "hoy.login": "Entra para jugar el pique del día y guardar tu racha.",
@@ -1543,5 +1543,6 @@
   "crear.next": "Siguiente →",
   "crear.back": "← Atrás",
   "crear.nextHint": "Completa la pregunta y al menos 2 opciones.",
-  "crear.stakeAmount": "Cantidad que se juega"
+  "crear.stakeAmount": "Cantidad que se juega",
+  "nueva.dictate": "Dictar"
 }

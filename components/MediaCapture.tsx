@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { t } from "@/lib/i18n";
 
@@ -9,8 +9,9 @@ import { t } from "@/lib/i18n";
 type Kind = "video" | "image" | "audio";
 const MAX_MS = 15000;
 
-export function MediaCapture({ userId, onMedia }: {
+export function MediaCapture({ userId, onMedia, extra }: {
   userId: string; onMedia: (url: string | null, kind: Kind | null) => void;
+  extra?: ReactNode; // botón adicional en la rejilla (p. ej. «Dictar»)
 }) {
   const [rec, setRec] = useState<null | "video" | "audio">(null);
   const [left, setLeft] = useState(15);
@@ -142,7 +143,7 @@ export function MediaCapture({ userId, onMedia }: {
 
   return (
     <div className="rounded-[12px] border border-dashed border-[var(--line)] bg-[var(--ink2)] p-3">
-      <div className="grid grid-cols-3 gap-2">
+      <div className={extra ? "grid grid-cols-2 gap-2" : "grid grid-cols-3 gap-2"}>
         <Btn onClick={() => startRec("video")} icon="📹" label={t("media.recVideo")} />
         <Btn onClick={() => startRec("audio")} icon="🎤" label={t("media.recVoice")} />
         <label className="flex cursor-pointer flex-col items-center gap-1 rounded-[10px] border border-[var(--line)] px-2 py-3 text-center">
@@ -150,6 +151,7 @@ export function MediaCapture({ userId, onMedia }: {
           <span className="text-[11px] font-bold text-[var(--cream)]">{t("media.upload")}</span>
           <input type="file" accept="video/*,image/*,audio/*" onChange={onFile} className="hidden" />
         </label>
+        {extra}
       </div>
       {err && <p className="mt-2 text-xs text-[var(--red)]">{err}</p>}
       <p className="mt-2 text-[10px] text-[var(--muted2)]">{t("media.note")}</p>

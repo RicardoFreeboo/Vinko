@@ -195,7 +195,7 @@
   "hoy.toFeed": "See the pools feed",
   "nav.grupos": "Crews",
   "nav.liga": "League",
-  "nav.saldo": "Vinkos",
+  "nav.saldo": "Balance",
   "nav.buzon": "Updates",
   "hoy.title": "Today",
   "hoy.login": "Sign in to play the Daily Pick and keep your streak.",
@@ -1543,5 +1543,6 @@
   "crear.next": "Next →",
   "crear.back": "← Back",
   "crear.nextHint": "Fill in the question and at least 2 options.",
-  "crear.stakeAmount": "Amount at stake"
+  "crear.stakeAmount": "Amount at stake",
+  "nueva.dictate": "Dictate"
 }
