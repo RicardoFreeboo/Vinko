@@ -62,5 +62,21 @@
   "crear.idea.finde.q": "Who makes a scene this weekend?",
   "crear.idea.premio": "Prize",
   "crear.idea.premio.q": "Who wins the sponsor's prize?",
-  "crear.criteriaDefault": "Decided by the creator when the pool closes."
+  "crear.criteriaDefault": "Decided by the creator when the pool closes.",
+  "crear.stakeQ": "What are you playing for?",
+  "crear.stake.vinkos": "Vinkos",
+  "crear.stake.dinero": "Money",
+  "crear.stake.premio": "A prize",
+  "crear.stake.vinkosNote": "Played with Vinkos, Vinko's virtual points.",
+  "crear.stake.dineroNote": "Coming soon. Enabled through a licensed provider.",
+  "crear.prize.cena": "A dinner",
+  "crear.prize.cafe": "Coffee",
+  "crear.prize.finde": "A paid weekend",
+  "crear.prize.regalo": "A gift",
+  "crear.prize.otro": "Other…",
+  "crear.prize.customPh": "Write what's at stake",
+  "crear.prize.sponsorNote": "Soon sponsors will be able to put their prize here (e.g. a McDonald's menu).",
+  "crear.next": "Next →",
+  "crear.back": "← Back",
+  "crear.nextHint": "Fill in the question and at least 2 options."
 }

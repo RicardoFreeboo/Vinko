@@ -101,6 +101,11 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
   const [visibility, setVisibility] = useState<"public" | "private">("public");
   const [media, setMedia] = useState<{ url: string; kind: string } | null>(null);
   const [more, setMore] = useState(false);
+  // Asistente en 2 fases: 1) pregunta + opciones, 2) qué te juegas + cierre.
+  const [phase, setPhase] = useState<1 | 2>(1);
+  const [stakeKind, setStakeKind] = useState<"vinkos" | "dinero" | "premio">("vinkos");
+  const [prizeChoice, setPrizeChoice] = useState("");
+  const [prizeCustom, setPrizeCustom] = useState("");
   const [err, setErr] = useState<Err | null>(null);
   const [warn, setWarn] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -151,8 +156,12 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
     if (!close || !closeRangeOk(close)) { setErr({ field: "close", msg: tr("crear.errCloseRange") }); return; }
     // El criterio ya no es un paso obligatorio de la UI: si no se rellena (o es
     // muy corto), se usa uno por defecto para que la porra pueda resolverse e
-    // impugnarse. La plantilla ya lo precarga en la mayoría de casos.
-    const critFinal = crit.length >= 5 ? crit : tr("crear.criteriaDefault");
+    // impugnarse. Si se juega un premio, se guarda en el criterio para que quede visible.
+    const prizeLabel = stakeKind === "premio"
+      ? (prizeChoice === "otro" ? prizeCustom.trim() : (prizeChoice ? tr(`crear.prize.${prizeChoice}`) : ""))
+      : "";
+    const critBase = crit.length >= 5 ? crit : tr("crear.criteriaDefault");
+    const critFinal = (prizeLabel ? `Premio: ${prizeLabel}. ${critBase}` : critBase).slice(0, 280);
     if (arbiter === "friend" && !arb) { setErr({ field: "arb", msg: tr("nueva.badArb") }); return; }
     if (arbiter === "friend" && !HANDLE_RX.test(arb)) { setErr({ field: "arb", msg: tr("nueva.arbNotFound") }); return; }
     if (arbiter === "friend" && myHandle && arb === myHandle.toLowerCase()) { setErr({ field: "arb", msg: tr("nueva.arbSelf") }); return; }
@@ -196,7 +205,7 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
     }
     capture("porra_created", {
       is_seed: false, visibility, arbiter: arbiter === "friend" ? "friend" : "me",
-      template: tpl, close_preset: preset,
+      template: tpl, close_preset: preset, stake: stakeKind,
     });
     setBusy(false);
     setDone({ id: porra.id, slug: porra.slug });
@@ -242,101 +251,122 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
     media: media ? tr("crear.mediaYes") : tr("crear.mediaNone"),
   });
 
+  const phase1Ok = title.trim().length >= 3 && opts.map((o) => o.trim()).filter(Boolean).length >= 2;
+
   return (
     <>
-      {/* PLANTILLAS: un toque precarga pregunta, opciones, cierre y criterio */}
-      <Field label={tr("crear.tplLabel")}>
-        <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {PLANTILLAS.map((p) => {
-            const active = tpl === p.key;
-            return (
-              <button key={p.key} type="button" onClick={() => applyTemplate(p.key)} aria-pressed={active}
-                className="shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-[13px] font-bold"
-                style={{
-                  borderColor: active ? "var(--gold)" : "var(--line)",
-                  color: active ? "var(--gold)" : "var(--muted)",
-                  background: active ? "rgba(255,194,61,0.10)" : "var(--ink2)",
-                }}>
-                {p.emoji} {tr(`crear.tpl.${p.key}`)}
-              </button>
-            );
-          })}
-        </div>
-      </Field>
+      {phase === 1 ? (
+        <>
+          {/* PASO 1 — PREGUNTA (+ dictado por voz) */}
+          <Block n={1} title={tr("crear.step1")}>
+            <input value={title} onChange={(e) => { setTitle(e.target.value); setErr(null); }} placeholder={tr("nueva.qPh")}
+              aria-invalid={err?.field === "title"}
+              className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
+            <ErrLine err={err} field="title" />
+            <VoiceToPorra onFilled={(q, o) => {
+              setTitle(q);
+              setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
+              setErr(null);
+            }} />
+          </Block>
 
-      {/* BLOQUE 1 — PREGUNTA (+ dictado por voz) */}
-      <Block n={1} title={tr("crear.step1")}>
-        <input value={title} onChange={(e) => { setTitle(e.target.value); setErr(null); }} placeholder={tr("nueva.qPh")}
-          aria-invalid={err?.field === "title"}
-          className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
-        <ErrLine err={err} field="title" />
-        {/* ¿Qué te apuestas? — iconos arriba (como el bloque de subir): un toque
-            rellena la pregunta. Deja claro que te puedes apostar lo que sea. */}
-        <div className="mt-1 flex flex-col gap-1.5">
-          <span className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted)]">{tr("crear.ideasLabel")}</span>
-          <div className="grid grid-cols-4 gap-2">
-            {([["cena", "🍽️"], ["cafe", "☕"], ["finde", "🎉"], ["premio", "🎁"]] as const).map(([k, icon]) => (
-              <button key={k} type="button" onClick={() => { setTitle(tr(`crear.idea.${k}.q`)); setErr(null); }}
-                className="flex flex-col items-center justify-center gap-1 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-1 py-2.5 text-center text-[11px] font-bold leading-tight text-[var(--muted)]">
-                <span className="text-xl leading-none">{icon}</span>
-                {tr(`crear.idea.${k}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <VoiceToPorra onFilled={(q, o) => {
-          setTitle(q);
-          setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
-          setErr(null);
-        }} />
-      </Block>
-
-      {/* BLOQUE 2 — OPCIONES */}
-      <Block n={2} title={tr("crear.step2")}>
-        <div className="flex flex-col gap-2">
-          {opts.map((o, i) => (
-            <div key={i} className="flex gap-2">
-              <input value={o} onChange={(e) => setOpt(i, e.target.value)} placeholder={tr("nueva.optPh", { n: String(i + 1) })}
-                maxLength={40}
-                className="min-w-0 flex-1 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-              {opts.length > 2 && (
-                <button type="button" onClick={() => removeOpt(i)} aria-label={tr("crear.removeOpt", { n: String(i + 1) })}
-                  className="w-10 shrink-0 rounded-[12px] border border-[var(--line)] text-lg font-bold text-[var(--muted)]">
-                  ×
-                </button>
+          {/* PASO 2 — OPCIONES */}
+          <Block n={2} title={tr("crear.step2")}>
+            <div className="flex flex-col gap-2">
+              {opts.map((o, i) => (
+                <div key={i} className="flex gap-2">
+                  <input value={o} onChange={(e) => setOpt(i, e.target.value)} placeholder={tr("nueva.optPh", { n: String(i + 1) })}
+                    maxLength={40}
+                    className="min-w-0 flex-1 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+                  {opts.length > 2 && (
+                    <button type="button" onClick={() => removeOpt(i)} aria-label={tr("crear.removeOpt", { n: String(i + 1) })}
+                      className="w-10 shrink-0 rounded-[12px] border border-[var(--line)] text-lg font-bold text-[var(--muted)]">
+                      ×
+                    </button>
+                  )}
+                </div>
+              ))}
+              {opts.length < 6 && (
+                <button type="button" onClick={() => setOpts((o) => [...o, ""])} className="self-start text-sm font-bold text-[var(--gold)]">{tr("nueva.addOpt")}</button>
               )}
             </div>
-          ))}
-          {opts.length < 6 && (
-            <button type="button" onClick={() => setOpts((o) => [...o, ""])} className="self-start text-sm font-bold text-[var(--gold)]">{tr("nueva.addOpt")}</button>
-          )}
-        </div>
-        <ErrLine err={err} field="opts" />
-      </Block>
+            <ErrLine err={err} field="opts" />
+          </Block>
 
-      {/* BLOQUE 3 — CIERRE + CRITERIO + RESULTADO ESPERADO */}
-      <Block n={3} title={tr("crear.step3")}>
-        <Field label={tr("nueva.closes")}>
-          <div className="flex flex-wrap gap-2">
-            {CLOSE_PRESETS.map((p) => (
-              <Pill key={p} active={preset === p} onClick={() => { setPreset(p); setErr(null); }}>{tr(`crear.close.${p}`)}</Pill>
-            ))}
-          </div>
-          {preset === "custom" && (
-            <>
-              <input type="datetime-local" value={custom}
-                min={toLocalInput(new Date(now.getTime() + MIN_CLOSE_MS))} max={toLocalInput(maxClose(now))}
-                onChange={(e) => { setCustom(e.target.value); setErr(null); }}
-                className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-              <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("crear.customHint")}</p>
-            </>
-          )}
-          {closeDate && (
-            <p className="mono mt-2 text-[12px] text-[var(--win)]">⏱ {tr("crear.closesAt", { date: fmtLocal(closeDate) })}</p>
-          )}
-          <ErrLine err={err} field="close" />
-        </Field>
-      </Block>
+          <button type="button" onClick={() => setPhase(2)} disabled={!phase1Ok}
+            className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)] disabled:opacity-40">
+            {tr("crear.next")}
+          </button>
+          {!phase1Ok && <p className="text-center text-[11px] text-[var(--muted)]">{tr("crear.nextHint")}</p>}
+        </>
+      ) : (
+        <>
+          {/* PASO 3 — ¿QUÉ TE JUEGAS? (Vinkos / Dinero / Premio) */}
+          <Block n={3} title={tr("crear.stakeQ")}>
+            <div className="grid grid-cols-3 gap-2">
+              {([["vinkos", "🪙"], ["dinero", "💶"], ["premio", "🎁"]] as const).map(([k, icon]) => {
+                const on = stakeKind === k;
+                return (
+                  <button key={k} type="button" onClick={() => setStakeKind(k)}
+                    className="flex flex-col items-center justify-center gap-1 rounded-[12px] border-2 px-1 py-3 text-center text-[12px] font-black leading-tight"
+                    style={{
+                      borderColor: on ? "var(--gold)" : "var(--line)",
+                      color: on ? "var(--gold)" : "var(--muted)",
+                      background: on ? "rgba(255,194,61,0.10)" : "var(--ink2)",
+                    }}>
+                    <span className="text-xl leading-none">{icon}</span>
+                    {tr(`crear.stake.${k}`)}
+                  </button>
+                );
+              })}
+            </div>
+            {stakeKind === "vinkos" && <p className="text-[12px] text-[var(--muted)]">{tr("crear.stake.vinkosNote")}</p>}
+            {stakeKind === "dinero" && (
+              <p className="rounded-[10px] border border-[var(--gold)]/40 bg-[var(--gold)]/8 px-3 py-2 text-[12px] text-[var(--gold)]">{tr("crear.stake.dineroNote")}</p>
+            )}
+            {stakeKind === "premio" && (
+              <div className="flex flex-col gap-2">
+                <select value={prizeChoice} onChange={(e) => setPrizeChoice(e.target.value)}
+                  className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]">
+                  <option value="">{tr("crear.prize.otro")}</option>
+                  {(["cena", "cafe", "finde", "regalo"] as const).map((k) => (
+                    <option key={k} value={k}>{tr(`crear.prize.${k}`)}</option>
+                  ))}
+                  <option value="otro">{tr("crear.prize.otro")}</option>
+                </select>
+                {(prizeChoice === "otro" || prizeChoice === "") && (
+                  <input value={prizeCustom} onChange={(e) => setPrizeCustom(e.target.value)} placeholder={tr("crear.prize.customPh")}
+                    maxLength={60}
+                    className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+                )}
+                <p className="text-[11px] italic text-[var(--muted)]">{tr("crear.prize.sponsorNote")}</p>
+              </div>
+            )}
+          </Block>
+
+          {/* PASO 4 — CIERRE Y RESOLUCIÓN */}
+          <Block n={4} title={tr("crear.step3")}>
+            <Field label={tr("nueva.closes")}>
+              <div className="flex flex-wrap gap-2">
+                {CLOSE_PRESETS.map((p) => (
+                  <Pill key={p} active={preset === p} onClick={() => { setPreset(p); setErr(null); }}>{tr(`crear.close.${p}`)}</Pill>
+                ))}
+              </div>
+              {preset === "custom" && (
+                <>
+                  <input type="datetime-local" value={custom}
+                    min={toLocalInput(new Date(now.getTime() + MIN_CLOSE_MS))} max={toLocalInput(maxClose(now))}
+                    onChange={(e) => { setCustom(e.target.value); setErr(null); }}
+                    className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+                  <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("crear.customHint")}</p>
+                </>
+              )}
+              {closeDate && (
+                <p className="mono mt-2 text-[12px] text-[var(--win)]">⏱ {tr("crear.closesAt", { date: fmtLocal(closeDate) })}</p>
+              )}
+              <ErrLine err={err} field="close" />
+            </Field>
+          </Block>
 
       {/* MÁS AJUSTES (plegado): juez, quién la ve, vídeo/foto/voz */}
       <div className="rounded-[14px] border border-[var(--line)] bg-[var(--ink2)]/60">
@@ -407,12 +437,20 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
         )}
       </div>
 
-      {err && err.field !== "arb" && <p className="text-center text-xs text-[var(--red)]">{err.msg}</p>}
-      {err && err.field === "arb" && !more && <p className="text-center text-xs text-[var(--red)]">{err.msg}</p>}
-      <button onClick={create} disabled={busy}
-        className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)] disabled:opacity-50">
-        {busy ? tr("crear.publishing") : tr("nueva.create")}
-      </button>
+          {err && err.field !== "arb" && <p className="text-center text-xs text-[var(--red)]">{err.msg}</p>}
+          {err && err.field === "arb" && !more && <p className="text-center text-xs text-[var(--red)]">{err.msg}</p>}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setPhase(1)}
+              className="shrink-0 rounded-[14px] border border-[var(--line)] px-4 py-4 text-[14px] font-bold text-[var(--muted)]">
+              {tr("crear.back")}
+            </button>
+            <button onClick={create} disabled={busy}
+              className="flex-1 rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)] disabled:opacity-50">
+              {busy ? tr("crear.publishing") : tr("nueva.create")}
+            </button>
+          </div>
+        </>
+      )}
     </>
   );
 }
