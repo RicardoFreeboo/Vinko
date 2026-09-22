@@ -39,8 +39,8 @@ export function DemoWallet({ points }: { points: number }) {
 
   return (
     <section className="flex flex-col gap-3 rounded-[16px] border border-[var(--gold)]/50 bg-[var(--ink2)] p-4">
-      <div className="flex items-center justify-between">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--gold)]">{t("demo.wallet.badge")}</p>
+      <div className="flex items-center justify-end">
+        <span className="rounded-full border border-[var(--line)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--muted)]">{t("demo.wallet.badge")}</span>
       </div>
 
       {/* Toggle puntos / dinero */}
@@ -98,11 +98,9 @@ export function DemoWallet({ points }: { points: number }) {
 
           {toast && <p className="rounded-[10px] bg-[var(--win)]/15 px-3 py-2 text-center text-[13px] font-bold text-[var(--win)]">✓ {toast}</p>}
 
-          <p className="text-[11px] italic leading-snug text-[var(--muted)]">{t("demo.wallet.note")}</p>
+          <p className="text-[11px] leading-snug text-[var(--muted)]">{t("demo.wallet.note")}</p>
         </>
       )}
-
-      <p className="text-center text-[10px] text-[var(--muted2)]">{t("demo.wallet.adminOnly")}</p>
     </section>
   );
 }

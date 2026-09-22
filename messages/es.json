@@ -1498,7 +1498,7 @@
   "demo.restart": "Reiniciar demo",
   "demo.footer": "Vinko · Capa de dinero (roadmap). El producto real funciona con puntos virtuales.",
   "admin.nav.negocio": "Negocio",
-  "demo.wallet.badge": "SIMULACIÓN · demo del modelo con partner licenciado",
+  "demo.wallet.badge": "Vista previa",
   "demo.wallet.points": "Puntos",
   "demo.wallet.money": "Dinero",
   "demo.wallet.toggleHint": "Cambia entre puntos y dinero",
@@ -1511,6 +1511,6 @@
   "demo.wallet.confirmWithdraw": "Simular retirada",
   "demo.wallet.doneDeposit": "Ingreso simulado de {amount}",
   "demo.wallet.doneWithdraw": "Retirada simulada de {amount}",
-  "demo.wallet.note": "Ejemplo. No hay dinero de verdad: el cobro y el pago los haría el proveedor licenciado, no Vinko.",
+  "demo.wallet.note": "Función en preparación.",
   "demo.wallet.adminOnly": "Solo tú (admin) ves esto. El público no."
 }
