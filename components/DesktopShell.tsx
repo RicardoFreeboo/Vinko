@@ -22,7 +22,7 @@ import { t } from "@/lib/i18n";
 //
 // Sin shell: portada, /p (la landing de WhatsApp va limpia), auth, legales,
 // /secret, /admin y /s.
-const SIN_SHELL = ["/p/", "/login", "/auth", "/bienvenida", "/privacidad", "/terminos", "/secret", "/admin", "/s/"];
+const SIN_SHELL = ["/p/", "/login", "/auth", "/bienvenida", "/privacidad", "/terminos", "/secret", "/admin", "/s/", "/demo"];
 
 // Mismos ítems, orden e iconos que components/AppNav.tsx + Novedades · Buscar · Ajustes.
 const NAV: ReadonlyArray<{ href: string; key: string; icon: ReactNode; primary?: boolean }> = [

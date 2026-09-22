@@ -5,7 +5,7 @@ import { SITE } from "@/lib/share";
 // (AdSense y Google lo necesitan). Fuera: consola, API y zonas con sesión.
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: "*", allow: "/", disallow: ["/admin", "/api/", "/ajustes", "/buzon", "/saldo", "/secret", "/auth/", "/s/"] }],
+    rules: [{ userAgent: "*", allow: "/", disallow: ["/admin", "/api/", "/ajustes", "/buzon", "/saldo", "/secret", "/auth/", "/s/", "/demo"] }],
     sitemap: `${SITE}/sitemap.xml`,
   };
 }

@@ -8,10 +8,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 // investment dossier (HTML estático en public/dossier), reescrito a URL limpia.
 const nextConfig: NextConfig = {
   async headers() {
-    return ["/admin", "/api", "/ajustes", "/buzon", "/saldo", "/secret", "/auth", "/s", "/dossier"].map((p) => ({
+    return ["/admin", "/api", "/ajustes", "/buzon", "/saldo", "/secret", "/auth", "/s", "/dossier", "/demo"].map((p) => ({
       source: `${p}/:path*`,
       headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-    })).concat(["/admin", "/ajustes", "/buzon", "/saldo", "/secret", "/dossier"].map((p) => ({
+    })).concat(["/admin", "/ajustes", "/buzon", "/saldo", "/secret", "/dossier", "/demo"].map((p) => ({
       source: p,
       headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
     })));
