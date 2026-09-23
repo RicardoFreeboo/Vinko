@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getFeed } from "@/lib/feed";
 import { VerticalFeed } from "@/components/feed/VerticalFeed";
+import { Historias } from "@/components/feed/Historias";
 import { DailyPick } from "@/components/DailyPick";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
@@ -97,17 +98,24 @@ export default async function Feed() {
 
       <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} isAdmin={isAdmin}
         isAdult={!!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18}
-        intro={session ? (
-          <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
-        ) : (
-          <div className="rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-5 text-center">
-            <p className="text-[20px] font-black leading-tight text-[var(--cream)] [text-wrap:balance]">{t("feed.introTitle")}</p>
-            <p className="mt-2 text-sm text-[var(--muted)]">{t("home.loginCard")}</p>
-            <Link href="/login?next=/feed" className="mt-4 inline-block rounded-full bg-[var(--win)] px-5 py-2.5 text-[14px] font-black text-[var(--ink)]">
-              {t("home.loginCta")}
-            </Link>
-          </div>
-        )} />
+        intro={
+          <>
+            {session ? (
+              <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
+            ) : (
+              <div className="rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-5 text-center">
+                <p className="text-[20px] font-black leading-tight text-[var(--cream)] [text-wrap:balance]">{t("feed.introTitle")}</p>
+                <p className="mt-2 text-sm text-[var(--muted)]">{t("home.loginCard")}</p>
+                <Link href="/login?next=/feed" className="mt-4 inline-block rounded-full bg-[var(--win)] px-5 py-2.5 text-[14px] font-black text-[var(--ink)]">
+                  {t("home.loginCta")}
+                </Link>
+              </div>
+            )}
+            {/* HISTORIAS (carril horizontal + visor a pantalla completa): recuperadas
+                el 24-sep. Solo porras con vídeo; abre el StoriesViewer con swipe. */}
+            <Historias porras={feed} initialPicks={feedPicks} loggedIn={!!session} />
+          </>
+        } />
       <AppNav />
     </main>
   );
