@@ -7,7 +7,6 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
 import { MoneyMount } from "@/components/money/MoneyMount";
-import { MoneyTeaser } from "@/components/money/MoneyTeaser";
 import { moneyForPorra } from "@/lib/money/server";
 import { loadMoneyDict } from "@/lib/money/i18n";
 import { ResolvePanel } from "@/components/ResolvePanel";
@@ -114,6 +113,9 @@ export default async function PorraPage({ params }: Props) {
   const isJudge = isCreator || (!!uid && porra.arbiter_id === uid && porra.arbiter_status === "accepted");
   const isInvited = !!uid && porra.arbiter_id === uid && porra.arbiter_status === "invited";
   const open = porra.status === "open";
+  // +18 declarado (año de nacimiento): habilita el toggle del modo dinero
+  // ("muy pronto"). Menores e invitados/visitantes sin sesión NO (regla de oro 8).
+  const isAdult = !!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18;
   const canResolve = isReal && open && (isAdmin || (isJudge && closed));
   const canVoid = isReal && open && (isAdmin || isCreator);
   const resolved = porra.status === "resolved";
@@ -237,6 +239,9 @@ export default async function PorraPage({ params }: Props) {
             canResolve={canResolve} canVoid={canVoid} early={!closed} criteria={criteria} />
         )}
 
+        {/* PickPanel: pick real de puntos + toggle "muy pronto" del modo dinero
+            (mismas opciones, sin tarjeta aparte). El toggle solo para +18
+            registrado y mientras el dinero real no esté aprobado (moneyLive). */}
         <PickPanel
           porraId={porra.id}
           slug={porra.slug}
@@ -244,17 +249,11 @@ export default async function PorraPage({ params }: Props) {
           status={porra.status}
           isTemplate={porra.is_template}
           closesAt={porra.closes_at}
+          isAdult={isAdult}
+          moneyLive={!!moneyDict}
         />
 
         {money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
-
-        {/* Teaser del modo dinero ("muy pronto"): visible para toda sesión real
-            +18 (registrada), mientras el dinero real no esté aprobado (moneyDict
-            null). Menores y visitantes sin sesión NO lo ven (regla de oro 8). */}
-        {isReal && open && !closed && !porra.is_template && !moneyDict &&
-          !!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18 && (
-            <MoneyTeaser options={options} />
-          )}
 
         {/* Afiliación (regla de oro 5): solo sesión real +18 y país con afiliación
             habilitada. Apagado hoy → no pinta nada. Nunca a invitados/menores. */}
