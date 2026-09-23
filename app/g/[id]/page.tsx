@@ -64,6 +64,14 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
     payHandle = (prof as { pay_handle?: string | null } | null)?.pay_handle ?? null;
   }
 
+  // Gate del P2P con dinero (0054): apagado por defecto; solo se muestra si el
+  // admin lo enciende en remote_config.p2p.enabled.
+  let moneyEnabled = false;
+  {
+    const { data: cfg } = await sb!.from("remote_config").select("value").eq("key", "p2p").maybeSingle();
+    moneyEnabled = (cfg as { value?: { enabled?: boolean } } | null)?.value?.enabled === true;
+  }
+
   return (
     <GroupView
       group={group}
@@ -72,6 +80,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       cutoffIso={weekCutoff().toISOString()}
       me={{ id: session!.id, handle: session!.handle ?? "", payHandle,
         isAdult: !!session!.birth_year && new Date().getFullYear() - session!.birth_year >= 18 }}
+      moneyEnabled={moneyEnabled}
       origin={origin}
     />
   );
