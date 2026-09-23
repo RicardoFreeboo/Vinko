@@ -35,6 +35,10 @@ const EXEMPT = new Map([
   ["money_pools", new Set(["stake_minor", "currency"])],
   ["p2p_pools", new Set(["stake_minor", "currency"])],
   ["p2p_settlements", new Set(["amount_minor", "currency"])],
+  // Fase 2 (0050): cuenta en el proveedor (config) y espejo de ledger (apuntes
+  // que confirma el proveedor), nunca saldos del núcleo.
+  ["money_accounts", new Set(["currency"])],
+  ["money_ledger_refs", new Set(["amount_minor", "currency"])],
 ]);
 const CONSTRAINT_KW = /^(primary|unique|check|foreign|constraint|references|exclude|like|partition)\b/i;
 

@@ -19,6 +19,14 @@ const TYPES = new Set([
   "participation.confirmed", "participation.failed", "participation.refunded", "participation.paid",
   "pool.closed", "pool.settled", "pool.voided", "kyc.updated", "account.suspended",
 ]);
+// Wallet/escrow (0050): se aplican con money_ledger_apply (espejo de ledger),
+// no con money_apply_event. La firma HMAC y la idempotencia son las mismas.
+const WALLET_TYPES = new Set([
+  "account.created",
+  "wallet.deposit.pending", "wallet.deposit.completed", "wallet.deposit.failed",
+  "wallet.withdraw.pending", "wallet.withdraw.sent", "wallet.withdraw.completed", "wallet.withdraw.failed",
+  "escrow.held", "escrow.released", "escrow.refunded", "escrow.payout",
+]);
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method" }, 405);
@@ -41,25 +49,26 @@ Deno.serve(async (req) => {
   try { evt = JSON.parse(rawBody); } catch { return json({ error: "bad_json" }, 400); }
   const eventId = evt.event_id, type = evt.type;
   if (typeof eventId !== "string" || !eventId) return json({ error: "no_event_id" }, 400);
-  if (typeof type !== "string" || !TYPES.has(type)) return json({ error: "bad_type" }, 400);
+  const isWallet = typeof type === "string" && WALLET_TYPES.has(type);
+  if (typeof type !== "string" || !(TYPES.has(type) || isWallet)) return json({ error: "bad_type" }, 400);
   const payload = (evt.payload && typeof evt.payload === "object") ? evt.payload : {};
 
   const url = Deno.env.get("SUPABASE_URL")!;
   const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const admin = createClient(url, service);
 
-  const { data, error } = await admin.rpc("money_apply_event", {
-    p_event_id: eventId, p_provider: provider, p_type: type, p_payload: payload,
-  });
+  const { data, error } = isWallet
+    ? await admin.rpc("money_ledger_apply", { p_event_id: eventId, p_provider: provider, p_type: type, p_payload: payload })
+    : await admin.rpc("money_apply_event", { p_event_id: eventId, p_provider: provider, p_type: type, p_payload: payload });
 
   if (error) {
     const msg = error.message ?? "";
-    if (msg.includes("VINKO_MONEY_")) {
+    if (msg.includes("VINKO_MONEY_") || msg.includes("VINKO_WALLET_")) {
       // Firma válida pero datos no procesables: se guarda para revisión/reintento.
       await admin.rpc("money_event_fail", {
         p_event_id: eventId, p_provider: provider, p_type: type, p_payload: payload, p_error: msg,
       });
-      const code = (msg.match(/VINKO_MONEY_[A-Z_]+/) ?? ["VINKO_MONEY_UNKNOWN"])[0];
+      const code = (msg.match(/VINKO_(MONEY|WALLET)_[A-Z_]+/) ?? ["VINKO_MONEY_UNKNOWN"])[0];
       return json({ error: "unprocessable", code }, 422);
     }
     // Error transitorio: el proveedor reintenta.
