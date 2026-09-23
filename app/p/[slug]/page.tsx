@@ -7,6 +7,7 @@ import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
 import { MoneyMount } from "@/components/money/MoneyMount";
+import { MoneyTeaser } from "@/components/money/MoneyTeaser";
 import { moneyForPorra } from "@/lib/money/server";
 import { loadMoneyDict } from "@/lib/money/i18n";
 import { ResolvePanel } from "@/components/ResolvePanel";
@@ -246,6 +247,14 @@ export default async function PorraPage({ params }: Props) {
         />
 
         {money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
+
+        {/* Teaser del modo dinero ("muy pronto"): visible para toda sesión real
+            +18 (registrada), mientras el dinero real no esté aprobado (moneyDict
+            null). Menores y visitantes sin sesión NO lo ven (regla de oro 8). */}
+        {isReal && open && !closed && !porra.is_template && !moneyDict &&
+          !!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18 && (
+            <MoneyTeaser options={options} />
+          )}
 
         {/* Afiliación (regla de oro 5): solo sesión real +18 y país con afiliación
             habilitada. Apagado hoy → no pinta nada. Nunca a invitados/menores. */}

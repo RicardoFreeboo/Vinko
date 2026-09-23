@@ -1815,5 +1815,9 @@
   "adminMoney.p2pTurnOn": "Encender dinero P2P",
   "adminMoney.p2pTurnOff": "Apagar dinero P2P",
   "adminMoney.p2pHint": "Enciende crear y entrar en porras con dinero dentro de los grupos (solo +18, el dinero va directo entre la gente y Vinko no lo toca). Las porras ya en curso pueden resolverse y pagarse aunque esté apagado.",
-  "adminMoney.p2pSaved": "Dinero P2P actualizado."
+  "adminMoney.p2pSaved": "Dinero P2P actualizado.",
+  "teaser.money.title": "Jugar con euros",
+  "teaser.money.soon": "Muy pronto",
+  "teaser.money.body": "Pronto podrás entrar en porras como esta con euros de verdad, a través de un operador con licencia.",
+  "teaser.money.note": "+18 · Juega con responsabilidad. Vinko no custodia el dinero: lo hace el operador."
 }
