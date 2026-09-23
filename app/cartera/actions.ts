@@ -24,9 +24,11 @@ async function meAndCountry() {
   if (!session || session.is_anonymous) return null;
   const sb = await supabaseServer();
   if (!sb) return null;
-  const { data } = await sb.from("profiles").select("country, birth_year").eq("id", session.id).maybeSingle();
-  const p = data as { country?: string | null; birth_year?: number | null } | null;
+  const { data } = await sb.from("profiles").select("country, birth_year, safer_play").eq("id", session.id).maybeSingle();
+  const p = data as { country?: string | null; birth_year?: number | null; safer_play?: { self_excluded_until?: string | null } | null } | null;
   if (!p?.birth_year || new Date().getFullYear() - p.birth_year < 18) return null; // +18 (regla de oro 8)
+  const until = p.safer_play?.self_excluded_until ?? null; // autoexclusión (§5.11) bloquea el dinero
+  if (until && new Date(until) > new Date()) return null;
   return { sb, userId: session.id, country: p.country ?? "" };
 }
 

@@ -1,10 +1,17 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { EurAmount } from "@/components/money/EurAmount";
 import { t } from "@/lib/i18n";
 import { depositAction, withdrawAction, type WalletActionResult } from "@/app/cartera/actions";
 import type { WalletView } from "@/lib/money/wallet";
+
+const dateEs = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric" }).format(d);
+};
 
 // Cartera de EUROS (diseño frontend §5.10). Saldo y movimientos vienen del motor
 // (wallet_get); la custodia es del proveedor licenciado. Sin UI optimista: el
@@ -13,7 +20,7 @@ const card = "rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-4";
 const chip = "rounded-full border px-3 py-1.5 text-[13px] font-bold";
 const newKey = () => { try { return crypto.randomUUID(); } catch { return `k-${Date.now()}-${Math.floor(Math.random() * 1e9)}`; } };
 
-export function EuroWallet({ wallet, eurosEnabled }: { wallet: WalletView | null; eurosEnabled: boolean }) {
+export function EuroWallet({ wallet, eurosEnabled, selfExcludedUntil = null }: { wallet: WalletView | null; eurosEnabled: boolean; selfExcludedUntil?: string | null }) {
   const router = useRouter();
   const available = wallet?.availableMinor ?? 0;
   const locked = wallet?.lockedMinor ?? 0;
@@ -52,7 +59,9 @@ export function EuroWallet({ wallet, eurosEnabled }: { wallet: WalletView | null
         </div>
       </div>
 
-      {eurosEnabled ? (
+      {selfExcludedUntil ? (
+        <p className="mt-2 text-[12px] leading-snug text-[var(--gold)]">{t("safer.excludedNote", { date: dateEs(selfExcludedUntil) })}</p>
+      ) : eurosEnabled ? (
         <div className="mt-3 flex gap-2">
           <button onClick={() => { setSheet("deposit"); setErr(null); }}
             className="flex-1 rounded-[12px] bg-[var(--win)] px-4 py-2.5 text-[14px] font-black text-[var(--ink)]">{t("cartera.deposit")}</button>
@@ -83,7 +92,10 @@ export function EuroWallet({ wallet, eurosEnabled }: { wallet: WalletView | null
         </div>
       )}
 
-      <p className="mt-3 text-[10px] leading-snug text-[var(--muted2)]">{t("cartera.rg")}</p>
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <p className="text-[10px] leading-snug text-[var(--muted2)]">{t("cartera.rg")}</p>
+        <Link href="/juego-seguro" className="shrink-0 text-[11px] font-bold text-[var(--gold)] underline">{t("safer.link")}</Link>
+      </div>
 
       {sheet && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setSheet(null)}>

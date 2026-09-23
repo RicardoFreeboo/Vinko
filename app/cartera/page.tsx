@@ -105,7 +105,7 @@ export default async function Saldo() {
   const sb = await supabaseServer();
   const [{ data: p }, { data: cfgRows }] = await Promise.all([
     sb!.from("profiles")
-      .select("points, xp, marcador_total, streak_days, streak_best, streak_last, streak_shields, streak_broken_days, streak_recover_until, division, daily_bonus_last, daily_bonus_step, role, club_active, country")
+      .select("points, xp, marcador_total, streak_days, streak_best, streak_last, streak_shields, streak_broken_days, streak_recover_until, division, daily_bonus_last, daily_bonus_step, role, club_active, country, safer_play")
       .eq("id", session.id)
       .maybeSingle(),
     sb!.from("remote_config").select("key, value").in("key", ["economy", "ads"]),
@@ -122,7 +122,11 @@ export default async function Saldo() {
   const moneyCfg = await getMoneyConfig(sb);
   const cc = ((p as { country?: string | null } | null)?.country ?? "").toUpperCase();
   const cEntry = moneyCfg.countries[cc];
-  const eurosEnabled = isAdult && !moneyCfg.global.kill_switch && !!cEntry?.enabled && (cEntry.mode === "partner" || cEntry.mode === "own");
+  // Juego más seguro (§5.11): la autoexclusión del usuario apaga su UI de euros.
+  const sp = ((p as { safer_play?: { self_excluded_until?: string | null } | null } | null)?.safer_play) ?? null;
+  const excludedUntil = sp?.self_excluded_until ?? null;
+  const isSelfExcluded = !!excludedUntil && new Date(excludedUntil) > new Date();
+  const eurosEnabled = isAdult && !isSelfExcluded && !moneyCfg.global.kill_switch && !!cEntry?.enabled && (cEntry.mode === "partner" || cEntry.mode === "own");
   const recoverable =
     !!p?.streak_recover_until && new Date(p.streak_recover_until) > new Date() &&
     (p?.streak_broken_days ?? 0) > 0;
@@ -149,7 +153,7 @@ export default async function Saldo() {
       {/* Cartera de EUROS (motor fase 2): saldo y movimientos del proveedor
           licenciado (custodia fuera del núcleo). Solo +18. Apagado → "aún no
           disponible" y sin depositar/retirar. Arriba del todo. */}
-      {isAdult && <EuroWallet wallet={wallet} eurosEnabled={eurosEnabled} />}
+      {isAdult && <EuroWallet wallet={wallet} eurosEnabled={eurosEnabled} selfExcludedUntil={isSelfExcluded ? excludedUntil : null} />}
       {/* Vinko Club: suscripción legal por Stripe (no da Vinkos ni ventaja). Solo
           se muestra cuando Stripe está configurado (o eres Club); si no, oculto. */}
       {club.enabled && (stripeConfigured() || (p as { club_active?: boolean } | null)?.club_active) && (
