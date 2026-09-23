@@ -7,26 +7,29 @@ import { t } from "@/lib/i18n";
 
 const KEY = "vinko_gate";
 
-// Candado de acceso por código diario sobre la app privada del alfa.
+// Candado de acceso por código diario sobre TODA la app privada del alfa.
 //
-// Rutas SIEMPRE abiertas (sin código):
-//  · "/"                  portada pública — Google exige poder ver de qué va la
-//                         app sin login para verificar el dominio del OAuth.
-//  · /privacidad /terminos legales — Google las rastrea.
-//  · /p/…                 porras compartidas: si esto se tapa, el enlace de
-//                         WhatsApp muere y con él la viralidad (métrica sagrada).
-//  · /login /auth /bienvenida  para poder entrar desde un enlace compartido.
-//  · /secret              donde el fundador lee el código del día.
-const ABIERTAS = ["/secret", "/privacidad", "/terminos", "/p/", "/login", "/auth", "/bienvenida"];
+// LOCKDOWN (24-sep-2026, orden de Ricardo «tapar todo, que no entre nadie»): el
+// candado tapa también la portada "/" y las porras compartidas "/p/…". Quien no
+// tenga sesión ni el código del día no ve NADA — ni el enlace de WhatsApp, ni la
+// portada. Contrapartida asumida por Ricardo: muere el preview OG y la viralidad
+// del enlace mientras el candado esté encendido.
+//
+// Rutas que SIGUEN abiertas (imprescindibles para que el propio login funcione):
+//  · /privacidad /terminos  legales — deben ser accesibles (Google/GDPR).
+//  · /auth                  callback de OAuth/magic-link: si se tapa, nadie puede
+//                           completar el login (ni con el código).
+// /secret (donde se lee el código) ya NO está abierta: solo con sesión. Ricardo,
+// que está logueado, la ve; un extraño no. El código se comparte fuera de la app.
+const ABIERTAS = ["/privacidad", "/terminos", "/auth"];
 
-// LANZAMIENTO (spec F-09, 21-sep-2026): la app es pública. El candado del alfa
-// solo se enciende con NEXT_PUBLIC_ALPHA_GATE=on (entonces quien tiene sesión
+// El candado solo se enciende con NEXT_PUBLIC_ALPHA_GATE=on (quien tiene sesión
 // sigue entrando sin código). /admin va aparte: comprueba role=admin en servidor.
 const GATE_OFF = process.env.NEXT_PUBLIC_ALPHA_GATE !== "on";
 
 export function Gate({ children, hasSession = false }: { children: React.ReactNode; hasSession?: boolean }) {
   const path = usePathname();
-  const bypass = GATE_OFF || hasSession || path === "/" || ABIERTAS.some((r) => path?.startsWith(r));
+  const bypass = GATE_OFF || hasSession || ABIERTAS.some((r) => path?.startsWith(r));
   const [ok, setOk] = useState(false);
   const [ready, setReady] = useState(false);
   const [input, setInput] = useState("");
