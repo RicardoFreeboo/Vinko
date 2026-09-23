@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { KycLevels } from "@/components/KycLevels";
 import { EurAmount } from "@/components/money/EurAmount";
+import { Logo } from "@/components/Logo";
 
 // Recorrido guiado de Vinko con dinero (para inversores): botón "Empezar" y
 // luego paso a paso. Datos de ejemplo; la custodia la hace el operador con
@@ -101,62 +103,69 @@ export function Fase3Journey() {
   const [i, setI] = useState(-1); // -1 intro · 0..5 pasos · 6 final
   const total = STEPS.length;
 
+  let content: React.ReactNode;
   if (i === -1) {
-    return (
-      <div className="flex min-h-[70dvh] flex-col items-center justify-center gap-6 text-center">
+    content = (
+      <div className="flex min-h-[68dvh] flex-col items-center justify-center gap-6 text-center">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl font-black text-[var(--cream)]">Vinko con dinero</h1>
           <p className="text-[14px] leading-snug text-[var(--muted)]">
             El recorrido completo, de punta a punta. La custodia la hace un operador con licencia; Vinko pone el producto y cobra su comisión.
           </p>
         </div>
-        <button onClick={() => setI(0)} className="rounded-[14px] bg-[var(--win)] px-8 py-4 text-[17px] font-black text-[var(--ink)]">Empezar →</button>
+        <button onClick={() => setI(0)} className="rounded-[14px] bg-[var(--win)] px-8 py-4 text-[17px] font-black text-[var(--ink)] transition-transform active:scale-95">Empezar →</button>
         <p className="text-[11px] text-[var(--muted2)]">6 pasos · datos de ejemplo</p>
       </div>
     );
-  }
-
-  if (i >= total) {
-    return (
-      <div className="flex min-h-[70dvh] flex-col items-center justify-center gap-6 text-center">
+  } else if (i >= total) {
+    content = (
+      <div className="flex min-h-[68dvh] flex-col items-center justify-center gap-6 text-center">
         <div className="text-5xl">🎉</div>
         <p className="text-[15px] leading-snug text-[var(--cream)]">
           Todo el producto está construido y funcionando. El interruptor de dinero real se enciende cuando cierre la integración con el operador con licencia (Luckia, Fase 2). Vinko nunca custodia el dinero: lo hace el operador.
         </p>
-        <button onClick={() => setI(-1)} className="rounded-[14px] border border-[var(--line)] px-6 py-3 text-[15px] font-black text-[var(--cream)]">Volver a empezar</button>
+        <Link href="/showcase" className="rounded-[14px] bg-[var(--win)] px-6 py-3.5 text-[15px] font-black text-[var(--ink)]">Ver todas las pantallas →</Link>
+        <button onClick={() => setI(-1)} className="text-[13px] font-bold text-[var(--muted)] underline">Volver a empezar</button>
+      </div>
+    );
+  } else {
+    const step = STEPS[i];
+    content = (
+      <div className="flex min-h-[72dvh] flex-col gap-5">
+        <div className="flex items-center gap-1.5">
+          {STEPS.map((_, k) => (
+            <div key={k} className="h-1.5 flex-1 rounded-full transition-colors duration-300" style={{ background: k <= i ? "var(--win)" : "var(--line)" }} />
+          ))}
+        </div>
+        <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">Paso {i + 1} de {total}</p>
+        <div className="flex items-start gap-3">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--win)] text-[16px] font-black text-[var(--ink)]">{i + 1}</span>
+          <div>
+            <div className="text-[18px] font-black text-[var(--cream)]">{step.title}</div>
+            <div className="text-[12px] text-[var(--muted)]">{step.sub}</div>
+          </div>
+        </div>
+        <div className="flex-1">{step.node}</div>
+        <div className="sticky bottom-4 flex gap-2 pt-2">
+          <button onClick={() => setI(i - 1)}
+            className="rounded-[14px] border border-[var(--line)] bg-[var(--ink)] px-5 py-3.5 text-[15px] font-bold text-[var(--muted)] transition-transform active:scale-95">Atrás</button>
+          <button onClick={() => setI(i + 1)}
+            className="flex-1 rounded-[14px] bg-[var(--win)] px-5 py-3.5 text-center text-[15px] font-black text-[var(--ink)] transition-transform active:scale-95">
+            {i + 1 === total ? "Terminar" : "Siguiente →"}
+          </button>
+        </div>
       </div>
     );
   }
 
-  const step = STEPS[i];
   return (
-    <div className="flex min-h-[80dvh] flex-col gap-5">
-      {/* progreso */}
-      <div className="flex items-center gap-1.5">
-        {STEPS.map((_, k) => (
-          <div key={k} className="h-1.5 flex-1 rounded-full" style={{ background: k <= i ? "var(--win)" : "var(--line)" }} />
-        ))}
-      </div>
-      <p className="mono text-[11px] uppercase tracking-[0.14em] text-[var(--muted)]">Paso {i + 1} de {total}</p>
-
-      <div className="flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[var(--win)] text-[16px] font-black text-[var(--ink)]">{i + 1}</span>
-        <div>
-          <div className="text-[18px] font-black text-[var(--cream)]">{step.title}</div>
-          <div className="text-[12px] text-[var(--muted)]">{step.sub}</div>
-        </div>
-      </div>
-
-      <div className="flex-1">{step.node}</div>
-
-      <div className="sticky bottom-4 flex gap-2 pt-2">
-        <button onClick={() => setI(i - 1)}
-          className="rounded-[14px] border border-[var(--line)] bg-[var(--ink)] px-5 py-3.5 text-[15px] font-bold text-[var(--muted)]">Atrás</button>
-        <button onClick={() => setI(i + 1)}
-          className="flex-1 rounded-[14px] bg-[var(--win)] px-5 py-3.5 text-center text-[15px] font-black text-[var(--ink)]">
-          {i + 1 === total ? "Terminar" : "Siguiente →"}
-        </button>
-      </div>
+    <div className="flex min-h-dvh flex-col gap-5">
+      <style>{"@keyframes f3step{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}@media (prefers-reduced-motion:reduce){.f3anim{animation:none!important}}"}</style>
+      <header className="flex items-center justify-between">
+        <Logo mark={26} word={18} />
+        <span className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted2)]">Dinero · recorrido</span>
+      </header>
+      <div key={i} className="f3anim" style={{ animation: "f3step .35s cubic-bezier(0.22,1,0.36,1)" }}>{content}</div>
     </div>
   );
 }
