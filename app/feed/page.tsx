@@ -33,12 +33,15 @@ export default async function Feed() {
 
   if (session && sb) {
     const [{ data: p }, { data: d }, { data: pv }, { count: n }] = await Promise.all([
-      sb.from("profiles").select("streak_days, role").eq("id", session.id).maybeSingle(),
+      sb.from("profiles").select("streak_days, streak_last, role").eq("id", session.id).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", today).eq("lang", "es").in("status", ["open", "resolved"]).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", yesterday).eq("lang", "es").eq("status", "resolved").maybeSingle(),
       sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", session.id).is("read_at", null),
     ]);
-    streak = p?.streak_days ?? 0;
+    // La racha solo cuenta si el último día activo es hoy o ayer (misma regla
+    // que WeekStreak en /cartera). Si no, está caducada → 0, no un número viejo.
+    const sl = (p as { streak_last?: string | null } | null)?.streak_last ?? null;
+    streak = sl && (sl === today || sl === yesterday) ? (p?.streak_days ?? 0) : 0;
     unread = n ?? 0;
     isAdmin = (p as { role?: string } | null)?.role === "admin";
     if (d) {

@@ -70,7 +70,8 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       rows={rows}
       streak={streak}
       cutoffIso={weekCutoff().toISOString()}
-      me={{ id: session!.id, handle: session!.handle ?? "", payHandle }}
+      me={{ id: session!.id, handle: session!.handle ?? "", payHandle,
+        isAdult: !!session!.birth_year && new Date().getFullYear() - session!.birth_year >= 18 }}
       origin={origin}
     />
   );

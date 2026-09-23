@@ -26,7 +26,7 @@ export function GroupView({ group, rows, streak, cutoffIso, me, origin }: {
   rows: LeaderRow[];
   streak: number;
   cutoffIso: string;
-  me: { id: string; handle: string; payHandle?: string | null };
+  me: { id: string; handle: string; payHandle?: string | null; isAdult?: boolean };
   origin: string;
 }) {
   const joinUrl = `${origin}/grupos?join=${group.invite_code}`;
@@ -72,7 +72,7 @@ export function GroupView({ group, rows, streak, cutoffIso, me, origin }: {
         storyUrl={storyUrl}
       />
 
-      <GroupMoney groupId={group.id} myId={me.id} myPayHandle={me.payHandle ?? null} />
+      <GroupMoney groupId={group.id} myId={me.id} myPayHandle={me.payHandle ?? null} canCreate={me.isAdult ?? false} />
 
       {/* QR del enlace de invitación: grupos presenciales (boda, bar) */}
       <section className="flex flex-col items-center gap-2 rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] p-4">

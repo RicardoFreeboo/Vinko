@@ -43,7 +43,7 @@ function endOfDayIso(daysAhead: number): string {
   return d.toISOString();
 }
 
-export function GroupMoney({ groupId, myId, myPayHandle }: { groupId: string; myId: string; myPayHandle: string | null }) {
+export function GroupMoney({ groupId, myId, myPayHandle, canCreate = true }: { groupId: string; myId: string; myPayHandle: string | null; canCreate?: boolean }) {
   void myId;
   const [pools, setPools] = useState<Pool[]>([]);
   const [detail, setDetail] = useState<Record<string, Detail>>({});
@@ -227,8 +227,8 @@ export function GroupMoney({ groupId, myId, myPayHandle }: { groupId: string; my
         })
       )}
 
-      {/* crear */}
-      {!creating ? (
+      {/* crear — solo +18 (regla de oro 8); el servidor también lo comprueba */}
+      {!canCreate ? null : !creating ? (
         <button onClick={() => setCreating(true)}
           className="rounded-[12px] border border-dashed border-[var(--win)] px-4 py-3 text-sm font-black text-[var(--win)]">
           + {t("p2p.new")}
