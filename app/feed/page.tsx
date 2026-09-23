@@ -96,6 +96,7 @@ export default async function Feed() {
       </header>
 
       <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} isAdmin={isAdmin}
+        isAdult={!!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18}
         intro={session ? (
           <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
         ) : (

@@ -50,7 +50,7 @@ function RailBtn({ icon, label, onClick, aria, on = false }: {
   );
 }
 
-export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onStake, social, loggedIn, now, onPick, onLike, onComments, isAdmin = false }: {
+export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onStake, social, loggedIn, now, onPick, onLike, onComments, isAdmin = false, isAdult = false }: {
   p: FeedPorra;
   index: number;        // posición del slide en el feed (data-k)
   first: boolean;       // primera porra: arranca desde el HTML (eager)
@@ -65,7 +65,8 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
   onPick: (p: FeedPorra, optionId: string) => Promise<string | null>;
   onLike: (p: FeedPorra) => void;
   onComments: (p: FeedPorra) => void;
-  isAdmin?: boolean;    // demo del modo dinero en el pick (solo admin, maqueta)
+  isAdmin?: boolean;    // (compat) antes gateaba la maqueta de dinero
+  isAdult?: boolean;    // +18 registrado: ve el teaser del modo dinero ("muy pronto")
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -150,9 +151,10 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
           </div>
         </div>
 
-        {/* Toggle Puntos/Dinero — SOLO admin, maqueta del modo dinero (como el modo $ de la APK).
-            Siempre visible para admin: puede pasar cualquier porra a dinero aunque ya la haya jugado en puntos. */}
-        {isAdmin && loggedIn && (
+        {/* Toggle Puntos/Dinero — teaser "muy pronto" del modo dinero. Visible para
+            todo usuario registrado y +18 (regla de oro 8: NUNCA a menores ni a
+            visitantes sin sesión). No mueve dinero real: se enciende con licencia. */}
+        {isAdult && loggedIn && (
           <div className="flex w-max items-center gap-1 rounded-full border border-white/20 bg-black/45 p-1 backdrop-blur">
             <button type="button" onClick={() => { setMoney(false); setMoneyPick(null); }}
               className={`rounded-full px-3 py-1 text-[12px] font-black ${!money ? "bg-[var(--win)] text-[var(--ink)]" : "text-white/70"}`}>🪙 {t("pick.modePoints")}</button>
