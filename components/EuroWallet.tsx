@@ -61,34 +61,39 @@ export function EuroWallet({ wallet, eurosEnabled, selfExcludedUntil = null }: {
 
       {selfExcludedUntil ? (
         <p className="mt-2 text-[12px] leading-snug text-[var(--gold)]">{t("safer.excludedNote", { date: dateEs(selfExcludedUntil) })}</p>
-      ) : eurosEnabled ? (
-        <div className="mt-3 flex gap-2">
-          <button onClick={() => { setSheet("deposit"); setErr(null); }}
-            className="flex-1 rounded-[12px] bg-[var(--win)] px-4 py-2.5 text-[14px] font-black text-[var(--ink)]">{t("cartera.deposit")}</button>
-          <button onClick={() => { setSheet("withdraw"); setErr(null); }}
-            className="flex-1 rounded-[12px] border border-[var(--line)] px-4 py-2.5 text-[14px] font-black text-[var(--cream)]">{t("cartera.withdraw")}</button>
-        </div>
       ) : (
-        <p className="mt-2 text-[12px] leading-snug text-[var(--muted)]">{t("cartera.eurosOff")}</p>
+        <>
+          <div className="mt-3 flex gap-2">
+            <button onClick={() => { setSheet("deposit"); setErr(null); }}
+              className="flex-1 rounded-[12px] bg-[var(--win)] px-4 py-2.5 text-[14px] font-black text-[var(--ink)]">{t("cartera.deposit")}</button>
+            <button onClick={() => { setSheet("withdraw"); setErr(null); }}
+              className="flex-1 rounded-[12px] border border-[var(--line)] px-4 py-2.5 text-[14px] font-black text-[var(--cream)]">{t("cartera.withdraw")}</button>
+          </div>
+          {!eurosEnabled && <p className="mt-2 text-[12px] leading-snug text-[var(--muted)]">{t("cartera.eurosOff")}</p>}
+        </>
       )}
 
-      {movements.length > 0 && (
+      {!selfExcludedUntil && (
         <div className="mt-3 border-t border-[var(--line)] pt-3">
           <p className="mb-1.5 mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("cartera.movements")}</p>
-          <div className="flex flex-col gap-1.5">
-            {movements.slice(0, 8).map((m) => {
-              const neg = m.kind === "withdraw" || m.kind === "stake_hold" || m.kind === "rake";
-              return (
-                <div key={m.id} className="flex items-center justify-between gap-2 text-[13px]">
-                  <span className="min-w-0 truncate text-[var(--cream)]">{t(`cartera.movKind.${m.kind}`)}</span>
-                  <span className="flex shrink-0 items-center gap-2">
-                    <EurAmount cents={neg ? -m.amountMinor : m.amountMinor} size="sm" sign />
-                    <span className="text-[10px] text-[var(--muted)]">{t(`cartera.movStatus.${m.status}`)}</span>
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {movements.length === 0 ? (
+            <p className="text-[12px] text-[var(--muted)]">{t("cartera.noMovements")}</p>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              {movements.slice(0, 8).map((m) => {
+                const neg = m.kind === "withdraw" || m.kind === "stake_hold" || m.kind === "rake";
+                return (
+                  <div key={m.id} className="flex items-center justify-between gap-2 text-[13px]">
+                    <span className="min-w-0 truncate text-[var(--cream)]">{t(`cartera.movKind.${m.kind}`)}</span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <EurAmount cents={neg ? -m.amountMinor : m.amountMinor} size="sm" sign />
+                      <span className="text-[10px] text-[var(--muted)]">{t(`cartera.movStatus.${m.status}`)}</span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
