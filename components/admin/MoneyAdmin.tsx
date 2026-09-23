@@ -25,6 +25,7 @@ export type EventRow = {
 };
 export type OverviewData = {
   killSwitch: boolean;
+  p2pEnabled: boolean;
   env: string;
   countries: CountryRow[];
   poolCounts: Record<string, number>;
@@ -94,6 +95,20 @@ export function MoneyAdmin({ initial }: { initial: OverviewData }) {
     router.refresh();
   }
 
+  // Interruptor del dinero P2P entre amigos (remote_config.p2p.enabled). Igual
+  // que el kill switch pero al revés: encendido = se puede jugar con dinero.
+  async function toggleP2p() {
+    const sb = supabaseBrowser();
+    if (!sb) { setMsg({ kind: "err", text: t("adminMoney.err.no_backend") }); return; }
+    setBusy(true); setMsg(null);
+    const { error } = await sb.rpc("p2p_set_enabled", { p_on: !data.p2pEnabled });
+    setBusy(false);
+    if (error) { setMsg({ kind: "err", text: moneyErr(error.message) }); return; }
+    setData((d) => ({ ...d, p2pEnabled: !d.p2pEnabled }));
+    setMsg({ kind: "ok", text: t("adminMoney.p2pSaved") });
+    router.refresh();
+  }
+
   const th = "px-2 py-1.5 text-left text-[11px] font-bold uppercase tracking-wide text-[rgba(244,241,233,0.45)]";
   const td = "px-2 py-1.5 text-[13px] text-[var(--cream)] align-top";
 
@@ -129,6 +144,27 @@ export function MoneyAdmin({ initial }: { initial: OverviewData }) {
           <p className="mt-2 text-[11px] leading-snug text-[rgba(244,241,233,0.45)]">{t("adminMoney.killSwitchHint")}</p>
         </GlassCard>
       </div>
+
+      {/* interruptor del dinero P2P entre amigos */}
+      <GlassCard glow={data.p2pEnabled ? "win" : "none"}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className={lbl}>{t("adminMoney.p2p")}</div>
+            <div className={`mt-1 text-lg font-bold ${data.p2pEnabled ? "text-[var(--win)]" : "text-[rgba(244,241,233,0.6)]"}`}>
+              {data.p2pEnabled ? t("adminMoney.p2pOn") : t("adminMoney.p2pOff")}
+            </div>
+          </div>
+          <button onClick={toggleP2p} disabled={busy || !data.backend}
+            className={`shrink-0 rounded-[10px] px-3 py-2 text-[12px] font-black disabled:opacity-50 ${
+              data.p2pEnabled
+                ? "border border-[var(--gold)] text-[var(--gold)]"
+                : "bg-[var(--win)] text-[#060b09]"
+            }`}>
+            {data.p2pEnabled ? t("adminMoney.p2pTurnOff") : t("adminMoney.p2pTurnOn")}
+          </button>
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-[rgba(244,241,233,0.45)]">{t("adminMoney.p2pHint")}</p>
+      </GlassCard>
 
       {/* países */}
       <GlassCard glow="none">

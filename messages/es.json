@@ -1808,5 +1808,12 @@
   "kyc.form.sending": "Enviando…",
   "kyc.form.review": "Verificación enviada. El operador con licencia la revisará y te avisaremos.",
   "kyc.form.demoNote": "Vista previa del proceso: de momento los datos no se guardan ni se verifican.",
-  "kyc.form.cancel": "Cancelar"
+  "kyc.form.cancel": "Cancelar",
+  "adminMoney.p2p": "Dinero P2P entre amigos",
+  "adminMoney.p2pOn": "Encendido · se pueden crear y entrar en porras con dinero",
+  "adminMoney.p2pOff": "Apagado",
+  "adminMoney.p2pTurnOn": "Encender dinero P2P",
+  "adminMoney.p2pTurnOff": "Apagar dinero P2P",
+  "adminMoney.p2pHint": "Enciende crear y entrar en porras con dinero dentro de los grupos (solo +18, el dinero va directo entre la gente y Vinko no lo toca). Las porras ya en curso pueden resolverse y pagarse aunque esté apagado.",
+  "adminMoney.p2pSaved": "Dinero P2P actualizado."
 }
