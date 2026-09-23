@@ -39,13 +39,20 @@ export function MoneyCta({
     return Object.entries(vars).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, v), base);
   };
 
-  // Entrada (stake) con Intl; si la divisa no es estándar, formato simple.
-  let entryFmt = `${(view.stakeMinor / 100).toFixed(2)} ${view.currency}`;
-  try {
-    entryFmt = new Intl.NumberFormat(undefined, { style: "currency", currency: view.currency }).format(view.stakeMinor / 100);
-  } catch {
-    /* divisa no reconocida por Intl: se queda el formato simple */
-  }
+  // Importes con Intl; si la divisa no es estándar, formato simple.
+  const fmtEur = (minor: number) => {
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: view.currency }).format(minor / 100);
+    } catch {
+      return `${(minor / 100).toFixed(2)} ${view.currency}`;
+    }
+  };
+  const entryFmt = fmtEur(view.stakeMinor);
+  // Comisión de Vinko sobre la entrada (rake_bps: 500 = 5%). Se muestra SIEMPRE
+  // antes de confirmar, en euros y en %. La cobra el proveedor licenciado.
+  const commissionMinor = Math.round((view.stakeMinor * view.rakeBps) / 10000);
+  const commissionFmt = fmtEur(commissionMinor);
+  const pctFmt = (view.rakeBps % 100 === 0 ? (view.rakeBps / 100).toFixed(0) : (view.rakeBps / 100).toFixed(1));
 
   async function post(path: string, body: Record<string, unknown>): Promise<{ ok: boolean; data: Record<string, unknown> }> {
     setBusy(true);
@@ -159,16 +166,25 @@ export function MoneyCta({
             {o.label}
           </button>
         ))}
-        <div className="flex items-center justify-between text-[13px] text-[var(--muted)]">
-          <span>{tm("money.entry")}</span>
-          <span className="mono font-black text-[var(--cream)]">{entryFmt}</span>
+        {/* Boleto (§5.4): entrada, comisión de Vinko y nota de cobro por reparto,
+            SIEMPRE antes de confirmar. Nunca se promete una cifra exacta. */}
+        <div className="flex flex-col gap-1.5 rounded-[12px] border border-[var(--line)] bg-[var(--ink)] p-3">
+          <div className="flex items-center justify-between text-[13px] text-[var(--muted)]">
+            <span>{tm("money.entry")}</span>
+            <span className="mono font-black text-[var(--cream)]">{entryFmt}</span>
+          </div>
+          <div className="flex items-center justify-between text-[13px] text-[var(--muted)]">
+            <span>{tm("money.commission", { pct: pctFmt })}</span>
+            <span className="mono text-[var(--muted)]">−{commissionFmt}</span>
+          </div>
+          <p className="text-[11px] leading-snug text-[var(--muted2)]">{tm("money.payoutNote")}</p>
         </div>
         <button
           onClick={join}
           disabled={busy || selected == null}
           className="rounded-[14px] bg-[var(--win)] px-4 py-3.5 text-center text-[15px] font-black text-[var(--ink)] disabled:opacity-50"
         >
-          {selected == null ? tm("money.cta") : tm("money.pay", { amount: entryFmt })}
+          {busy ? tm("money.paying") : selected == null ? tm("money.cta") : tm("money.pay", { amount: entryFmt })}
         </button>
       </div>
     );

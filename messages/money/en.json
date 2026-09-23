@@ -12,6 +12,9 @@
   "money.kyc": "Verify identity",
   "money.closed": "This mode is now closed.",
   "money.error": "Something went wrong. Please try again.",
+  "money.commission": "Vinko commission ({pct}%)",
+  "money.payoutNote": "If you're right, you collect from the split. The amount depends on how many get it right.",
+  "money.paying": "Entering…",
 
   "money.legal.age": "+18",
   "money.legal.rg": "Play responsibly",

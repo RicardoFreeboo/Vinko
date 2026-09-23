@@ -97,9 +97,10 @@ export function EuroWallet({ wallet, eurosEnabled, selfExcludedUntil = null }: {
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between gap-2">
-        <p className="text-[10px] leading-snug text-[var(--muted2)]">{t("cartera.rg")}</p>
-        <Link href="/juego-seguro" className="shrink-0 text-[11px] font-bold text-[var(--gold)] underline">{t("safer.link")}</Link>
+      <p className="mt-3 text-[10px] leading-snug text-[var(--muted2)]">{t("cartera.rg")}</p>
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+        <Link href="/verificar" className="text-[11px] font-bold text-[var(--gold)] underline">{t("kyc.link")}</Link>
+        <Link href="/juego-seguro" className="text-[11px] font-bold text-[var(--gold)] underline">{t("safer.link")}</Link>
       </div>
 
       {sheet && (

@@ -12,6 +12,9 @@
   "money.kyc": "Verificar identidad",
   "money.closed": "Esta modalidad ya está cerrada.",
   "money.error": "No se ha podido completar. Inténtalo de nuevo.",
+  "money.commission": "Comisión Vinko ({pct}%)",
+  "money.payoutNote": "Si aciertas, cobras del reparto. El importe depende de cuántos acierten.",
+  "money.paying": "Entrando…",
 
   "money.legal.age": "+18",
   "money.legal.rg": "Juega con responsabilidad",
