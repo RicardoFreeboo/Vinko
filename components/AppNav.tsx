@@ -15,7 +15,7 @@ const TABS: ReadonlyArray<{ href: string; key: string; icon: React.ReactNode; pr
   { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
   { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
   { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
-  { href: "/saldo", key: "nav.saldo", icon: <VinkoCoin size={16} />, primary: false },
+  { href: "/cartera", key: "nav.cartera", icon: <VinkoCoin size={16} />, primary: false },
 ];
 
 export function AppNav() {
