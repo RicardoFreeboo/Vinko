@@ -19,12 +19,12 @@ type MoneyCfgValue = {
 export default async function AdminMoney() {
   const sb = await supabaseServer();
   const data: OverviewData = {
-    killSwitch: false, env: "production", countries: [], poolCounts: {}, events: [], backend: !!sb,
+    killSwitch: false, p2pEnabled: false, env: "production", countries: [], poolCounts: {}, events: [], backend: !!sb,
   };
 
   if (sb) {
     const [{ data: cfgRows }, poolsRes, evRes] = await Promise.all([
-      sb.from("remote_config").select("key, value").in("key", ["money", "misc"]),
+      sb.from("remote_config").select("key, value").in("key", ["money", "misc", "p2p"]),
       sb.from("money_pools").select("status").limit(2000),
       sb.from("money_events").select("event_id, provider, type, received_at, processed_at, error")
         .order("received_at", { ascending: false }).limit(10),
@@ -35,6 +35,8 @@ export default async function AdminMoney() {
     const misc = (rows.find((r) => r.key === "misc")?.value ?? {}) as { env?: string };
     data.env = misc.env ?? "production";
     data.killSwitch = !!money.global?.kill_switch;
+    const p2p = (rows.find((r) => r.key === "p2p")?.value ?? {}) as { enabled?: boolean };
+    data.p2pEnabled = !!p2p.enabled;
 
     const countries = money.countries ?? {};
     data.countries = Object.keys(countries).sort().map((iso): CountryRow => {
