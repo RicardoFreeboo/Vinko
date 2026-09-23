@@ -208,5 +208,22 @@
   "adminMoney.err.VINKO_MONEY_UNKNOWN_EVENT": "Unknown or already processed event.",
   "adminMoney.err.VINKO_MONEY_UNKNOWN_PARTICIPATION": "Unknown entry for that event.",
   "adminMoney.err.VINKO_MONEY_UNKNOWN_POOL": "Unknown pool.",
-  "adminMoney.err.VINKO_MONEY_USER_NOT_ALLOWED": "User not allowed (guest, deleted or suspicious)."
+  "adminMoney.err.VINKO_MONEY_USER_NOT_ALLOWED": "User not allowed (guest, deleted or suspicious).",
+  "adminMoney.tabs.revenue": "Rev-share",
+  "adminMoney.rev.title": "Operator rev-share",
+  "adminMoney.rev.intro": "The commission (rake) is charged by the licensed operator, who settles your share (B2B). This records what they pay you; it never moves the pot or charges cards.",
+  "adminMoney.rev.total": "Settled to Vinko",
+  "adminMoney.rev.pending": "Pending",
+  "adminMoney.rev.settledPools": "Settled pools",
+  "adminMoney.rev.record": "Record settlement",
+  "adminMoney.rev.provider": "Provider",
+  "adminMoney.rev.period": "Period (YYYY-MM)",
+  "adminMoney.rev.gross": "Gross rake (cents)",
+  "adminMoney.rev.share": "Vinko share (cents)",
+  "adminMoney.rev.currency": "Currency",
+  "adminMoney.rev.invoice": "Invoice/ref",
+  "adminMoney.rev.paid": "Paid",
+  "adminMoney.rev.save": "Save",
+  "adminMoney.rev.none": "No settlements yet. They appear when an operator pays you the rev-share.",
+  "adminMoney.rev.pendingTag": "Pending"
 }

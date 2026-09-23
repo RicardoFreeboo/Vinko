@@ -37,6 +37,7 @@ const TABS: { href: string; key: string }[] = [
   { href: "/admin/money/config", key: "adminMoney.tabs.config" },
   { href: "/admin/money/pools", key: "adminMoney.tabs.pools" },
   { href: "/admin/money/events", key: "adminMoney.tabs.events" },
+  { href: "/admin/money/revenue", key: "adminMoney.tabs.revenue" },
 ];
 const POOL_STATES: PoolStatus[] = ["draft", "open", "closed", "settled", "voided"];
 
