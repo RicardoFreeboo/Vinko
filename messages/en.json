@@ -1637,5 +1637,10 @@
   "p2p.errUnderage": "18+ only: add your birth year in your profile.",
   "p2p.errTooFew": "You need at least 2 people in to resolve.",
   "p2p.errClosed": "This pool is already closed.",
-  "p2p.err": "Couldn't do it. Check and try again."
+  "p2p.err": "Couldn't do it. Check and try again.",
+  "affiliate.title": "Sponsored",
+  "affiliate.cta": "Go to {operator}",
+  "affiliate.age": "18+",
+  "affiliate.rg": "Ad · Play responsibly",
+  "affiliate.note": "Link to a licensed operator. Vinko doesn't run the games or the money."
 }

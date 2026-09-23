@@ -1637,5 +1637,10 @@
   "p2p.errUnderage": "Solo +18: añade tu año de nacimiento en tu perfil.",
   "p2p.errTooFew": "Hacen falta al menos 2 personas dentro para resolver.",
   "p2p.errClosed": "La porra ya está cerrada.",
-  "p2p.err": "No se pudo. Revísalo e inténtalo otra vez."
+  "p2p.err": "No se pudo. Revísalo e inténtalo otra vez.",
+  "affiliate.title": "Patrocinado",
+  "affiliate.cta": "Ir a {operator}",
+  "affiliate.age": "+18",
+  "affiliate.rg": "Publicidad · Juega con responsabilidad",
+  "affiliate.note": "Enlace a un operador con licencia. Vinko no gestiona el juego ni el dinero."
 }

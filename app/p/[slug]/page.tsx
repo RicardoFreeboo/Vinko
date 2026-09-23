@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPorraBySlug, getPorraExtras } from "@/lib/porras";
 import { getSession } from "@/lib/session";
+import { AffiliateSlot } from "@/components/AffiliateSlot";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
@@ -245,6 +246,10 @@ export default async function PorraPage({ params }: Props) {
         />
 
         {money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
+
+        {/* Afiliación (regla de oro 5): solo sesión real +18 y país con afiliación
+            habilitada. Apagado hoy → no pinta nada. Nunca a invitados/menores. */}
+        {!porra.is_template && <AffiliateSlot porraId={porra.id} />}
 
         {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
         {rows && (
