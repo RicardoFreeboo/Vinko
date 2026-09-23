@@ -38,6 +38,18 @@ body {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
 }
+
+/* iOS Safari hace zoom al enfocar un input si su fuente es < 16px. Forzamos 16px
+   en los controles de formulario en móvil (gana a las utilidades de Tailwind con
+   !important) para que NO se amplíe la pantalla al escribir. No desactiva el
+   pinch-zoom (accesibilidad), a diferencia de maximum-scale=1. */
+@media (max-width: 480px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
 .eyebrow {
   font-family: var(--mono);
   text-transform: uppercase;

@@ -104,8 +104,8 @@ export function EuroWallet({ wallet, eurosEnabled, selfExcludedUntil = null }: {
       </div>
 
       {sheet && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={() => setSheet(null)}>
-          <div className="w-full max-w-[430px] rounded-t-[20px] border-t border-[var(--line)] bg-[var(--ink)] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={() => setSheet(null)}>
+          <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[20px] border-t border-[var(--line)] bg-[var(--ink)] p-5 pb-8" onClick={(e) => e.stopPropagation()}>
             <p className="text-sm font-black text-[var(--cream)]">{sheet === "deposit" ? t("cartera.deposit") : t("cartera.withdraw")}</p>
             <p className="mt-1 mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("cartera.amount")}</p>
             <div className="mt-1 flex items-center gap-2">

@@ -21,8 +21,8 @@ function VerifyForm({ level, onClose }: { level: number; onClose: () => void }) 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
-      <div className="w-full max-w-[430px] rounded-t-[20px] border-t border-[var(--line)] bg-[var(--ink)] p-5" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div className="max-h-[92dvh] w-full max-w-[430px] overflow-y-auto rounded-t-[20px] border-t border-[var(--line)] bg-[var(--ink)] p-5 pb-8" onClick={(e) => e.stopPropagation()}>
         <p className="text-sm font-black text-[var(--cream)]">{t("kyc.form.title", { n: String(level) })}</p>
 
         {sent ? (
