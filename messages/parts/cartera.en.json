@@ -1,6 +1,9 @@
 {
   "nav.cartera": "Balance",
   "cartera.title": "Balance",
+  "cartera.tab.vinkos": "Vinkos",
+  "cartera.tab.euros": "Euros",
+  "cartera.euros18": "Euros are for ages 18 and up only.",
   "cartera.euros": "Euros",
   "cartera.available": "Available",
   "cartera.locked": "Locked in open porras",

@@ -1702,5 +1702,8 @@
   "safer.help.title": "Is play stopping being play?",
   "safer.help.body": "Ask for help. There are National Health System resources and support organizations.",
   "safer.saved": "Saved",
-  "safer.err": "Couldn't do it. Try again."
+  "safer.err": "Couldn't do it. Try again.",
+  "cartera.tab.vinkos": "Vinkos",
+  "cartera.tab.euros": "Euros",
+  "cartera.euros18": "Euros are for ages 18 and up only."
 }

@@ -1702,5 +1702,8 @@
   "safer.help.title": "¿El juego deja de ser un juego?",
   "safer.help.body": "Pide ayuda. Hay recursos del Sistema Nacional de Salud y organizaciones de apoyo.",
   "safer.saved": "Guardado",
-  "safer.err": "No se ha podido. Inténtalo de nuevo."
+  "safer.err": "No se ha podido. Inténtalo de nuevo.",
+  "cartera.tab.vinkos": "Vinkos",
+  "cartera.tab.euros": "Euros",
+  "cartera.euros18": "Los euros son solo para mayores de 18 años."
 }

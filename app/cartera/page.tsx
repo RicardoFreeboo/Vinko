@@ -4,6 +4,7 @@ import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SaldoClient } from "@/components/SaldoClient";
 import { EuroWallet } from "@/components/EuroWallet";
+import { CarteraTabs } from "@/components/CarteraTabs";
 import { getWallet } from "@/lib/money/wallet";
 import { getMoneyConfig } from "@/lib/money/config";
 import { ClubCard } from "@/components/ClubCard";
@@ -150,66 +151,68 @@ export default async function Saldo() {
           <VinkoCoin size={14} />{p?.points ?? session.points ?? 0} · @{session.handle}
         </span>
       </header>
-      {/* Cartera de EUROS (motor fase 2): saldo y movimientos del proveedor
-          licenciado (custodia fuera del núcleo). Solo +18. Apagado → "aún no
-          disponible" y sin depositar/retirar. Arriba del todo. */}
-      {isAdult && <EuroWallet wallet={wallet} eurosEnabled={eurosEnabled} selfExcludedUntil={isSelfExcluded ? excludedUntil : null} />}
-      {/* Vinko Club: suscripción legal por Stripe (no da Vinkos ni ventaja). Solo
-          se muestra cuando Stripe está configurado (o eres Club); si no, oculto. */}
-      {club.enabled && (stripeConfigured() || (p as { club_active?: boolean } | null)?.club_active) && (
-        <ClubCard active={(p as { club_active?: boolean } | null)?.club_active ?? false}
-          monthly={club.monthly_minor} annual={club.annual_minor} currency={club.currency} configured={stripeConfigured()} />
-      )}
-      {/* RACHA SEMANAL real + regalo diario + nivel (XP) */}
-      <VinkosStreak
-        streakDays={p?.streak_days ?? 0}
-        streakBest={p?.streak_best ?? 0}
-        shields={p?.streak_shields ?? 0}
-        streakLast={(p?.streak_last as string | null) ?? null}
-        prizePts={eco.streak7_pts}
-        bonusClaimedToday={bonusLast === today}
-        bonusStep={bonusStep}
-        bonusPts={bonusPts}
-        bonusTotal={eco.daily_bonus.length}
-        xp={p?.xp ?? 0}
+      {/* Dos pestañas: Vinkos (puntos, economía viva) y Euros (motor del proveedor,
+          custodia fuera del núcleo). No se mezclan (diseño §3.3). */}
+      <CarteraTabs
+        vinkos={<>
+          {/* RACHA SEMANAL real + regalo diario + nivel (XP) */}
+          <VinkosStreak
+            streakDays={p?.streak_days ?? 0}
+            streakBest={p?.streak_best ?? 0}
+            shields={p?.streak_shields ?? 0}
+            streakLast={(p?.streak_last as string | null) ?? null}
+            prizePts={eco.streak7_pts}
+            bonusClaimedToday={bonusLast === today}
+            bonusStep={bonusStep}
+            bonusPts={bonusPts}
+            bonusTotal={eco.daily_bonus.length}
+            xp={p?.xp ?? 0}
+          />
+          <SaldoClient
+            initialPoints={p?.points ?? 0}
+            xp={p?.xp ?? 0}
+            marcador={p?.marcador_total ?? 0}
+            division={p?.division ?? "bronce"}
+            shields={p?.streak_shields ?? 0}
+            isAdult={isAdult}
+            recoverable={recoverable}
+            brokenDays={p?.streak_broken_days ?? 0}
+          />
+          {/* TU ENLACE: la invitación validada (0030). Se pagan los dos en el primer pick. */}
+          <section className="flex flex-col gap-2 rounded-[16px] border border-[var(--gold)]/40 bg-[var(--ink2)] p-4">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("vinkos.refTitle")}</p>
+            <p className="text-[13px] leading-snug text-[var(--cream)]">
+              {t("vinkos.refBody", { n: String(eco.invite_pts), m: String(eco.invitee_pts) })}
+            </p>
+            <p className="mono select-all break-all rounded-[10px] bg-[var(--ink3)] px-3 py-2 text-[12px] text-[var(--gold)]">{refUrl}</p>
+            <a href={waHref} target="_blank" rel="noopener noreferrer"
+              className="rounded-[12px] bg-[#25D366] px-4 py-3 text-center text-[14px] font-black text-white">
+              {t("vinkos.refWa")}
+            </a>
+          </section>
+          {/* CÓMO SE GANAN (aquí está la "recarga" de Vinkos: regalo diario y anuncio) */}
+          <section className="flex flex-col gap-2">
+            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("vinkos.earn")}</p>
+            <EarnRow icon="📲" title={t("vinkos.earn.share")} sub={t("vinkos.earn.shareSub")} value={`+${SHARE_PTS}`} href="/feed" />
+            <EarnRow icon="🤝" title={t("vinkos.earn.invite")} sub={t("vinkos.earn.inviteSub", { m: String(eco.invitee_pts) })} value={`+${eco.invite_pts}`} href="/cartera" />
+            <EarnRow icon="👥" title={t("vinkos.earn.creator")} sub={t("vinkos.earn.creatorSub", { cap: String(CREATOR_CAP) })} value={`+${CREATOR_PTS}`} href="/nueva" />
+            <EarnRow icon="🎁" title={t("vinkos.earn.daily")} sub={t("vinkos.earn.dailySub", { total: String(eco.daily_bonus.length) })} value={`${ladderMin}→${ladderMax}`} href="/cartera" />
+            <EarnRow icon="🔥" title={t("vinkos.earn.streak")} sub={t("vinkos.earn.streakSub")} value={`+${eco.streak7_pts}`} href="/feed" />
+            {isAdult && (
+              <EarnRow icon="📺" title={t("vinkos.earn.ad")} sub={t("vinkos.earn.adSub", { cap: String(eco.ad_reward_daily_cap) })} value={`+${eco.ad_reward_pts}`} href="/cartera" />
+            )}
+            <p className="text-center text-[11px] text-[var(--muted2)]">{t("saldo.adNote")}</p>
+          </section>
+          {/* Vinko Club: suscripción legal por Stripe (no da Vinkos ni ventaja). */}
+          {club.enabled && (stripeConfigured() || (p as { club_active?: boolean } | null)?.club_active) && (
+            <ClubCard active={(p as { club_active?: boolean } | null)?.club_active ?? false}
+              monthly={club.monthly_minor} annual={club.annual_minor} currency={club.currency} configured={stripeConfigured()} />
+          )}
+        </>}
+        dinero={isAdult
+          ? <EuroWallet wallet={wallet} eurosEnabled={eurosEnabled} selfExcludedUntil={isSelfExcluded ? excludedUntil : null} />
+          : <p className="rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-4 text-[13px] text-[var(--muted)]">{t("cartera.euros18")}</p>}
       />
-      <SaldoClient
-        initialPoints={p?.points ?? 0}
-        xp={p?.xp ?? 0}
-        marcador={p?.marcador_total ?? 0}
-        division={p?.division ?? "bronce"}
-        shields={p?.streak_shields ?? 0}
-        isAdult={isAdult}
-        recoverable={recoverable}
-        brokenDays={p?.streak_broken_days ?? 0}
-      />
-
-      {/* TU ENLACE: la invitación validada (0030). Se pagan los dos en el primer pick. */}
-      <section className="flex flex-col gap-2 rounded-[16px] border border-[var(--gold)]/40 bg-[var(--ink2)] p-4">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("vinkos.refTitle")}</p>
-        <p className="text-[13px] leading-snug text-[var(--cream)]">
-          {t("vinkos.refBody", { n: String(eco.invite_pts), m: String(eco.invitee_pts) })}
-        </p>
-        <p className="mono select-all break-all rounded-[10px] bg-[var(--ink3)] px-3 py-2 text-[12px] text-[var(--gold)]">{refUrl}</p>
-        <a href={waHref} target="_blank" rel="noopener noreferrer"
-          className="rounded-[12px] bg-[#25D366] px-4 py-3 text-center text-[14px] font-black text-white">
-          {t("vinkos.refWa")}
-        </a>
-      </section>
-
-      {/* CÓMO SE GANAN: exactamente lo que paga el servidor */}
-      <section className="flex flex-col gap-2">
-        <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("vinkos.earn")}</p>
-        <EarnRow icon="📲" title={t("vinkos.earn.share")} sub={t("vinkos.earn.shareSub")} value={`+${SHARE_PTS}`} href="/feed" />
-        <EarnRow icon="🤝" title={t("vinkos.earn.invite")} sub={t("vinkos.earn.inviteSub", { m: String(eco.invitee_pts) })} value={`+${eco.invite_pts}`} href="/cartera" />
-        <EarnRow icon="👥" title={t("vinkos.earn.creator")} sub={t("vinkos.earn.creatorSub", { cap: String(CREATOR_CAP) })} value={`+${CREATOR_PTS}`} href="/nueva" />
-        <EarnRow icon="🎁" title={t("vinkos.earn.daily")} sub={t("vinkos.earn.dailySub", { total: String(eco.daily_bonus.length) })} value={`${ladderMin}→${ladderMax}`} href="/cartera" />
-        <EarnRow icon="🔥" title={t("vinkos.earn.streak")} sub={t("vinkos.earn.streakSub")} value={`+${eco.streak7_pts}`} href="/feed" />
-        {isAdult && (
-          <EarnRow icon="📺" title={t("vinkos.earn.ad")} sub={t("vinkos.earn.adSub", { cap: String(eco.ad_reward_daily_cap) })} value={`+${eco.ad_reward_pts}`} href="/cartera" />
-        )}
-        <p className="text-center text-[11px] text-[var(--muted2)]">{t("saldo.adNote")}</p>
-      </section>
       <AppNav />
     </main>
   );

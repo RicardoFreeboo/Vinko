@@ -1,6 +1,9 @@
 {
   "nav.cartera": "Cartera",
   "cartera.title": "Cartera",
+  "cartera.tab.vinkos": "Vinkos",
+  "cartera.tab.euros": "Euros",
+  "cartera.euros18": "Los euros son solo para mayores de 18 años.",
   "cartera.euros": "Euros",
   "cartera.available": "Disponible",
   "cartera.locked": "En porras abiertas",
