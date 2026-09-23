@@ -3,8 +3,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { ensurePushSubscription } from "@/lib/push";
+import { supabaseBrowser } from "@/lib/supabase/client";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
+
+// Marca la ENTRADA del día para la racha (una sola vez al día por navegador; el
+// servidor es idempotente de todas formas). Cuenta abrir la app, no solo picar.
+function tickDailyOpen() {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem("vinko_open") === today) return;
+    localStorage.setItem("vinko_open", today);
+  } catch { /* sin localStorage: se llama igual, el servidor deduplica */ }
+  try { void supabaseBrowser()?.rpc("daily_open"); } catch { /* noop */ }
+}
 
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
 // limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
@@ -24,6 +36,8 @@ export function AppNav() {
   useEffect(() => {
     // Revalidar la suscripción push en CADA apertura (iOS la cancela solo, §5.1)
     void ensurePushSubscription();
+    // Racha: marcar la entrada del día (una vez/día por navegador).
+    tickDailyOpen();
   }, [path]);
 
   return (

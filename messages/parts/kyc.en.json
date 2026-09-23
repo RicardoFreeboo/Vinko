@@ -21,5 +21,17 @@
   "kyc.verify": "Verify now",
   "kyc.off": "Verification turns on when the licensed operator is connected.",
   "kyc.done": "Done",
-  "kyc.locked": "Pending"
+  "kyc.locked": "Pending",
+  "kyc.form.title": "Verification · Level {n}",
+  "kyc.form.name": "Full name",
+  "kyc.form.dni": "ID / NIE number",
+  "kyc.form.dob": "Date of birth",
+  "kyc.form.doc": "Identity document",
+  "kyc.form.docHint": "Photo of your ID, both sides.",
+  "kyc.form.iban": "IBAN in your name",
+  "kyc.form.submit": "Send verification",
+  "kyc.form.sending": "Sending…",
+  "kyc.form.review": "Verification sent. The licensed operator will review it and we'll let you know.",
+  "kyc.form.demoNote": "Process preview: for now the data isn't stored or verified.",
+  "kyc.form.cancel": "Cancel"
 }

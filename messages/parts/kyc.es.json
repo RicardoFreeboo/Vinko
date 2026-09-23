@@ -21,5 +21,17 @@
   "kyc.verify": "Verificar ahora",
   "kyc.off": "La verificación se activa cuando el operador con licencia esté conectado.",
   "kyc.done": "Hecho",
-  "kyc.locked": "Pendiente"
+  "kyc.locked": "Pendiente",
+  "kyc.form.title": "Verificación · Nivel {n}",
+  "kyc.form.name": "Nombre y apellidos",
+  "kyc.form.dni": "DNI / NIE",
+  "kyc.form.dob": "Fecha de nacimiento",
+  "kyc.form.doc": "Documento de identidad",
+  "kyc.form.docHint": "Foto de tu DNI/NIE por las dos caras.",
+  "kyc.form.iban": "IBAN a tu nombre",
+  "kyc.form.submit": "Enviar verificación",
+  "kyc.form.sending": "Enviando…",
+  "kyc.form.review": "Verificación enviada. El operador con licencia la revisará y te avisaremos.",
+  "kyc.form.demoNote": "Vista previa del proceso: de momento los datos no se guardan ni se verifican.",
+  "kyc.form.cancel": "Cancelar"
 }
