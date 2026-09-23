@@ -56,13 +56,21 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   const streak = typeof st.data === "number" ? st.data : 0;
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.vinko.fun";
 
+  // pay_handle (cómo te pagan los del grupo). Puede no existir aún si 0048 no
+  // está aplicada: en ese caso, null y el usuario lo rellena cuando aparezca.
+  let payHandle: string | null = null;
+  {
+    const { data: prof } = await sb!.from("profiles").select("pay_handle").eq("id", session!.id).maybeSingle();
+    payHandle = (prof as { pay_handle?: string | null } | null)?.pay_handle ?? null;
+  }
+
   return (
     <GroupView
       group={group}
       rows={rows}
       streak={streak}
       cutoffIso={weekCutoff().toISOString()}
-      me={{ id: session!.id, handle: session!.handle ?? "" }}
+      me={{ id: session!.id, handle: session!.handle ?? "", payHandle }}
       origin={origin}
     />
   );

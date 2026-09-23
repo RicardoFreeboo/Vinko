@@ -24,9 +24,18 @@ const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
 // entra (son Vinkos: ad_impressions/porra_payouts/video_rewards, documentados);
 // tampoco `cost` (tienda). Sí: *_amount, amount_*, *_minor, *cents*, currency…
 const MONEY_COL = /(balance|wallet|iban|^pan$|card_|cents|_minor$|^amount_|_amount$|currency)/i;
-const USER_COLS = new Set(["user_id", "created_by", "profile_id"]);
-// Excepción documentada: configuración de la bolsa, no saldo de usuario.
-const EXEMPT = new Map([["money_pools", new Set(["stake_minor", "currency"])]]);
+// Alcance como el RPC money_schema_invariant() (0045+0048): también from_user/to_user
+// (aristas de liquidación P2P), para que un saldo colado ahí también salte.
+const USER_COLS = new Set(["user_id", "created_by", "profile_id", "from_user", "to_user"]);
+// Excepciones documentadas (config o registro de liquidación, NUNCA saldos):
+//  · money_pools: configuración de la bolsa del operador licenciado (0045).
+//  · p2p_pools / p2p_settlements: entrada fija y el importe de CADA pago P2P
+//    (registro estilo Splitwise, no un saldo agregado) (0048).
+const EXEMPT = new Map([
+  ["money_pools", new Set(["stake_minor", "currency"])],
+  ["p2p_pools", new Set(["stake_minor", "currency"])],
+  ["p2p_settlements", new Set(["amount_minor", "currency"])],
+]);
 const CONSTRAINT_KW = /^(primary|unique|check|foreign|constraint|references|exclude|like|partition)\b/i;
 
 // Quita comentarios (línea y bloque) y vacía el contenido de las cadenas

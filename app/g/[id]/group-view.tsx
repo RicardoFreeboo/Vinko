@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { GroupShare } from "@/components/GroupShare";
 import { GroupLeaderboard, GroupJudge, type LeaderRow } from "@/components/GroupLeaderboard";
+import { GroupMoney } from "@/components/GroupMoney";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { qrSvg } from "./qr";
@@ -25,7 +26,7 @@ export function GroupView({ group, rows, streak, cutoffIso, me, origin }: {
   rows: LeaderRow[];
   streak: number;
   cutoffIso: string;
-  me: { id: string; handle: string };
+  me: { id: string; handle: string; payHandle?: string | null };
   origin: string;
 }) {
   const joinUrl = `${origin}/grupos?join=${group.invite_code}`;
@@ -70,6 +71,8 @@ export function GroupView({ group, rows, streak, cutoffIso, me, origin }: {
         recapUrl={recapUrl}
         storyUrl={storyUrl}
       />
+
+      <GroupMoney groupId={group.id} myId={me.id} myPayHandle={me.payHandle ?? null} />
 
       {/* QR del enlace de invitación: grupos presenciales (boda, bar) */}
       <section className="flex flex-col items-center gap-2 rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] p-4">
