@@ -4,7 +4,7 @@ import {
   HttpMoneyProvider,
   providerEnvSuffix,
   type MoneyProvider,
-  type MoneyWebhookEvent,
+  type ProviderWebhookEvent,
 } from "@/packages/money-provider/src";
 import { signBody } from "@/packages/money-provider/src/signing";
 
@@ -15,7 +15,7 @@ export type ProviderEnv = { env: string; siteUrl: string; supabaseUrl: string };
 
 // Firma un aviso simulado y lo envía al Edge Function money-webhook, igual que
 // haría el proveedor real. El secreto es el mismo que verifica la función.
-export async function postSignedWebhook(url: string, secret: string, evt: MoneyWebhookEvent): Promise<Response> {
+export async function postSignedWebhook(url: string, secret: string, evt: ProviderWebhookEvent): Promise<Response> {
   const rawBody = JSON.stringify(evt);
   const sig = await signBody(secret, rawBody);
   return fetch(url, {

@@ -14,11 +14,16 @@
 import { signBody } from "./signing";
 import type {
   CreatePoolInput,
+  DepositInput,
   Eligibility,
   EligibilityReason,
+  EscrowHoldInput,
+  EscrowSettleInput,
   KycStatus,
   MoneyProvider,
   PoolStatus,
+  WalletBalance,
+  WithdrawInput,
 } from "./types";
 
 export interface HttpProviderConfig {
@@ -155,6 +160,69 @@ export class HttpMoneyProvider implements MoneyProvider {
       status: (OK_POOL as readonly string[]).includes(r.status ?? "") ? (r.status as PoolStatus) : "open",
       participants: typeof r.participants === "number" ? r.participants : 0,
     };
+  }
+
+  // -- wallet + escrow (el dinero vive en el proveedor; aquí solo referencias) --
+  async ensureAccount(userId: string, country: string): Promise<{ externalAccountId: string; kycLevel: number }> {
+    const r = await this.call<{ externalAccountId: string; kycLevel?: number }>(
+      "POST", "/accounts", { userId, country }, `acct:${userId}`,
+    );
+    return { externalAccountId: r.externalAccountId, kycLevel: typeof r.kycLevel === "number" ? r.kycLevel : 0 };
+  }
+
+  async getBalance(externalAccountId: string): Promise<WalletBalance> {
+    const r = await this.call<{ availableMinor?: number; lockedMinor?: number; currency?: string }>(
+      "GET", `/accounts/${encodeURIComponent(externalAccountId)}/balance`,
+    );
+    return {
+      availableMinor: typeof r.availableMinor === "number" ? r.availableMinor : 0,
+      lockedMinor: typeof r.lockedMinor === "number" ? r.lockedMinor : 0,
+      currency: r.currency ?? "EUR",
+    };
+  }
+
+  async deposit(input: DepositInput): Promise<{ cashierUrl: string; ledgerRef: string }> {
+    const r = await this.call<{ cashierUrl: string; ledgerRef: string }>(
+      "POST", "/deposits",
+      { externalAccountId: input.externalAccountId, amountMinor: input.amountMinor, method: input.method, returnUrl: input.returnUrl },
+      input.idempotencyKey,
+    );
+    return { cashierUrl: r.cashierUrl, ledgerRef: r.ledgerRef };
+  }
+
+  async withdraw(input: WithdrawInput): Promise<{ ledgerRef: string }> {
+    const r = await this.call<{ ledgerRef: string }>(
+      "POST", "/withdrawals",
+      { externalAccountId: input.externalAccountId, amountMinor: input.amountMinor, destinationRef: input.destinationRef },
+      input.idempotencyKey,
+    );
+    return { ledgerRef: r.ledgerRef };
+  }
+
+  async escrowHold(input: EscrowHoldInput): Promise<{ ledgerRef: string }> {
+    const r = await this.call<{ ledgerRef: string }>(
+      "POST", `/pools/${encodeURIComponent(input.externalPoolId)}/hold`,
+      { externalAccountId: input.externalAccountId, amountMinor: input.amountMinor },
+      input.idempotencyKey,
+    );
+    return { ledgerRef: r.ledgerRef };
+  }
+
+  async escrowSettle(input: EscrowSettleInput): Promise<{ accepted: boolean }> {
+    const r = await this.call<{ accepted?: boolean }>(
+      "POST", `/pools/${encodeURIComponent(input.externalPoolId)}/escrow-settle`,
+      { winners: input.winners, rakeMinor: input.rakeMinor },
+      `escrow-settle:${input.externalPoolId}`,
+    );
+    return { accepted: r.accepted === true };
+  }
+
+  async escrowRefund(input: { externalPoolId: string }): Promise<{ accepted: boolean }> {
+    const r = await this.call<{ accepted?: boolean }>(
+      "POST", `/pools/${encodeURIComponent(input.externalPoolId)}/escrow-refund`, {},
+      `escrow-refund:${input.externalPoolId}`,
+    );
+    return { accepted: r.accepted === true };
   }
 }
 

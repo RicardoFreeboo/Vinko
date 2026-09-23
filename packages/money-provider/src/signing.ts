@@ -2,7 +2,7 @@
 // MISMO algoritmo que supabase/functions/money-webhook/verify.ts (copia en Deno):
 // solo Web Crypto (`globalThis.crypto.subtle`) y TextEncoder, sin imports de Node,
 // para que el archivo sea idéntico en Node 20+ y en Deno.
-import type { MoneyWebhookType } from "./types";
+import type { MoneyWebhookType, WalletWebhookType } from "./types";
 
 export const SIG_HEADER = "x-money-signature"; // "t=<unix s>,v1=<hex>"
 export const EVENT_HEADER = "x-money-event-id";
@@ -93,7 +93,8 @@ export async function verifySignature(
   return ok ? { ok: true } : { ok: false, reason: "mismatch" };
 }
 
-/** `${type}:${parts.join(':')}` — determinista ⇒ idempotencia por event_id en BD. */
-export function eventId(type: MoneyWebhookType, ...parts: string[]): string {
+/** `${type}:${parts.join(':')}` — determinista ⇒ idempotencia por event_id en BD.
+ *  Acepta cualquier tipo de webhook (dinero de porras o wallet/escrow). */
+export function eventId(type: MoneyWebhookType | WalletWebhookType, ...parts: string[]): string {
   return `${type}:${parts.join(":")}`;
 }

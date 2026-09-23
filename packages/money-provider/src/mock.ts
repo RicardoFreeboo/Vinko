@@ -4,25 +4,37 @@
 // que emite llevan event_id determinista (eventId) para que la BD deduplique.
 import { eventId } from "./signing";
 import type {
+  DepositInput,
   Eligibility,
+  EscrowHoldInput,
+  EscrowSettleInput,
   KycStatus,
   MoneyProvider,
   MoneyWebhookEvent,
   MoneyWebhookPayload,
   MoneyWebhookType,
   PoolStatus,
+  ProviderWebhookEvent,
   CreatePoolInput,
+  WalletBalance,
+  WalletWebhookEvent,
+  WalletWebhookType,
+  WithdrawInput,
 } from "./types";
 
 export interface MockOptions {
   /** El app lo cablea a firmar + POST al Edge Function money-webhook. */
-  emit: (evt: MoneyWebhookEvent) => Promise<void>;
+  emit: (evt: ProviderWebhookEvent) => Promise<void>;
   /** Base del cajero simulado. Default '/money/mock'. */
   cashierBase?: string;
   /** Estado KYC simulado por usuario. Default () => 'verified'. */
   kyc?: (userId: string) => KycStatus;
   /** Consulta externa del estado de una bolsa (el mock no lo guarda). */
   lookup?: (externalPoolId: string) => Promise<{ status: PoolStatus; participants: number; winners_n?: number }>;
+  /** Saldo simulado de una cuenta (el mock no guarda estado; lo aporta quien lo cablea). */
+  balances?: (externalAccountId: string) => Promise<WalletBalance> | WalletBalance;
+  /** Nivel KYC simulado (0-3). Default 2 (dinero real permitido). */
+  kycLevel?: (userId: string) => number;
 }
 
 const DEFAULT_CASHIER_BASE = "/money/mock";
@@ -35,6 +47,13 @@ const DEFAULT_CASHIER_BASE = "/money/mock";
  */
 export function mockEvent(type: MoneyWebhookType, payload: MoneyWebhookPayload): MoneyWebhookEvent {
   const parts = [payload.external_pool_id, payload.participation_ref, payload.user_id, payload.country, payload.kyc_status]
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+  return { event_id: eventId(type, ...parts), type, provider: "mock", payload };
+}
+
+/** Igual que mockEvent pero para webhooks de wallet/escrow (event_id determinista). */
+export function mockWalletEvent(type: WalletWebhookType, payload: MoneyWebhookPayload): WalletWebhookEvent {
+  const parts = [payload.external_account_id, payload.ledger_ref, payload.external_pool_id, payload.user_id]
     .filter((p): p is string => typeof p === "string" && p.length > 0);
   return { event_id: eventId(type, ...parts), type, provider: "mock", payload };
 }
@@ -117,5 +136,72 @@ export class MockMoneyProvider implements MoneyProvider {
     if (!this.opts.lookup) return { status: "open", participants: 0 };
     const st = await this.opts.lookup(externalPoolId);
     return { status: st.status, participants: st.participants };
+  }
+
+  // -- wallet + escrow (deterministas; el saldo lo aporta opts.balances) ------
+  async ensureAccount(userId: string, country: string): Promise<{ externalAccountId: string; kycLevel: number }> {
+    const externalAccountId = `mockacct:${userId}`;
+    const kycLevel = this.opts.kycLevel ? this.opts.kycLevel(userId) : 2;
+    await this.opts.emit(mockWalletEvent("account.created", { external_account_id: externalAccountId, user_id: userId, country, kyc_level: kycLevel }));
+    return { externalAccountId, kycLevel };
+  }
+
+  async getBalance(externalAccountId: string): Promise<WalletBalance> {
+    if (this.opts.balances) return this.opts.balances(externalAccountId);
+    return { availableMinor: 0, lockedMinor: 0, currency: "EUR" };
+  }
+
+  async deposit(input: DepositInput): Promise<{ cashierUrl: string; ledgerRef: string }> {
+    const ledgerRef = `mockdep:${input.externalAccountId}:${input.idempotencyKey}`;
+    const q =
+      `acct=${encodeURIComponent(input.externalAccountId)}` +
+      `&ref=${encodeURIComponent(ledgerRef)}` +
+      `&amount=${encodeURIComponent(String(input.amountMinor))}` +
+      `&method=${encodeURIComponent(input.method)}` +
+      `&return=${encodeURIComponent(input.returnUrl)}`;
+    // El mock auto-aprueba: el cajero devuelve y el webhook confirma (el núcleo espera al webhook).
+    await this.opts.emit(mockWalletEvent("wallet.deposit.completed", {
+      external_account_id: input.externalAccountId, ledger_ref: ledgerRef, kind: "deposit",
+      amount_minor: input.amountMinor, method: input.method,
+    }));
+    return { cashierUrl: `${this.cashierBase}/deposit?${q}`, ledgerRef };
+  }
+
+  async withdraw(input: WithdrawInput): Promise<{ ledgerRef: string }> {
+    const ledgerRef = `mockwd:${input.externalAccountId}:${input.idempotencyKey}`;
+    // Las retiradas pasan por revisión: el mock las deja 'pending' (no auto-completa).
+    await this.opts.emit(mockWalletEvent("wallet.withdraw.pending", {
+      external_account_id: input.externalAccountId, ledger_ref: ledgerRef, kind: "withdraw",
+      amount_minor: input.amountMinor,
+    }));
+    return { ledgerRef };
+  }
+
+  async escrowHold(input: EscrowHoldInput): Promise<{ ledgerRef: string }> {
+    const ledgerRef = `mockhold:${input.externalPoolId}:${input.externalAccountId}`;
+    await this.opts.emit(mockWalletEvent("escrow.held", {
+      external_pool_id: input.externalPoolId, external_account_id: input.externalAccountId,
+      ledger_ref: ledgerRef, kind: "stake_hold", amount_minor: input.amountMinor,
+    }));
+    return { ledgerRef };
+  }
+
+  async escrowSettle(input: EscrowSettleInput): Promise<{ accepted: boolean }> {
+    // Un apunte de pago por acertante + un apunte de comisión de Vinko (la retiene el proveedor).
+    for (const w of input.winners) {
+      await this.opts.emit(mockWalletEvent("escrow.payout", {
+        external_pool_id: input.externalPoolId, external_account_id: w.externalAccountId,
+        ledger_ref: `mockpay:${input.externalPoolId}:${w.externalAccountId}`, kind: "payout", amount_minor: w.amountMinor,
+      }));
+    }
+    await this.opts.emit(mockWalletEvent("escrow.released", {
+      external_pool_id: input.externalPoolId, kind: "rake", amount_minor: input.rakeMinor,
+    }));
+    return { accepted: true };
+  }
+
+  async escrowRefund(input: { externalPoolId: string }): Promise<{ accepted: boolean }> {
+    await this.opts.emit(mockWalletEvent("escrow.refunded", { external_pool_id: input.externalPoolId, kind: "refund" }));
+    return { accepted: true };
   }
 }
