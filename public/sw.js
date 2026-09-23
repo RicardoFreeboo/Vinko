@@ -4,6 +4,10 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
+// Handler de fetch mínimo (pass-through): habilita el criterio de instalabilidad
+// PWA en Chrome/Android. No intercepta nada: el navegador maneja cada request.
+self.addEventListener("fetch", () => {});
+
 self.addEventListener("push", (event) => {
   let data = { title: "Vinko", body: "", url: "/", class: "sistema" };
   try { data = { ...data, ...event.data.json() }; } catch { /* payload no JSON */ }

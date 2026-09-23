@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { ensurePushSubscription } from "@/lib/push";
+import { ensurePushSubscription, registerSW } from "@/lib/push";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
@@ -34,6 +34,9 @@ export function AppNav() {
   const path = usePathname();
 
   useEffect(() => {
+    // Registrar el SW SIEMPRE (aunque no haya permiso de push): sin esto Chrome
+    // no dispara beforeinstallprompt y la PWA no es instalable en Android.
+    void registerSW();
     // Revalidar la suscripción push en CADA apertura (iOS la cancela solo, §5.1)
     void ensurePushSubscription();
     // Racha: marcar la entrada del día (una vez/día por navegador).

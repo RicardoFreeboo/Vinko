@@ -1,0 +1,17 @@
+{
+  "club.title": "Vinko Club",
+  "club.tagline": "No ads, cosmetics and more groups. Support Vinko.",
+  "club.monthly": "{price}/mo",
+  "club.annual": "{price}/yr",
+  "club.join": "Join the Club",
+  "club.active": "You're Club",
+  "club.manage": "Manage subscription",
+  "club.soon": "Coming soon",
+  "club.err": "Couldn't open payment. Try again.",
+  "club.note": "The Club gives no Vinkos or advantage: extras only. Payment is processed by Stripe; Vinko never stores your card.",
+  "club.perk.no_ads": "No ads",
+  "club.perk.cosmetics": "Cosmetics",
+  "club.perk.stats": "Advanced stats",
+  "club.perk.more_groups": "More groups",
+  "club.perk.focus_monthly": "Monthly focus included"
+}
