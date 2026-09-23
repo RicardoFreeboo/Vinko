@@ -1,0 +1,466 @@
+/* ============================================================================
+   Portada (app/page.tsx). Todo con prefijo .lx- para no tocar el resto de la
+   app. 3D con CSS (perspective + preserve-3d): va por GPU y no carga three.js,
+   así la portada sigue rápida en un Android medio con 4G.
+   Sin JS todo se ve (los reveal solo se esconden cuando el observer se arma).
+   prefers-reduced-motion: se paran todas las animaciones al final del fichero.
+   ============================================================================ */
+
+.lx {
+  position: relative;
+  overflow-x: clip;
+  isolation: isolate;
+  background: var(--ink);
+}
+
+/* ---------- fondo: auroras + suelo de rejilla en perspectiva ---------- */
+.lx-bg {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: min(1100px, 150vh);
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.lx-aurora {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+  will-change: transform;
+}
+.lx-aurora.a1 {
+  width: 520px; height: 520px; left: -140px; top: -160px;
+  background: radial-gradient(circle, rgba(31, 224, 122, 0.55), transparent 65%);
+  animation: lx-drift1 18s ease-in-out infinite alternate;
+}
+.lx-aurora.a2 {
+  width: 460px; height: 460px; right: -160px; top: 120px;
+  background: radial-gradient(circle, rgba(255, 194, 61, 0.42), transparent 65%);
+  animation: lx-drift2 22s ease-in-out infinite alternate;
+}
+.lx-aurora.a3 {
+  width: 380px; height: 380px; left: 35%; top: 420px;
+  background: radial-gradient(circle, rgba(17, 184, 99, 0.35), transparent 65%);
+  animation: lx-drift1 26s ease-in-out infinite alternate-reverse;
+}
+@keyframes lx-drift1 { to { transform: translate3d(120px, 80px, 0) scale(1.15); } }
+@keyframes lx-drift2 { to { transform: translate3d(-110px, 60px, 0) scale(0.9); } }
+
+.lx-floor {
+  position: absolute;
+  left: -50%; right: -50%;
+  bottom: 0;
+  height: 55%;
+  perspective: 420px;
+  perspective-origin: 50% 0%;
+  mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 60%, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 35%, #000 60%, transparent);
+}
+.lx-floor::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 -60% 0;
+  transform: rotateX(62deg);
+  transform-origin: 50% 0%;
+  background-image:
+    linear-gradient(rgba(31, 224, 122, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(31, 224, 122, 0.22) 1px, transparent 1px);
+  background-size: 56px 56px;
+  animation: lx-grid 3.2s linear infinite;
+}
+@keyframes lx-grid { to { background-position: 0 56px; } }
+
+.lx-noise {
+  position: absolute; inset: 0;
+  background: radial-gradient(120% 70% at 50% 0%, transparent 40%, var(--ink) 95%);
+}
+
+/* ---------- tipografía y piezas comunes ---------- */
+.lx-grad {
+  background: linear-gradient(100deg, var(--win) 0%, #8af5bd 35%, var(--gold) 70%, #ffe29a 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: lx-shine 6s ease-in-out infinite alternate;
+}
+@keyframes lx-shine { to { background-position: 100% 0; } }
+
+.lx-pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid rgba(31, 224, 122, 0.35);
+  background: rgba(31, 224, 122, 0.07);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+.lx-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--win);
+  box-shadow: 0 0 0 0 rgba(31, 224, 122, 0.7);
+  animation: lx-ping 1.8s ease-out infinite;
+}
+@keyframes lx-ping {
+  0% { box-shadow: 0 0 0 0 rgba(31, 224, 122, 0.7); }
+  100% { box-shadow: 0 0 0 10px rgba(31, 224, 122, 0); }
+}
+
+.lx-btn {
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  border-radius: 16px;
+  font-weight: 900;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transform: translateZ(0);
+}
+.lx-btn-primary {
+  background: linear-gradient(180deg, #3cf08f, var(--win) 45%, var(--windeep));
+  color: var(--ink);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.45) inset,
+    0 -3px 0 rgba(0, 0, 0, 0.18) inset,
+    0 10px 30px -8px rgba(31, 224, 122, 0.65),
+    0 6px 0 #0a8c4b;
+  overflow: hidden;
+}
+.lx-btn-primary::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: lx-sweep 3.8s ease-in-out infinite;
+}
+@keyframes lx-sweep { 0%, 60% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.lx-btn-primary:hover { transform: translateY(-2px); }
+.lx-btn-primary:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(255,255,255,.45) inset, 0 2px 0 #0a8c4b; }
+.lx-btn-ghost {
+  border: 1px solid var(--line);
+  background: rgba(244, 241, 233, 0.03);
+  color: var(--cream);
+  backdrop-filter: blur(6px);
+}
+.lx-btn-ghost:hover { border-color: rgba(31, 224, 122, 0.5); transform: translateY(-2px); }
+
+/* ---------- rotador de "lo que os jugáis" (flip 3D vertical) ---------- */
+.lx-rot {
+  position: relative;
+  display: block;
+  height: 1.25em;
+  perspective: 600px;
+}
+.lx-rot-item {
+  position: absolute; left: 0; right: 0; top: 0;
+  white-space: nowrap;
+  transform-origin: 50% 50% -0.6em;
+  opacity: 0;
+  transform: rotateX(-90deg);
+  transition: transform 0.6s cubic-bezier(.2, .9, .25, 1.2), opacity 0.4s ease;
+}
+.lx-rot-item[data-state="in"] { opacity: 1; transform: rotateX(0deg); }
+.lx-rot-item[data-state="out"] { opacity: 0; transform: rotateX(90deg); }
+.lx-rot-static .lx-rot-item:first-child { opacity: 1; transform: none; }
+
+/* ---------- escenario 3D del héroe ---------- */
+.lx-stage {
+  position: relative;
+  perspective: 1400px;
+  display: grid;
+  place-items: center;
+}
+.lx-rig {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx, 8deg)) rotateY(var(--ry, -16deg));
+  will-change: transform;
+}
+.lx-rig[data-auto="1"] { animation: lx-sway 9s ease-in-out infinite; }
+@keyframes lx-sway {
+  0%, 100% { transform: rotateX(8deg) rotateY(-18deg); }
+  50% { transform: rotateX(4deg) rotateY(12deg); }
+}
+
+/* móvil */
+.lx-phone {
+  position: relative;
+  width: 290px;
+  height: 590px;
+  border-radius: 46px;
+  padding: 11px;
+  transform-style: preserve-3d;
+  background: linear-gradient(145deg, #2c3637, #0f1415 40%, #222b2c);
+  box-shadow:
+    0 0 0 1.5px rgba(255, 255, 255, 0.08) inset,
+    0 50px 90px -20px rgba(0, 0, 0, 0.85),
+    0 0 80px -10px rgba(31, 224, 122, 0.25);
+}
+/* grosor del móvil: canto lateral falso detrás */
+.lx-phone::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: #0a0e0f;
+  transform: translateZ(-14px);
+  box-shadow: 0 0 0 2px #1a2223;
+}
+.lx-screen {
+  position: relative;
+  height: 100%;
+  border-radius: 36px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 60% at 50% 0%, rgba(31, 224, 122, 0.12), transparent 60%),
+    var(--ink);
+  transform: translateZ(1px);
+}
+.lx-glare {
+  position: absolute; inset: 0;
+  border-radius: 36px;
+  pointer-events: none;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.14) 0%, transparent 32%, transparent 70%, rgba(255, 255, 255, 0.05));
+  transform: translateZ(2px);
+}
+.lx-notch {
+  position: absolute; left: 50%; top: 10px;
+  width: 96px; height: 26px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #000;
+  z-index: 5;
+}
+
+/* fichas flotantes alrededor del móvil (profundidad real con translateZ) */
+.lx-float {
+  position: absolute;
+  z-index: 3;
+  white-space: nowrap;
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7);
+  transform-style: preserve-3d;
+}
+.lx-float > span { display: inline-flex; align-items: center; gap: 8px; animation: lx-bob 5s ease-in-out infinite; }
+.lx-float.f1 { left: -118px; top: 104px; transform: translateZ(90px); background: #1a7a4a; color: #eafff2; border-radius: 16px 16px 16px 4px; }
+.lx-float.f2 { right: -110px; top: 190px; transform: translateZ(130px); background: rgba(20, 26, 27, 0.85); border: 1px solid rgba(255, 194, 61, 0.45); color: var(--gold); }
+.lx-float.f3 { left: -170px; bottom: 58px; transform: translateZ(110px); background: rgba(20, 26, 27, 0.85); border: 1px solid rgba(31, 224, 122, 0.4); color: var(--cream); }
+.lx-float.f4 { right: -110px; bottom: 150px; transform: translateZ(70px); background: rgba(20, 26, 27, 0.85); border: 1px solid var(--line); color: var(--cream); }
+.lx-float.f2 > span { animation-delay: -1.2s; }
+.lx-float.f3 > span { animation-delay: -2.5s; }
+.lx-float.f4 > span { animation-delay: -3.7s; }
+@keyframes lx-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+
+.lx-coin-slot { position: absolute; z-index: 4; right: -40px; top: -30px; transform: translateZ(170px); }
+.lx-coin-slot.s2 { right: auto; left: -60px; top: auto; bottom: -30px; transform: translateZ(40px); }
+
+/* móvil pequeño: el escenario se escala y las fichas se recogen */
+@media (max-width: 640px) {
+  .lx-stage { height: 520px; }
+  .lx-rig { scale: 0.78; }
+  .lx-float { font-size: 12px; padding: 8px 12px; }
+  .lx-float.f1 { left: -58px; top: 54px; }
+  .lx-float.f2 { right: -66px; top: 250px; }
+  .lx-float.f3 { left: -64px; bottom: 30px; }
+  .lx-float.f4 { right: -48px; bottom: 150px; }
+  .lx-coin-slot { right: -18px; top: -24px; }
+  .lx-coin-slot.s2 { left: -30px; }
+}
+
+/* ---------- moneda 3D (capas en Z = canto con grosor) ---------- */
+.lx-coin {
+  position: relative;
+  width: var(--s, 72px);
+  height: var(--s, 72px);
+  transform-style: preserve-3d;
+  animation: lx-spin 5s linear infinite;
+}
+.lx-coin > i {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  background: #b98014;
+}
+.lx-coin > .lx-coin-face {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.lx-coin > .lx-coin-face svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 0 10px rgba(255, 194, 61, 0.35)); }
+@keyframes lx-spin {
+  0% { transform: rotateY(0deg) rotateX(12deg); }
+  100% { transform: rotateY(360deg) rotateX(12deg); }
+}
+.lx-coin-wrap { animation: lx-bob 4.5s ease-in-out infinite; }
+
+/* ---------- demo dentro del móvil ---------- */
+.lx-demo-card {
+  animation: lx-card-in 0.7s cubic-bezier(.2, .9, .25, 1.1) both;
+  transform-origin: 50% 0%;
+}
+@keyframes lx-card-in {
+  from { opacity: 0; transform: perspective(700px) rotateX(-40deg) translateY(30px) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+.lx-opt {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.35s ease, transform 0.35s ease, background-color 0.35s ease;
+}
+.lx-opt-bar {
+  position: absolute; inset: 0 auto 0 0;
+  width: 0;
+  opacity: 0.16;
+  transition: width 1.1s cubic-bezier(.2, .8, .2, 1);
+}
+.lx-opt[data-picked="1"] { transform: scale(1.03); }
+.lx-opt[data-win="1"] { box-shadow: 0 0 0 1px var(--win), 0 0 24px -4px rgba(31, 224, 122, 0.8); }
+.lx-tap {
+  position: absolute; right: 18px; top: 50%;
+  width: 34px; height: 34px;
+  margin-top: -17px;
+  border-radius: 50%;
+  border: 2px solid var(--cream);
+  animation: lx-tap 0.9s ease-out both;
+  pointer-events: none;
+}
+@keyframes lx-tap {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+.lx-finger {
+  position: absolute; right: 14px; top: 58%;
+  font-size: 22px;
+  animation: lx-finger 0.9s cubic-bezier(.2, .9, .3, 1) both;
+  pointer-events: none;
+}
+@keyframes lx-finger {
+  0% { transform: translate(40px, 60px); opacity: 0; }
+  60% { transform: translate(0, 0) scale(1); opacity: 1; }
+  75% { transform: scale(0.85); }
+  100% { transform: scale(1); opacity: 0.9; }
+}
+.lx-avatar {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--ink2);
+  margin-left: -7px;
+  display: grid; place-items: center;
+  font-size: 10px; font-weight: 900; color: var(--ink);
+  animation: lx-pop 0.45s cubic-bezier(.3, 1.6, .5, 1) both;
+}
+.lx-avatar:first-child { margin-left: 0; }
+@keyframes lx-pop { from { transform: scale(0); } to { transform: scale(1); } }
+.lx-result {
+  animation: lx-rise 0.6s cubic-bezier(.2, .9, .25, 1.2) both;
+}
+@keyframes lx-rise {
+  from { opacity: 0; transform: translateY(24px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+.lx-confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 6; }
+.lx-confetti i {
+  position: absolute; top: 45%; left: 50%;
+  width: 7px; height: 11px; border-radius: 2px;
+  animation: lx-burst 1.4s cubic-bezier(.15, .7, .35, 1) forwards;
+}
+@keyframes lx-burst {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+.lx-progress { height: 3px; border-radius: 3px; background: rgba(244, 241, 233, 0.08); overflow: hidden; }
+.lx-progress > b { display: block; height: 100%; background: var(--win); animation: lx-progress linear forwards; }
+@keyframes lx-progress { from { width: 0; } to { width: 100%; } }
+
+/* ---------- cinta de "lo que os jugáis" (marquee 3D) ---------- */
+.lx-ticker-wrap {
+  perspective: 900px;
+  mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+}
+.lx-ticker-tilt { transform: rotateX(18deg) rotateZ(-2deg); transform-style: preserve-3d; }
+.lx-ticker { display: flex; width: max-content; gap: 12px; animation: lx-marquee 38s linear infinite; }
+.lx-ticker.rev { animation-direction: reverse; animation-duration: 44s; }
+@keyframes lx-marquee { to { transform: translateX(-50%); } }
+.lx-chip {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(244, 241, 233, 0.06), rgba(244, 241, 233, 0.02));
+  border-radius: 999px;
+  padding: 12px 20px;
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+  color: var(--cream);
+  box-shadow: 0 8px 20px -10px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- tarjetas con inclinación 3D al pasar el ratón ---------- */
+.lx-tilt {
+  position: relative;
+  transform-style: preserve-3d;
+  transform: perspective(900px) rotateX(var(--trx, 0deg)) rotateY(var(--try, 0deg));
+  transition: transform 0.25s ease-out, border-color 0.3s ease;
+  will-change: transform;
+}
+.lx-tilt[data-hover="1"] { transition: transform 0.08s linear, border-color 0.3s ease; }
+.lx-tilt-glare {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(420px circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.12), transparent 45%);
+}
+.lx-tilt[data-hover="1"] .lx-tilt-glare { opacity: 1; }
+.lx-pop-z { transform: translateZ(40px); }
+.lx-pop-z2 { transform: translateZ(24px); }
+
+.lx-mode {
+  border-radius: 24px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(140% 90% at 0% 0%, var(--tint, rgba(31, 224, 122, 0.14)), transparent 55%),
+    linear-gradient(180deg, #161d1e, #101516);
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.9);
+}
+.lx-mode-icon {
+  width: 64px; height: 64px;
+  border-radius: 18px;
+  display: grid; place-items: center;
+  font-size: 32px;
+  background: rgba(244, 241, 233, 0.05);
+  border: 1px solid var(--line);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.9);
+}
+
+/* ---------- pasos ---------- */
+.lx-step-num {
+  font-family: var(--mono);
+  font-weight: 900;
+  font-size: 56px;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(31, 224, 122, 0.7);
+  text-shadow: 4px 4px 0 rgba(31, 224, 122, 0.12), 8px 8px 0 rgba(31, 224, 122, 0.06);
+}
+
+/* ---------- aparición al hacer scroll (solo si el observer está armado) ---------- */
+.lx-armed [data-reveal] {
+  opacity: 0;
+  transform: perspective(900px) translateY(40px) rotateX(14deg);
+  transition: opacity 0.8s ease, transform 0.9s cubic-bezier(.2, .8, .2, 1);
+  transition-delay: var(--d, 0s);
+}
+.lx-armed [data-reveal][data-in="1"] { opacity: 1; transform: none; }
+
+/* ---------- movimiento reducido: todo quieto, todo visible ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .lx *, .lx *::before, .lx *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .lx-armed [data-reveal] { opacity: 1; transform: none; }
+  .lx-rig { transform: rotateX(6deg) rotateY(-14deg); }
+  .lx-ticker { flex-wrap: wrap; width: auto; justify-content: center; }
+  .lx-ticker > [aria-hidden] { display: none; }
+}
