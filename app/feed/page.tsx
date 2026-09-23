@@ -32,6 +32,9 @@ export default async function Feed() {
   const feedPicks: Record<string, string> = {};
 
   if (session && sb) {
+    // Marca la ENTRADA del día ANTES de leer la racha, para que se vea ya en esta
+    // carga sin parpadeo (idempotente por día; complementa el tick de cliente).
+    await sb.rpc("daily_open");
     const [{ data: p }, { data: d }, { data: pv }, { count: n }] = await Promise.all([
       sb.from("profiles").select("streak_days, streak_last, role").eq("id", session.id).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", today).eq("lang", "es").in("status", ["open", "resolved"]).maybeSingle(),

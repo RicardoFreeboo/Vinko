@@ -104,6 +104,8 @@ export default async function Saldo() {
   }
 
   const sb = await supabaseServer();
+  // Marca la ENTRADA del día ANTES de leer la racha (idempotente por día).
+  if (sb) await sb.rpc("daily_open");
   const [{ data: p }, { data: cfgRows }] = await Promise.all([
     sb!.from("profiles")
       .select("points, xp, marcador_total, streak_days, streak_best, streak_last, streak_shields, streak_broken_days, streak_recover_until, division, daily_bonus_last, daily_bonus_step, role, club_active, country, safer_play")
