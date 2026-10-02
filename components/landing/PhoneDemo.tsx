@@ -11,11 +11,18 @@ import { t } from "@/lib/i18n";
 // Se pausa fuera de pantalla o con la pestaña oculta. Movimiento reducido →
 // se queda quieta en el resultado del primer ejemplo.
 
-type Scenario = { k: "a" | "b" | "c"; pick: number; pct: number[]; accent: string };
+type Scenario = { k: "a" | "b" | "c" | "d"; pick: number; pct: number[]; accent: string };
 
-const SCENARIOS: Scenario[] = [
+// Con dinero (flag MON-01 encendido): una ronda · 5 € entre amigos · Vinkos.
+// Sin dinero: el escenario "b" (euros) se sustituye por "d" (una ronda de cañas).
+const SCENARIOS_MONEY: Scenario[] = [
   { k: "a", pick: 2, pct: [24, 29, 47], accent: "var(--gold)" },
   { k: "b", pick: 0, pct: [56, 28, 16], accent: "var(--win)" },
+  { k: "c", pick: 1, pct: [34, 53, 13], accent: "var(--gold)" },
+];
+const SCENARIOS_NM: Scenario[] = [
+  { k: "a", pick: 2, pct: [24, 29, 47], accent: "var(--gold)" },
+  { k: "d", pick: 1, pct: [31, 46, 23], accent: "var(--win)" },
   { k: "c", pick: 1, pct: [34, 53, 13], accent: "var(--gold)" },
 ];
 
@@ -40,7 +47,8 @@ const CONFETTI = Array.from({ length: 20 }, (_, i) => {
   };
 });
 
-export function PhoneDemo() {
+export function PhoneDemo({ money = false }: { money?: boolean }) {
+  const SCENARIOS = money ? SCENARIOS_MONEY : SCENARIOS_NM;
   const [s, setS] = useState(0);
   const [phase, setPhase] = useState(0);
   const [still, setStill] = useState(false);

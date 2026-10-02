@@ -3,7 +3,11 @@
 // no seguridad real (el código se deriva en el navegador). La versión robusta
 // (código firmado en servidor) llega con Node — ver docs/conexiones-pendientes.md.
 
-const SALT = "vinko-alfa-2026"; // rota este valor para invalidar todos los códigos
+// SEC-03: la sal vive en una variable de entorno (Vercel), NO en el repo. El
+// fallback está rotado respecto al valor que estuvo expuesto en público. Ojo:
+// NEXT_PUBLIC_* llega igualmente al bundle del navegador — esto sigue siendo un
+// candado SUAVE (documentado arriba), solo deja de estar escrito en GitHub.
+const SALT = process.env.NEXT_PUBLIC_GATE_SALT || "vk-rotada-oct26";
 
 // djb2 → 6 dígitos deterministas por día.
 export function dailyCode(day: string): string {

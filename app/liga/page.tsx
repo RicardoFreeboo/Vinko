@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
@@ -21,7 +21,7 @@ function weekStartUTC(): string {
 }
 
 export default async function Liga() {
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) {
     return (
       <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-5 px-6 text-center">

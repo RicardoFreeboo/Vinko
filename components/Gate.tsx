@@ -21,7 +21,11 @@ const KEY = "vinko_gate";
 //                           completar el login (ni con el código).
 // /secret (donde se lee el código) ya NO está abierta: solo con sesión. Ricardo,
 // que está logueado, la ve; un extraño no. El código se comparte fuera de la app.
-const ABIERTAS = ["/privacidad", "/terminos", "/auth"];
+// FX-01 (nota 2-oct, revierte el lockdown del 24-sep): la portada "/", las
+// porras compartidas "/p/*" y el camino de entrada (/login, /bienvenida) quedan
+// ABIERTOS aunque el candado siga encendido para el resto de la app. Sin esto,
+// nadie invitado por WhatsApp ve el enlace (ni el preview OG) sin el código.
+const ABIERTAS = ["/privacidad", "/terminos", "/auth", "/login", "/bienvenida", "/p/"];
 
 // El candado solo se enciende con NEXT_PUBLIC_ALPHA_GATE=on (quien tiene sesión
 // sigue entrando sin código). /admin va aparte: comprueba role=admin en servidor.
@@ -29,7 +33,7 @@ const GATE_OFF = process.env.NEXT_PUBLIC_ALPHA_GATE !== "on";
 
 export function Gate({ children, hasSession = false }: { children: React.ReactNode; hasSession?: boolean }) {
   const path = usePathname();
-  const bypass = GATE_OFF || hasSession || ABIERTAS.some((r) => path?.startsWith(r));
+  const bypass = GATE_OFF || hasSession || path === "/" || ABIERTAS.some((r) => path?.startsWith(r));
   const [ok, setOk] = useState(false);
   const [ready, setReady] = useState(false);
   const [input, setInput] = useState("");

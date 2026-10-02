@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
+import { fetchMe } from "@/lib/me";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getFeed } from "@/lib/feed";
 import { VerticalFeed } from "@/components/feed/VerticalFeed";
@@ -21,7 +23,7 @@ function madridDay(offset = 0): string {
 }
 
 export default async function Feed() {
-  const [session, feed] = await Promise.all([getSession(), getFeed()]);
+  const [session, feed] = await Promise.all([getMemberSession(), getFeed()]);
   const sb = await supabaseServer();
   const today = madridDay(), yesterday = madridDay(-1);
 
@@ -36,18 +38,19 @@ export default async function Feed() {
     // Marca la ENTRADA del día ANTES de leer la racha, para que se vea ya en esta
     // carga sin parpadeo (idempotente por día; complementa el tick de cliente).
     await sb.rpc("daily_open");
-    const [{ data: p }, { data: d }, { data: pv }, { count: n }] = await Promise.all([
-      sb.from("profiles").select("streak_days, streak_last, role").eq("id", session.id).maybeSingle(),
+    // SEC-01: streak_last y role ya no son columnas públicas → propio perfil vía me().
+    const [p, { data: d }, { data: pv }, { count: n }] = await Promise.all([
+      fetchMe(sb),
       sb.from("daily_picks").select("*").eq("scheduled_for", today).eq("lang", "es").in("status", ["open", "resolved"]).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", yesterday).eq("lang", "es").eq("status", "resolved").maybeSingle(),
       sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", session.id).is("read_at", null),
     ]);
     // La racha solo cuenta si el último día activo es hoy o ayer (misma regla
     // que WeekStreak en /cartera). Si no, está caducada → 0, no un número viejo.
-    const sl = (p as { streak_last?: string | null } | null)?.streak_last ?? null;
+    const sl = p?.streak_last ?? null;
     streak = sl && (sl === today || sl === yesterday) ? (p?.streak_days ?? 0) : 0;
     unread = n ?? 0;
-    isAdmin = (p as { role?: string } | null)?.role === "admin";
+    isAdmin = p?.role === "admin";
     if (d) {
       daily = { id: d.id, question: d.question, options: d.options as string[], status: d.status, correct_idx: d.correct_idx };
       const { data: a } = await sb.from("daily_pick_answers").select("option_idx").eq("day_id", d.id).eq("user_id", session.id).maybeSingle();
@@ -97,6 +100,7 @@ export default async function Feed() {
       </header>
 
       <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} isAdmin={isAdmin}
+        moneyUi={session && sb ? await moneyUiEnabled(sb) : false}
         isAdult={!!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18}
         intro={
           <>

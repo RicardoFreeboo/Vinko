@@ -1,6 +1,9 @@
 // TEMPORAL — escaparate para capturas. NO se commitea. Pinta los componentes
 // nuevos con datos de ejemplo (sin sesión) para localizarlos en la web.
 import { EuroWallet } from "@/components/EuroWallet";
+import { notFound } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
+import { moneyUiEnabled } from "@/lib/flags";
 import { SaferPlayClient } from "@/components/SaferPlayClient";
 import { GroupMoney } from "@/components/GroupMoney";
 import { MoneyRevenueAdmin } from "@/components/admin/MoneyRevenueAdmin";
@@ -43,7 +46,18 @@ function Block({ title, url, children }: { title: string; url: string; children:
   );
 }
 
-export default function Showcase() {
+
+// MON-01: material de inversores. Solo existe con el flag de dinero encendido Y
+// para un admin con sesión; para cualquier otro, 404.
+async function guardMoneyAdmin(): Promise<void> {
+  const sb = await supabaseServer();
+  if (!(await moneyUiEnabled(sb))) notFound();
+  const { data: adm } = sb ? await sb.rpc("is_admin") : { data: false };
+  if (adm !== true) notFound();
+}
+
+export default async function Showcase() {
+  await guardMoneyAdmin();
   return (
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-8 px-5 py-8">
       <h1 className="text-2xl font-black text-[var(--cream)]">Escaparate — novedades</h1>

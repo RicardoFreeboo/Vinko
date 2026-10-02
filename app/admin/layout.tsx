@@ -24,8 +24,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!sb) redirect("/login?next=/admin");
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect("/login?next=/admin");
-  const { data: me } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (me?.role !== "admin") redirect("/feed");
+  // SEC-01: role ya no es columna pública → RPC is_admin() (0002).
+  const { data: adm } = await sb.rpc("is_admin");
+  if (adm !== true) redirect("/feed");
 
   const labels: Record<string, string> = {};
   for (const k of NAV_KEYS) labels[k] = t(k);

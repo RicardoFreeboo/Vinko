@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { editorialBySlug } from "@/lib/editorial";
 import { Logo, VMark } from "@/components/Logo";
 import { VinkoCoin } from "@/components/VinkoCoin";
@@ -36,7 +36,7 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
   // Invitados (0040) y cuentas borradas (0037) no son personas reales: 404.
   if (!p || p.is_anonymous || p.deleted_at) notFound();
 
-  const session = await getSession();
+  const session = await getMemberSession();
   const isMe = session?.id === p.id;
 
   const [{ data: created }, { data: played }, { data: stats }, judgeRes] = await Promise.all([

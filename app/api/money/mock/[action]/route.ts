@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { mockEvent } from "@/packages/money-provider/src";
 import { postSignedWebhook } from "@/lib/money/provider";
@@ -21,7 +21,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ action:
   if ((process.env.VERCEL_ENV ?? "") === "production" || !secret || !supaUrl) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session || session.is_anonymous) return NextResponse.json({ error: "no_auth" }, { status: 401 });
 
   // Producción también según la config de negocio (misc.env), no solo VERCEL_ENV.

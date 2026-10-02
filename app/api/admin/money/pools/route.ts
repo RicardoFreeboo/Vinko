@@ -17,8 +17,9 @@ export async function POST(req: Request) {
   if (!sb) return NextResponse.json({ error: "no_backend" }, { status: 500 });
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "no_auth" }, { status: 401 });
-  const { data: me } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (me?.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  // SEC-01: role ya no es columna pública → RPC is_admin() (0002).
+  const { data: adm } = await sb.rpc("is_admin");
+  if (adm !== true) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const body = await req.json().catch(() => ({}));
   const porraId = typeof body.porraId === "string" ? body.porraId : "";

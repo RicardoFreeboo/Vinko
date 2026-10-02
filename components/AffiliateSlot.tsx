@@ -1,4 +1,4 @@
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { AffiliateCta } from "./AffiliateCta";
 import { t } from "@/lib/i18n";
@@ -9,7 +9,7 @@ import { t } from "@/lib/i18n";
 // apagado en todos los países (0045), hoy no pinta nada: es el age-gate de la
 // regla de oro 8 aplicado también a las vistas abiertas desde enlaces.
 export async function AffiliateSlot({ porraId }: { porraId?: string }) {
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session || session.is_anonymous) return null;
   const sb = await supabaseServer();
   if (!sb) return null;

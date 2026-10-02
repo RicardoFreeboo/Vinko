@@ -36,7 +36,13 @@ async function contexto() {
     q(sb.from("topic_proposals").select("status", { count: "exact", head: false }).in("status", ["pending_review", "published", "discarded"])),
     q(sb.from("notifications").select("class, created_at").gt("created_at", new Date(Date.now() - 86400e3).toISOString())),
     q(sb.from("daily_picks").select("scheduled_for, status, question").order("scheduled_for", { ascending: false }).limit(12)),
-    q(sb.from("profiles").select("created_at, referred_by, points, streak_days, role")),
+    q((async () => {
+      // SEC-01: columnas agregadas ya no públicas → RPC de admin (0055), con
+      // fallback al select de siempre mientras la migración no esté aplicada.
+      const r = await sb.rpc("admin_kpi_profiles");
+      if (!r.error) return r;
+      return sb.from("profiles").select("created_at, referred_by, points, streak_days, role");
+    })()),
   ]);
   const agg = (rows: unknown, key: string) => {
     if (!Array.isArray(rows)) return rows;
@@ -80,8 +86,9 @@ export async function POST(req: Request) {
   if (!sb) return NextResponse.json({ error: "sin backend" }, { status: 500 });
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "no_auth" }, { status: 401 });
-  const { data: me } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (me?.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  // SEC-01: role ya no es columna pública → RPC is_admin() (0002).
+  const { data: adm } = await sb.rpc("is_admin");
+  if (adm !== true) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return NextResponse.json({ error: "no_key" }, { status: 503 });

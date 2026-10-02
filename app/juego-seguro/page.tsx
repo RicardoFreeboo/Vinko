@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SaferPlayClient, type SaferState } from "@/components/SaferPlayClient";
 import { Logo } from "@/components/Logo";
@@ -14,7 +16,9 @@ export const metadata: Metadata = { title: t("safer.title"), robots: { index: fa
 // la Cartera. La preferencia del usuario (autoexclusión, límites) apaga su UI de
 // dinero; la aplicación real sobre cuentas la hace el operador en producción.
 export default async function JuegoSeguro() {
-  const session = await getSession();
+  // MON-01: sin el flag de dinero esta pantalla no existe (404).
+  if (!(await moneyUiEnabled(await supabaseServer()))) notFound();
+  const session = await getMemberSession();
   if (!session) {
     return (
       <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-5 px-6 text-center">

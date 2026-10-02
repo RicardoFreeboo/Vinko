@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { GruposClient } from "@/components/GruposClient";
 import { Logo } from "@/components/Logo";
@@ -19,7 +19,7 @@ const CODE_RX = /^[a-z0-9]{4,32}$/i;
 export default async function Grupos({ searchParams }: { searchParams: Promise<{ join?: string }> }) {
   const { join } = await searchParams;
   const code = typeof join === "string" && CODE_RX.test(join) ? join.toLowerCase() : null;
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) {
     const next = code ? `/grupos?join=${code}` : "/grupos";
     return (

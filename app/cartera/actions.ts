@@ -1,5 +1,5 @@
 "use server";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SITE } from "@/lib/share";
 import { initiateDeposit, initiateWithdraw } from "@/lib/money/wallet";
@@ -20,7 +20,7 @@ function simplify(vk: VkError): "off" | "kyc" | "error" {
 const ctx = () => ({ env: "", siteUrl: SITE, supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "" });
 
 async function meAndCountry() {
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session || session.is_anonymous) return null;
   const sb = await supabaseServer();
   if (!sb) return null;
