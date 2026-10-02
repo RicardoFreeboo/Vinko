@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { getClubConfig } from "@/lib/club";
 import { SITE } from "@/lib/share";
 
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   if (!key) return NextResponse.json({ error: "not_configured" }, { status: 503 });
 
   const sb = await supabaseServer();
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!sb || !session || session.is_anonymous) return NextResponse.json({ error: "no_auth" }, { status: 401 });
 
   const { plan } = (await req.json().catch(() => ({}))) as { plan?: string };

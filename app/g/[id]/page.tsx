@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
+import { fetchMe } from "@/lib/me";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { LeaderRow } from "@/components/GroupLeaderboard";
 import { GroupView, weekCutoff, type GroupInfo } from "./group-view";
@@ -14,7 +15,7 @@ export const metadata: Metadata = { title: t("grupo.standings"), robots: { index
 // (marcador_total de los miembros) para que la página siga viva.
 export default async function GroupPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) { notFound(); }
 
   const sb = await supabaseServer();
@@ -60,8 +61,8 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   // está aplicada: en ese caso, null y el usuario lo rellena cuando aparezca.
   let payHandle: string | null = null;
   {
-    const { data: prof } = await sb!.from("profiles").select("pay_handle").eq("id", session!.id).maybeSingle();
-    payHandle = (prof as { pay_handle?: string | null } | null)?.pay_handle ?? null;
+    const prof = await fetchMe(sb!); // SEC-01: pay_handle es privada → me()
+    payHandle = prof?.pay_handle ?? null;
   }
 
   // Gate del P2P con dinero (0054): apagado por defecto; solo se muestra si el

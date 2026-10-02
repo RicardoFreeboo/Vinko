@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { fetchMe } from "@/lib/me";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { AjustesClient } from "@/components/AjustesClient";
 import { AppNav } from "@/components/AppNav";
@@ -19,14 +20,12 @@ export const metadata: Metadata = {
 };
 
 export default async function Ajustes() {
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session) redirect("/login?next=/ajustes");
 
   const sb = await supabaseServer();
-  const { data } = sb
-    ? await sb.from("profiles").select("lang").eq("id", session.id).maybeSingle()
-    : { data: null };
-  const lang: "es" | "en" = data?.lang === "en" ? "en" : "es";
+  const me = sb ? await fetchMe(sb) : null; // SEC-01: lang es privada → me()
+  const lang: "es" | "en" = me?.lang === "en" ? "en" : "es";
   // Mismo criterio que el layout: analítica solo si vinko_consent === "1".
   const consent = (await cookies()).get("vinko_consent")?.value === "1";
 

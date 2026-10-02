@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { moneyForPool } from "@/lib/money/server";
 import { getMoneyProvider } from "@/lib/money/provider";
 import { getMoneyConfig } from "@/lib/money/config";
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   const sb = await supabaseServer();
   if (!sb) return NextResponse.json({ error: "no_backend" }, { status: 500 });
 
-  const session = await getSession();
+  const session = await getMemberSession();
   if (!session || session.is_anonymous) return NextResponse.json({ error: "no_auth" }, { status: 401 });
 
   const { poolId } = await req.json().catch(() => ({}));
