@@ -8,6 +8,7 @@ import { getFeed } from "@/lib/feed";
 import { VerticalFeed } from "@/components/feed/VerticalFeed";
 import { Historias } from "@/components/feed/Historias";
 import { DailyPick } from "@/components/DailyPick";
+import { TzSync } from "@/components/TzSync";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { t } from "@/lib/i18n";
@@ -66,10 +67,19 @@ export default async function Feed() {
     }
   }
 
+  // FX-13: antes de las 9:00 (Madrid) el pique de hoy aún no está publicado →
+  // "se abre a las 9:00" en vez de "hoy no hay".
+  const madridHour = Number(new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/Madrid", hour: "2-digit", hour12: false,
+  }).format(new Date()));
+  const dailyOpensSoon = !daily && madridHour < 9;
+
   const btn = "grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 leading-none text-white backdrop-blur";
 
   return (
     <main className="amb min-h-dvh w-full">
+      {/* FX-03: guarda la zona horaria del dispositivo en el perfil (silencioso) */}
+      {session && <TzSync />}
       {/* header FIJO sobre el feed (el degradado superior de cada slide lo hace legible) */}
       <header className="pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[430px] items-center justify-between px-4 pt-3">
         <Link href="/feed" className="pointer-events-auto" aria-label={t("brand")}><Logo mark={28} word={20} /></Link>
@@ -105,7 +115,7 @@ export default async function Feed() {
         intro={
           <>
             {session ? (
-              <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} />
+              <DailyPick daily={daily} myAnswer={myAnswer} prev={prev} opensSoon={dailyOpensSoon} />
             ) : (
               <div className="rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-5 text-center">
                 <p className="text-[20px] font-black leading-tight text-[var(--cream)] [text-wrap:balance]">{t("feed.introTitle")}</p>

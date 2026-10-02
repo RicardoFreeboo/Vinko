@@ -88,10 +88,11 @@ async function nativeShare(title: string, text: string, url: string): Promise<bo
 
 const CLOSE_PRESETS: ClosePreset[] = ["1h", "tonight", "tomorrow", "week", "custom"]; // RT-02
 
-export function NuevaClient({ userId, handle }: {
+export function NuevaClient({ userId, handle, groupId = null }: {
   userId: string;
   origin?: string;
   handle?: string | null;
+  groupId?: string | null; // FX-11: /nueva?g=<id> → porra para el grupo (privada)
 }) {
   const libre = plantillaTextos(PLANTILLA_LIBRE, tr);
   const [tpl, setTpl] = useState<PlantillaKey>("libre");
@@ -104,7 +105,7 @@ export function NuevaClient({ userId, handle }: {
   const [resolvesTouched, setResolvesTouched] = useState(false);
   const [arbiter, setArbiter] = useState<"me" | "friend">("me");
   const [arbHandle, setArbHandle] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [visibility, setVisibility] = useState<"public" | "private">(groupId ? "private" : "public");
   const [media, setMedia] = useState<{ url: string; kind: string } | null>(null);
   const [more, setMore] = useState(false);
   // RT-02 — asistente en 2 fases: 1) pregunta + opciones; 2) tu lado («¿Tú qué
@@ -258,6 +259,10 @@ export function NuevaClient({ userId, handle }: {
       }
     }
     if (!porra) { setBusy(false); setErr(dbErr(undefined)); return; }
+    // FX-11: cuélgala del grupo (miembros la ven en /g/<id>). Nunca bloquea.
+    if (groupId) {
+      try { await sb.rpc("porra_set_group", { p_porra: porra.id, p_group: groupId }); } catch { /* pre-0058 */ }
+    }
     capture("porra_created", {
       is_seed: false, visibility, arbiter: arbiter === "friend" ? "friend" : "me",
       template: tpl, close_preset: preset, stake: stakeKindFinal, listed,

@@ -14,6 +14,12 @@ export type GroupInfo = {
   id: string; name: string; invite_code: string; created_by: string; judge_id: string | null;
 };
 
+// FX-11: fila de group_porras (RPC 0058)
+export type GroupPorraRow = {
+  id: string; slug: string; title: string; status: string; closes_at: string;
+  stake_kind: string; stake_text: string | null; creator: string | null; picks: number;
+};
+
 // Último domingo 20:00 UTC (misma fórmula que group_week_cutoff() en SQL).
 export function weekCutoff(now: Date = new Date()): Date {
   const d = new Date(now.getTime() + 4 * 3600e3);
@@ -21,13 +27,14 @@ export function weekCutoff(now: Date = new Date()): Date {
   return new Date(monday - 4 * 3600e3);
 }
 
-export function GroupView({ group, rows, streak, cutoffIso, me, moneyEnabled = false, origin }: {
+export function GroupView({ group, rows, streak, cutoffIso, me, moneyEnabled = false, porras = [], origin }: {
   group: GroupInfo;
   rows: LeaderRow[];
   streak: number;
   cutoffIso: string;
   me: { id: string; handle: string; payHandle?: string | null; isAdult?: boolean };
   moneyEnabled?: boolean;
+  porras?: GroupPorraRow[];
   origin: string;
 }) {
   const joinUrl = `${origin}/grupos?join=${group.invite_code}`;
@@ -58,8 +65,43 @@ export function GroupView({ group, rows, streak, cutoffIso, me, moneyEnabled = f
         </p>
       </div>
 
-      <GroupJudge groupId={group.id} judgeId={group.judge_id} adminId={group.created_by} myId={me.id}
-        members={rows.map((r) => ({ user_id: r.user_id, handle: r.handle }))} />
+      {/* FX-11: el "juez de pagos" es pieza del P2P con dinero → oculto mientras
+          el flag esté apagado (no confunde con el juez de cada reto). */}
+      {moneyEnabled && (
+        <GroupJudge groupId={group.id} judgeId={group.judge_id} adminId={group.created_by} myId={me.id}
+          members={rows.map((r) => ({ user_id: r.user_id, handle: r.handle }))} />
+      )}
+
+      {/* FX-11: porras del grupo + crear una para el grupo */}
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("grupo.porras")}</p>
+          <Link href={`/nueva?g=${group.id}`} className="rounded-full bg-[var(--win)] px-3 py-1.5 text-[12px] font-black text-[var(--ink)]">
+            + {t("grupo.porraNew")}
+          </Link>
+        </div>
+        {porras.length === 0 ? (
+          <p className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-3 text-[12px] text-[var(--muted)]">
+            {t("grupo.porrasEmpty")}
+          </p>
+        ) : (
+          porras.map((p) => (
+            <Link key={p.id} href={`/p/${p.slug}`}
+              className="flex items-center gap-3 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5">
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-1 block text-[14px] font-bold text-[var(--cream)]">{p.title}</span>
+                <span className="mt-0.5 block text-[11px] text-[var(--muted)]">
+                  {p.creator ?? "—"}{p.stake_kind === "prize" && p.stake_text ? ` · ${p.stake_text}` : ""} · {t("grupo.porraPicks", { n: String(p.picks) })}
+                </span>
+              </span>
+              <span className="mono shrink-0 text-[10px] font-black uppercase tracking-wide"
+                style={{ color: p.status === "open" ? "var(--win)" : "var(--muted)" }}>
+                {p.status === "open" ? t("grupo.porraOpen") : t("grupo.porraDone")}
+              </span>
+            </Link>
+          ))
+        )}
+      </section>
 
       <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{t("grupo.standings")}</p>
       <GroupLeaderboard rows={rows} myId={me.id} cutoffIso={cutoffIso} />

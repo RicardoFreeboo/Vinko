@@ -6,11 +6,14 @@ import { Logo } from "@/components/Logo";
 import { t } from "@/lib/i18n";
 
 // Login real: enlace mágico por email + Google. X/TikTok se añaden luego.
-export function LoginForm({ next }: { next: string }) {
+// `err` (FX-08): vuelta del callback con fallo — "1" = enlace caducado/usado,
+// "deleted" = cuenta borrada (FX-15).
+export function LoginForm({ next, err: errParam = null }: { next: string; err?: string | null }) {
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const notice = errParam === "deleted" ? t("login.deleted") : errParam ? t("login.linkErr") : "";
 
   const redirectTo = () =>
     typeof window !== "undefined"
@@ -57,6 +60,11 @@ export function LoginForm({ next }: { next: string }) {
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-5 px-6">
       <Logo mark={52} word={34} />
       <h1 className="text-xl font-black tracking-tight">{t("login.title2")}</h1>
+      {notice && (
+        <p role="alert" className="w-full rounded-[12px] border border-[rgba(255,194,61,0.4)] bg-[rgba(255,194,61,0.08)] px-3 py-2.5 text-center text-[13px] font-bold text-[var(--gold)]">
+          {notice}
+        </p>
+      )}
 
       <button
         onClick={google}

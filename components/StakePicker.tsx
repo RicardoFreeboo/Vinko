@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
 
@@ -19,6 +20,10 @@ export function StakePicker({ value, onChange, min = MIN, max = MAX }: {
   value: number; onChange: (v: number) => void; min?: number; max?: number;
 }) {
   const hi = Math.max(min, max);
+  // FX-10: el campo libre NO se corrige mientras escribes (borrar el "1" de
+  // "10" para teclear "25" no debe saltar a 10); se ajusta al salir del campo.
+  const [txt, setTxt] = useState(String(value));
+  useEffect(() => { setTxt(String(value)); }, [value]);
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-1.5">
@@ -49,9 +54,9 @@ export function StakePicker({ value, onChange, min = MIN, max = MAX }: {
           inputMode="numeric"
           min={min}
           max={hi}
-          value={value}
-          onChange={(e) => onChange(clamp(Number(e.target.value), min, hi))}
-          onBlur={(e) => onChange(clamp(Number(e.target.value), min, hi))}
+          value={txt}
+          onChange={(e) => setTxt(e.target.value)}
+          onBlur={() => { const v = clamp(Number(txt), min, hi); setTxt(String(v)); onChange(v); }}
           aria-label={t("pick.stakeCustom")}
           className="w-full bg-transparent text-[14px] font-black text-[var(--cream)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         />
