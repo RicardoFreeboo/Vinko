@@ -26,11 +26,18 @@ export type Porra = {
   arbiter_id?: string | null;
   arbiter_status?: "creator" | "invited" | "accepted" | "declined";
   visibility?: "public" | "private";
+  stake_kind?: "vinkos" | "prize";
+  stake_text?: string | null;
+  listed?: boolean;
+  creator?: { handle: string | null; display_name: string | null; avatar_url: string | null } | null;
 };
 
 const SELECT =
   "id, slug, title, is_template, source, status, closes_at, winning_option_id, media_url, media_kind, category, " +
   "created_by, arbiter_id, arbiter_status, visibility, porra_options!porra_options_porra_id_fkey ( id, idx, label )";
+// RT-01/FX-04: columnas del reto (0057). Se piden aparte con fallback para que
+// /p no se caiga si la migración aún no está aplicada.
+const SELECT_RETO = SELECT + ", stake_kind, stake_text, listed, creator:profiles!porras_created_by_fkey ( handle, display_name, avatar_url )";
 
 type Row = Omit<Porra, "options" | "video" | "official"> & {
   media_url: string | null;
@@ -66,16 +73,18 @@ function shape(data: Row, slug: string): Porra {
 export const getPorraBySlug = cache(async (slug: string): Promise<Porra | null> => {
   const client = supa();
   if (client) {
-    const { data } = await client.from("porras").select(SELECT).eq("slug", slug).maybeSingle();
-    if (data) return shape(data as unknown as Row, slug);
+    let res = await client.from("porras").select(SELECT_RETO).eq("slug", slug).maybeSingle();
+    if (res.error) res = await client.from("porras").select(SELECT).eq("slug", slug).maybeSingle(); // pre-0057
+    if (res.data) return shape(res.data as unknown as Row, slug);
     // El anon no ve las privadas ni las anuladas: reintento con la sesión del
     // visitante (cookies) para que RLS decida — creador, compañeros de grupo,
     // admin. Fuera de una petición (build, OG sin cookies) no hay sesión.
     try {
       const sb = await supabaseServer();
       if (sb) {
-        const { data: mine } = await sb.from("porras").select(SELECT).eq("slug", slug).maybeSingle();
-        if (mine) return shape(mine as unknown as Row, slug);
+        let mine = await sb.from("porras").select(SELECT_RETO).eq("slug", slug).maybeSingle();
+        if (mine.error) mine = await sb.from("porras").select(SELECT).eq("slug", slug).maybeSingle();
+        if (mine.data) return shape(mine.data as unknown as Row, slug);
       }
     } catch { /* sin contexto de petición: se sigue con el fallback estático */ }
   }

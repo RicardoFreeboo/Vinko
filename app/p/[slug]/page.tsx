@@ -17,6 +17,8 @@ import { PorraRanking, type RankingRow } from "@/components/PorraRanking";
 import { FastVideo } from "@/components/FastVideo";
 import { PorraCover } from "@/components/PorraCover";
 import { PorraSocial } from "@/components/PorraSocial";
+import { RetoView, type RetoSocial } from "@/components/RetoView";
+import { esReto } from "@/lib/reto";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { porraUrl, SITE } from "@/lib/share";
 import { ogVersion } from "@/lib/og";
@@ -62,7 +64,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: t("p.notAvailable") };
   }
   const og = `${SITE}/p/${slug}/opengraph-image?v=${ogVersion()}`;
+  // FX-04: las porras de usuario no listadas no se indexan (el enlace funciona).
+  const unlisted = porra.source === "user" && porra.listed === false;
   return {
+    ...(unlisted ? { robots: { index: false, follow: false } } : {}),
     title: porra.title,
     description: t("og.description"),
     openGraph: {
@@ -94,7 +99,7 @@ export default async function PorraPage({ params }: Props) {
 
   // En paralelo: ¿es admin?, ranking (si procede), motivo de anulación, columnas
   // opcionales (criterio, fechas), estado de la impugnación y reputación del juez.
-  const [adminRes, rankRes, voidRes, extras, disputeRes, judgeRes] = await Promise.all([
+  const [adminRes, rankRes, voidRes, extras, disputeRes, judgeRes, socialRes, unreadRes] = await Promise.all([
     session && sb ? sb.rpc("is_admin") : null,
     needRanking && sb ? sb.rpc("porra_ranking", { p_porra: porra.id }) : null,
     porra.status === "taken_down" && isReal && sb
@@ -102,6 +107,10 @@ export default async function PorraPage({ params }: Props) {
     isReal ? getPorraExtras(sb, porra.id) : null,
     isReal && settled && sb ? sb.rpc("porra_dispute_state", { p_porra: porra.id }) : null,
     isReal && judgeId && sb ? sb.rpc("judge_stats", { p_user: judgeId }) : null,
+    isReal && sb ? sb.rpc("porra_social", { p_porra: porra.id }) : null,
+    session && !session.is_anonymous && sb
+      ? sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", session.id).is("read_at", null)
+      : null,
   ]);
 
   if (porra.status === "taken_down") {
@@ -118,8 +127,14 @@ export default async function PorraPage({ params }: Props) {
   // +18 declarado (año de nacimiento): habilita el toggle del modo dinero
   // ("muy pronto"). Menores e invitados/visitantes sin sesión NO (regla de oro 8).
   const isAdult = !!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18;
-  const canResolve = isReal && open && (isAdmin || (isJudge && closed));
-  const canVoid = isReal && open && (isAdmin || isCreator);
+  const social = socialRes && !socialRes.error ? ((socialRes.data ?? { picks: [] }) as RetoSocial) : { picks: [] as RetoSocial["picks"] };
+  // RT-03: vista de RETO para porras con premio y porras de usuario pequeñas.
+  const reto = isReal && esReto(porra.stake_kind ?? "vinkos", porra.source, social.picks.length);
+  const creatorName = porra.creator?.display_name || (porra.creator?.handle ? `@${porra.creator.handle}` : t("reto.someone"));
+  // RT-03: en /p el admin ve LO MISMO que un usuario; resolver o anular antes
+  // de tiempo se hace solo desde /admin/porras. El juez, solo tras el cierre.
+  const canResolve = isReal && open && isJudge && closed && !reto;
+  const canVoid = isReal && open && isCreator && !reto;
   const resolved = porra.status === "resolved";
   const disputed = porra.status === "disputed";
   const rows = rankRes && !rankRes.error ? ((rankRes.data ?? []) as RankingRow[]) : null;
@@ -142,7 +157,24 @@ export default async function PorraPage({ params }: Props) {
     // columna; el <div> de la derecha reproduce el mismo flex-col gap-5).
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-8 pt-6 lg:grid lg:max-w-[1040px] lg:grid-cols-[420px_1fr] lg:grid-rows-[auto_1fr] lg:gap-8 lg:px-8 lg:pt-8">
       <header className="flex items-center justify-between lg:col-span-2">
-        <Logo mark={28} word={20} />
+        {/* FX-05: desde /p siempre se puede ir a algún sitio */}
+        <Link href={session && !session.is_anonymous ? "/feed" : "/"} aria-label={t("p.backHome")}>
+          <Logo mark={28} word={20} />
+        </Link>
+        {session && !session.is_anonymous && (
+          <nav className="flex items-center gap-2">
+            <Link href="/feed" className="mono rounded-full border border-[var(--line)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--muted)]">{t("nav.feed")}</Link>
+            <Link href="/buzon" className="mono relative rounded-full border border-[var(--line)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--muted)]">
+              🔔
+              {(unreadRes?.count ?? 0) > 0 && (
+                <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-[var(--win)] px-1 text-[9px] font-black text-[var(--ink)]">
+                  {unreadRes!.count}
+                </span>
+              )}
+            </Link>
+            <Link href="/nueva" className="mono rounded-full bg-[var(--win)] px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.08em] text-[var(--ink)]">{t("nav.crear")}</Link>
+          </nav>
+        )}
         {porra.is_template ? (
           <span className="mono rounded-full border border-[var(--win)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--win)]">
             {t("p.badgeExample")}
@@ -164,8 +196,29 @@ export default async function PorraPage({ params }: Props) {
       </div>
 
       <div className="flex grow flex-col gap-5 lg:min-w-0">
+        {reto && (
+          <div className="flex flex-col gap-2">
+            <p className="flex items-center gap-2 text-[14px] font-bold text-[var(--cream)]">
+              {porra.creator?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={porra.creator.avatar_url} alt="" className="h-7 w-7 rounded-full object-cover" />
+              ) : (
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--ink3)] text-[12px] font-black text-[var(--win)]">
+                  {creatorName.replace(/^@/, "").slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              {t("reto.challenges", { name: creatorName })}
+            </p>
+            <p className="mono rounded-[12px] border border-[var(--gold)]/50 bg-[rgba(255,194,61,0.08)] px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-[var(--gold)]">
+              {porra.stake_kind === "prize"
+                ? t("reto.youPlay", { stake: porra.stake_text ?? "" })
+                : t("reto.vinkosPlay")}
+            </p>
+          </div>
+        )}
         <p className="mono text-xs uppercase tracking-[0.1em]" style={{ color: disputed || (open && closed) ? "var(--gold)" : "var(--muted)" }}>
-          {disputed ? t("p.inReview") : resolved ? t("p.resolved") : closed ? t("resolve.closedTag") : t("p.closes", { date: fmtDate(porra.closes_at) })}
+          {disputed ? t("p.inReview") : resolved ? t("p.resolved") : closed ? t("resolve.closedTag")
+            : reto ? t("reto.inPlayShort", { n: String(social.picks.length) }) : t("p.closes", { date: fmtDate(porra.closes_at) })}
         </p>
 
         <h1 className="text-[1.7rem] font-black leading-[1.12] tracking-tight text-[var(--cream)] [text-wrap:balance]">
@@ -194,6 +247,23 @@ export default async function PorraPage({ params }: Props) {
           <p className="rounded-[14px] border border-[var(--line)] px-4 py-2.5 text-[13px] text-[var(--muted)]">{t("dispute.upheld")}</p>
         )}
 
+        {reto ? (
+          <RetoView
+            porraId={porra.id}
+            slug={porra.slug}
+            options={options}
+            status={porra.status}
+            winningOptionId={porra.winning_option_id}
+            closesAt={porra.closes_at}
+            resolvesAt={resolvesAt}
+            stakeKind={porra.stake_kind ?? "vinkos"}
+            stakeText={porra.stake_text ?? null}
+            creatorId={porra.created_by ?? null}
+            creatorName={creatorName}
+            judgeId={judgeId}
+            initialSocial={social}
+          />
+        ) : (
         <section aria-label={t("p.options")} className="flex flex-col gap-2.5">
           {porra.options.map((o, i) => {
             const accent = OPT_ACCENT[i % OPT_ACCENT.length];
@@ -222,6 +292,7 @@ export default async function PorraPage({ params }: Props) {
             );
           })}
         </section>
+        )}
 
         {/* JUEZ con su reputación (judge_stats): quién decide y cuánto fiarse */}
         {judge?.handle && (
@@ -244,7 +315,7 @@ export default async function PorraPage({ params }: Props) {
         {/* PickPanel: pick real de puntos + toggle "muy pronto" del modo dinero
             (mismas opciones, sin tarjeta aparte). El toggle solo para +18
             registrado y mientras el dinero real no esté aprobado (moneyLive). */}
-        <PickPanel
+        {!reto && <PickPanel
           porraId={porra.id}
           slug={porra.slug}
           options={options}
@@ -254,7 +325,7 @@ export default async function PorraPage({ params }: Props) {
           isAdult={isAdult}
           moneyLive={moneyUi && !!moneyDict}
           moneyUi={moneyUi}
-        />
+        />}
 
         {moneyUi && money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
 
@@ -268,10 +339,10 @@ export default async function PorraPage({ params }: Props) {
         )}
 
         {/* IMPUGNAR: participantes reales, 24 h tras resolver; "Impugnada por N" ya va en el HTML */}
-        {isReal && settled && dispute && <DisputePanel porraId={porra.id} state={dispute} />}
+        {!reto && isReal && settled && dispute && <DisputePanel porraId={porra.id} state={dispute} />}
 
         {/* COMPARTIR — aquí aterriza quien recibe el enlace, y desde aquí lo reenvía */}
-        {!porra.is_template && open && !closed && (
+        {!reto && !porra.is_template && open && !closed && (
           <ShareWhatsApp text={t("nueva.shareText", { title: porra.title, url: porraUrl(porra.slug) + (session?.handle && !session.is_anonymous ? `?ref=${session.handle}` : "") })}
             porraId={porra.id}
             className="flex items-center justify-center gap-2 rounded-[14px] bg-[#25D366] px-4 py-3.5 text-[15px] font-black text-white">
@@ -286,7 +357,7 @@ export default async function PorraPage({ params }: Props) {
             {t("og.footer")}
           </p>
           <p className="text-xs text-[var(--muted)]">{t("p.judge")}</p>
-          <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>
+          {porra.stake_kind !== "prize" && <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>}
           <nav className="mt-1 flex gap-3 text-[11px] text-[var(--muted2)]">
             <Link href="/privacidad" className="underline">{t("legal.privacy.title")}</Link>
             <Link href="/terminos" className="underline">{t("legal.terms.title")}</Link>

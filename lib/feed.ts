@@ -72,19 +72,24 @@ export async function getFeed(limit = 30): Promise<FeedPorra[]> {
       video: p.video ?? null, category: null, official: true, featured: false, creator: null,
     }));
   }
-  const leer = (conCreador: boolean) => sb
-    .from("porras")
-    .select(SELECT + (conCreador ? SELECT_CREATOR : ""))
-    .eq("status", "open")
-    .eq("is_template", false)
-    .gt("closes_at", new Date().toISOString())
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: true })
-    .limit(POOL);
-  let { data, error } = await leer(true);
+  // FX-04: al feed global solo va lo listado (editorial siempre; una porra de
+  // usuario solo si su creador marcó «Mostrar en el feed»). Si 0057 no está
+  // aplicada aún (no existe la columna), se lee sin el filtro.
+  const leer = (conCreador: boolean, conListed: boolean) => {
+    let q = sb
+      .from("porras")
+      .select(SELECT + (conCreador ? SELECT_CREATOR : ""))
+      .eq("status", "open")
+      .eq("is_template", false)
+      .gt("closes_at", new Date().toISOString());
+    if (conListed) q = q.eq("listed", true);
+    return q.order("created_at", { ascending: false }).order("id", { ascending: true }).limit(POOL);
+  };
+  let { data, error } = await leer(true, true);
+  if (error) ({ data, error } = await leer(true, false)); // pre-0057
   // Si la relación no existe con ese nombre (FK renombrada), el feed sigue
   // saliendo: sin creador antes que sin porras.
-  if (error) ({ data } = await leer(false));
+  if (error) ({ data } = await leer(false, false));
 
   const now = Date.now();
   // `rows` sale ya de más reciente a más antigua

@@ -3,7 +3,7 @@
 // messages/parts/crear.*.json (t()). Sin backend: puro cálculo de fechas.
 import { t } from "@/lib/i18n";
 
-export type ClosePreset = "1h" | "tonight" | "tomorrow" | "weekend" | "custom";
+export type ClosePreset = "1h" | "tonight" | "tomorrow" | "weekend" | "week" | "custom";
 export type PlantillaKey = "partido" | "reality" | "boda" | "oficina" | "viaje" | "serie" | "libre";
 
 export type Plantilla = {
@@ -70,6 +70,11 @@ export function closeFromPreset(preset: ClosePreset, custom: string, now = new D
   if (preset === "tomorrow") {
     const d = endOfDay(now);
     d.setDate(d.getDate() + 1);
+    return d;
+  }
+  if (preset === "week") {
+    const d = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // RT-02: «1 semana»
+    d.setMinutes(0, 0, 0);
     return d;
   }
   // weekend: el domingo que viene a las 23:59 (hoy mismo si es domingo y queda margen)

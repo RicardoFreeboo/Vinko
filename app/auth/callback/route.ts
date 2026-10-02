@@ -66,6 +66,15 @@ export async function GET(req: Request) {
     // Nunca bloquea el login.
     if (!user.is_anonymous) {
       try { await sb.rpc("convert_guest"); } catch { /* nunca bloquea el login */ }
+      // RT-06: si venía de un pick invitado (cookie vinko_merge, la deja
+      // GuestConvert antes de ir a Google), merge_guest pasa sus picks a ESTA
+      // cuenta — exista ya o sea nueva — copia el nombre y borra el perfil
+      // invitado. El token es de un solo uso: la cookie caduca sola.
+      const mergeTok = store.get("vinko_merge")?.value ?? "";
+      if (/^[0-9a-f-]{36}$/.test(mergeTok)) {
+        try { await sb.rpc("merge_guest", { p_token: mergeTok }); } catch { /* jamás bloquea */ }
+        store.set("vinko_merge", "", { maxAge: 0, path: "/", sameSite: "lax" });
+      }
     }
 
     // Primer login (cuenta recién creada o sin +18 aún) vs. vuelta.

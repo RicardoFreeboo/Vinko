@@ -22,8 +22,11 @@ Deno.serve(async (req) => {
   webpush.setVapidDetails("mailto:hello@freebooadvertising.com", vapidPub, vapidPriv);
 
   const admin = createClient(url, service);
+  // RT-05: los push sociales aplazados por horas de silencio llevan send_after;
+  // no se despachan hasta esa hora (los demás tienen send_after null).
   const { data: queue, error } = await admin
     .from("push_queue").select("*").eq("status", "queued")
+    .or(`send_after.is.null,send_after.lte.${new Date().toISOString()}`)
     .order("created_at").limit(100);
   if (error) return json({ error: error.message }, 500);
 
