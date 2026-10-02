@@ -1,0 +1,12 @@
+# Config mínima para que la CLI de Supabase pueda desplegar las Edge Functions
+# desde GitHub Actions (.github/workflows/supabase-deploy.yml).
+project_id = "uarnpxjdccbidgzhhavc"
+
+# push-dispatch la invoca pg_cron con el secreto x-cron-secret (no hay JWT de
+# usuario), así que va SIN verificación de JWT: la función ya se protege sola.
+[functions.push-dispatch]
+verify_jwt = false
+
+# account-purge se invoca con la sesión del usuario → JWT verificado.
+[functions.account-purge]
+verify_jwt = true
