@@ -3,12 +3,12 @@ name: Supabase
 # Despliegue automático de la base y las Edge Functions en cada cambio de
 # supabase/** que llegue a main (y a mano desde la pestaña Actions → Run).
 #
-# Necesita DOS secretos del repositorio (Settings → Secrets and variables →
+# Necesita UN secreto del repositorio (Settings → Secrets and variables →
 # Actions → New repository secret):
-#   · SUPABASE_DB_URL       → cadena de conexión "Session pooler" del proyecto
-#                             (Dashboard → Connect → Session pooler), con la
-#                             contraseña de la base puesta en [YOUR-PASSWORD].
 #   · SUPABASE_ACCESS_TOKEN → token personal (supabase.com/dashboard/account/tokens).
+# Con él se aplican las migraciones (Management API, /database/query) y se
+# despliegan las funciones (CLI). Si además existe SUPABASE_DB_URL (cadena
+# "Session pooler" con contraseña), las migraciones van por psql directo.
 #
 # Las migraciones ≥ 0055 son IDEMPOTENTES por diseño (nota v1.0 §5): re-aplicarlas
 # no rompe nada, así que este workflow las pasa todas en orden en cada ejecución.
@@ -36,17 +36,35 @@ jobs:
       - name: Aplicar migraciones idempotentes
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: uarnpxjdccbidgzhhavc
         run: |
-          if [ -z "$DB_URL" ]; then
-            echo "::error::Falta el secreto SUPABASE_DB_URL. En GitHub: Settings → Secrets and variables → Actions → New repository secret. El valor es la cadena 'Session pooler' del Dashboard de Supabase (botón Connect), con tu contraseña de la base."
+          if [ -z "$DB_URL" ] && [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN. Créalo en supabase.com/dashboard/account/tokens (Generate new token) y pégalo en GitHub: Settings → Secrets and variables → Actions → New repository secret."
             exit 1
           fi
+          # Ejecuta un fichero SQL: psql directo si hay DB_URL; si no, Management API.
+          run_sql_file() {
+            if [ -n "$DB_URL" ]; then
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$1"
+            else
+              code=$(jq -Rs '{query: .}' "$1" | curl -sS -o /tmp/resp.json -w "%{http_code}" \
+                -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+                -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+                -H "Content-Type: application/json" -d @-)
+              if [ "$code" -ge 300 ]; then
+                echo "::error::Fallo aplicando $1 (HTTP $code):"
+                cat /tmp/resp.json
+                exit 1
+              fi
+            fi
+          }
           applied=0
           for f in supabase/migrations/*.sql; do
             v=$(basename "$f" | cut -d_ -f1)
             if [ $((10#$v)) -ge 55 ]; then
               echo "→ aplicando $f"
-              psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+              run_sql_file "$f"
               applied=$((applied+1))
             fi
           done
@@ -55,8 +73,10 @@ jobs:
       - name: Verificar que las piezas existen
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: uarnpxjdccbidgzhhavc
         run: |
-          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          cat > /tmp/verify.sql <<'SQL'
           do $$
           declare f text; missing text := '';
           begin
@@ -72,10 +92,25 @@ jobs:
             if missing <> '' then
               raise exception 'Faltan funciones:%', missing;
             end if;
-            raise notice '✓ Todas las funciones del S0/S1/S2 están en la base.';
           end $$;
           select jobname, schedule from cron.job order by jobname;
           SQL
+          if [ -n "$DB_URL" ]; then
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -f /tmp/verify.sql
+          else
+            code=$(jq -Rs '{query: .}' /tmp/verify.sql | curl -sS -o /tmp/resp.json -w "%{http_code}" \
+              -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+              -H "Content-Type: application/json" -d @-)
+            if [ "$code" -ge 300 ]; then
+              echo "::error::La verificación falló (HTTP $code):"
+              cat /tmp/resp.json
+              exit 1
+            fi
+            echo "Cron jobs en la base:"
+            cat /tmp/resp.json
+          fi
+          echo "✓ Todas las funciones del S0/S1/S2 están en la base."
 
   funciones:
     name: Edge Functions
