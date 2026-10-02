@@ -1,0 +1,100 @@
+name: Supabase
+
+# Despliegue automático de la base y las Edge Functions en cada cambio de
+# supabase/** que llegue a main (y a mano desde la pestaña Actions → Run).
+#
+# Necesita DOS secretos del repositorio (Settings → Secrets and variables →
+# Actions → New repository secret):
+#   · SUPABASE_DB_URL       → cadena de conexión "Session pooler" del proyecto
+#                             (Dashboard → Connect → Session pooler), con la
+#                             contraseña de la base puesta en [YOUR-PASSWORD].
+#   · SUPABASE_ACCESS_TOKEN → token personal (supabase.com/dashboard/account/tokens).
+#
+# Las migraciones ≥ 0055 son IDEMPOTENTES por diseño (nota v1.0 §5): re-aplicarlas
+# no rompe nada, así que este workflow las pasa todas en orden en cada ejecución.
+# Las < 0055 ya están aplicadas en producción y NO se tocan.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-deploy.yml"
+  workflow_dispatch: {}
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  migraciones:
+    name: Migraciones (≥ 0055)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Aplicar migraciones idempotentes
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL. En GitHub: Settings → Secrets and variables → Actions → New repository secret. El valor es la cadena 'Session pooler' del Dashboard de Supabase (botón Connect), con tu contraseña de la base."
+            exit 1
+          fi
+          applied=0
+          for f in supabase/migrations/*.sql; do
+            v=$(basename "$f" | cut -d_ -f1)
+            if [ $((10#$v)) -ge 55 ]; then
+              echo "→ aplicando $f"
+              psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f "$f"
+              applied=$((applied+1))
+            fi
+          done
+          echo "✓ $applied migración(es) aplicadas (idempotentes)."
+
+      - name: Verificar que las piezas existen
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          psql "$DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          do $$
+          declare f text; missing text := '';
+          begin
+            foreach f in array array['me','set_tz','set_handle','user_today','create_porra',
+                                     'make_guest_pick','porra_settle','propose_result',
+                                     'group_porras','cron_admin_digest','cron_editorial_expire',
+                                     'cron_season_rotate','notify_social_direct'] loop
+              if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                              where n.nspname = 'public' and p.proname = f) then
+                missing := missing || ' ' || f;
+              end if;
+            end loop;
+            if missing <> '' then
+              raise exception 'Faltan funciones:%', missing;
+            end if;
+            raise notice '✓ Todas las funciones del S0/S1/S2 están en la base.';
+          end $$;
+          select jobname, schedule from cron.job order by jobname;
+          SQL
+
+  funciones:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Desplegar push-dispatch y account-purge
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN. Créalo en supabase.com/dashboard/account/tokens (Generate new token) y pégalo en GitHub: Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          supabase functions deploy push-dispatch --project-ref uarnpxjdccbidgzhhavc
+          supabase functions deploy account-purge --project-ref uarnpxjdccbidgzhhavc
+          echo "✓ Edge Functions desplegadas."
