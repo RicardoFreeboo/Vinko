@@ -28,6 +28,11 @@ export function AjustesClient({
   const [word, setWord] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [delMsg, setDelMsg] = useState<Msg>(null);
+  // SEC-02: elige tu @ (también cuentas ya creadas)
+  const [editingHandle, setEditingHandle] = useState(false);
+  const [newHandle, setNewHandle] = useState(handle ?? "");
+  const [handleBusy, setHandleBusy] = useState(false);
+  const [handleMsg, setHandleMsg] = useState<Msg>(null);
 
   const DELETE_WORD = t("ajustes.deleteWord");
   const canDelete = word.trim().toUpperCase() === DELETE_WORD.toUpperCase() && !deleting;
@@ -71,6 +76,31 @@ export function AjustesClient({
     window.location.assign("/");
   }
 
+  // SEC-02: cambia el @ vía RPC set_handle (0058): formato, reservados,
+  // content_unsafe y unicidad se validan en servidor.
+  async function saveHandle() {
+    const sb = supabaseBrowser();
+    if (!sb) { setHandleMsg({ kind: "err", text: t("ajustes.noBackend") }); return; }
+    setHandleBusy(true);
+    setHandleMsg(null);
+    const { error } = await sb.rpc("set_handle", { p_handle: newHandle.trim() });
+    setHandleBusy(false);
+    if (error) {
+      const m = error.message;
+      setHandleMsg({
+        kind: "err",
+        text: m.includes("VINKO_HANDLE_TAKEN") ? t("ajustes.handleTaken")
+          : m.includes("VINKO_BAD_HANDLE") || m.includes("VINKO_HANDLE") ? t("ajustes.handleBad")
+          : /PGRST202|does not exist|schema cache/i.test(m) ? t("ajustes.handlePending")
+          : t("ajustes.error"),
+      });
+      return;
+    }
+    setHandleMsg({ kind: "ok", text: t("ajustes.saved") });
+    setEditingHandle(false);
+    router.refresh();
+  }
+
   // Doble confirmación: botón → panel con palabra escrita → botón rojo.
   async function deleteAccount() {
     if (!canDelete) return;
@@ -84,6 +114,10 @@ export function AjustesClient({
       setDelMsg({ kind: "err", text: t("ajustes.deleteError") });
       return;
     }
+    // FX-15: remata el borrado en auth (Edge Function con service role): el
+    // email queda libre y ese login deja de existir. Si la función aún no está
+    // desplegada no bloquea: el callback ya veta los perfiles con deleted_at.
+    try { await sb.functions.invoke("account-purge"); } catch { /* no bloquea */ }
     await sb.auth.signOut();
     window.location.assign("/");
   }
@@ -92,7 +126,44 @@ export function AjustesClient({
     <div className="flex flex-col gap-4">
       {/* cuenta */}
       <Section title={t("ajustes.account")}>
-        <Row label={t("ajustes.handle")} value={handle ? `@${handle}` : "—"} />
+        {!editingHandle ? (
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[12px] text-[var(--muted)]">{t("ajustes.handle")}</span>
+            <span className="flex items-baseline gap-2 truncate">
+              <span className="truncate text-[14px] font-bold text-[var(--cream)]">{handle ? `@${handle}` : "—"}</span>
+              <button type="button" onClick={() => { setEditingHandle(true); setHandleMsg(null); setNewHandle(handle ?? ""); }}
+                className="shrink-0 text-[12px] font-bold text-[var(--win)]">
+                {t("ajustes.handleEdit")}
+              </button>
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 rounded-[12px] border border-[var(--line)] bg-[var(--ink3)] p-3">
+            <p className="text-[12px] text-[var(--muted)]">{t("ajustes.handleHint")}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[15px] font-black text-[var(--muted)]">@</span>
+              <input
+                value={newHandle}
+                onChange={(e) => setNewHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24))}
+                autoCapitalize="off"
+                autoComplete="off"
+                aria-label={t("ajustes.handle")}
+                className="mono w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink)] px-3 py-2 text-[14px] font-bold text-[var(--cream)] outline-none focus:border-[var(--win)]"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setEditingHandle(false)} disabled={handleBusy}
+                className="flex-none rounded-[10px] border border-[var(--line)] px-3 py-2 text-[12px] font-bold text-[var(--cream)]">
+                {t("ajustes.cancel")}
+              </button>
+              <button type="button" onClick={saveHandle} disabled={handleBusy || newHandle.length < 3 || newHandle === handle}
+                className="flex-1 rounded-[10px] bg-[var(--win)] px-3 py-2 text-[12px] font-black text-[var(--ink)] disabled:opacity-40">
+                {handleBusy ? "…" : t("ajustes.handleSave")}
+              </button>
+            </div>
+          </div>
+        )}
+        {handleMsg && <Note msg={handleMsg} />}
         <Row label={t("ajustes.email")} value={email ?? t("ajustes.noEmail")} />
         <div className="mt-1 flex items-center justify-between gap-3">
           {handle ? (

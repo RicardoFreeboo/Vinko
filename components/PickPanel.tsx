@@ -53,6 +53,7 @@ export function PickPanel({
   const [myPick, setMyPick] = useState<string | null>(null);
   const [tallies, setTallies] = useState<Record<string, number>>({});
   const [stake, setStake] = useState(10);
+  const [confirmId, setConfirmId] = useState<string | null>(null); // FX-10: opción tocada, pendiente de confirmar
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [money, setMoney] = useState(false);          // modo dinero (maqueta)
@@ -131,13 +132,21 @@ export function PickPanel({
     markPicked(optionId);
   }
 
+  // FX-10: con sesión real, tocar una opción NO gasta: abre la confirmación
+  // (importe + botón). El pick invitado (gratis) sigue siendo de un toque.
   async function pick(optionId: string) {
     if (busy || myPick || closed) return;
     if (!loggedIn || isGuest) { await guestPick(optionId); return; }
+    setErr(null);
+    setConfirmId(optionId);
+  }
+
+  async function confirmPick() {
+    if (busy || myPick || closed || !confirmId) return;
     const sb = supabaseBrowser();
     if (!sb) return;
     setBusy(true); setErr(null);
-    const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: optionId, p_stake: stake });
+    const { error } = await sb.rpc("make_pick", { p_porra: porraId, p_option: confirmId, p_stake: stake });
     setBusy(false);
     if (error) {
       const m = error.message;
@@ -145,7 +154,9 @@ export function PickPanel({
       return;
     }
     capture("pick_made", { is_seed: false, stake, is_guest: false });
-    markPicked(optionId);
+    const picked = confirmId;
+    setConfirmId(null);
+    markPicked(picked);
   }
 
   const total = Object.values(tallies).reduce((a, b) => a + b, 0);
@@ -185,20 +196,35 @@ export function PickPanel({
   ) : (
     <>
       <section className="flex flex-col gap-2">
-        {guestMode ? (
+        {guestMode && (
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("guest.free")}</p>
-        ) : (
-          <>
-            <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("resolve.spendN", { n: String(stake) })}</p>
-            <StakePicker value={stake} onChange={setStake} />
-          </>
         )}
         {options.map((o) => (
           <button key={o.id} onClick={() => pick(o.id)} disabled={busy}
-            className="rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3.5 text-left text-[15px] font-bold text-[var(--cream)] disabled:opacity-50 hover:border-[var(--win)]">
-            {o.label}
+            className="rounded-[14px] border bg-[var(--ink2)] px-4 py-3.5 text-left text-[15px] font-bold text-[var(--cream)] disabled:opacity-50 hover:border-[var(--win)]"
+            style={{ borderColor: confirmId === o.id ? "var(--win)" : "var(--line)" }}>
+            {o.label}{confirmId === o.id ? " ✓" : ""}
           </button>
         ))}
+        {/* FX-10: confirmación con el importe ANTES de gastar nada */}
+        {!guestMode && confirmId && (
+          <div className="flex flex-col gap-2.5 rounded-[14px] border border-[var(--win)] bg-[var(--ink2)] p-3">
+            <p className="text-[13px] font-black text-[var(--cream)]">
+              {t("pick.confirmTitle", { opt: options.find((o) => o.id === confirmId)?.label ?? "" })}
+            </p>
+            <StakePicker value={stake} onChange={setStake} />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmId(null)} disabled={busy}
+                className="flex-none rounded-[12px] border border-[var(--line)] px-3.5 py-2.5 text-[13px] font-bold text-[var(--cream)]">
+                {t("pick.confirmCancel")}
+              </button>
+              <button type="button" onClick={confirmPick} disabled={busy}
+                className="flex-1 rounded-[12px] bg-[var(--win)] px-3 py-2.5 text-[14px] font-black text-[var(--ink)] disabled:opacity-50">
+                {busy ? "…" : t("pick.confirmCta", { n: String(stake) })}
+              </button>
+            </div>
+          </div>
+        )}
         {guestMode && !isGuest && (
           <p className="text-center text-xs text-[var(--muted)]">{t("guest.tapHint")}</p>
         )}

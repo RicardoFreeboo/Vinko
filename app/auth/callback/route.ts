@@ -37,13 +37,23 @@ export async function GET(req: Request) {
     const { error } = await sb.auth.verifyOtp({ type, token_hash: tokenHash });
     okAuth = !error;
   }
-  if (!okAuth) return NextResponse.redirect(`${origin}/login`);
+  // FX-08: el enlace mágico caducado/usado vuelve al login CON mensaje (err=1),
+  // no a una pantalla muda, y conserva el next para reintentar al sitio.
+  if (!okAuth) {
+    return NextResponse.redirect(`${origin}/login?next=${encodeURIComponent(next)}&err=1`);
+  }
 
   const { data: { user } } = await sb.auth.getUser();
   let needsAge = false;
   if (user) {
     // SEC-01: birth_year/onboarded_at son privadas → propio perfil vía me().
     const me = await fetchMe(sb);
+    // FX-15: una cuenta borrada (delete_me) no vuelve a entrar aunque el purgado
+    // de auth aún no haya corrido: fuera la sesión y al login con mensaje.
+    if (me?.deleted_at) {
+      await sb.auth.signOut();
+      return NextResponse.redirect(`${origin}/login?err=deleted`);
+    }
     needsAge = !me?.birth_year;
     // Onboarding de 3 pantallas (spec F-08): quien tiene año pero no terminó las
     // pantallas 2-3 también pasa por /bienvenida (null explícito; si 0036 no está

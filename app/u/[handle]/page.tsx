@@ -74,7 +74,10 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
         )}
         <div>
           <div className="text-2xl font-black text-[var(--cream)]">@{p.handle}</div>
-          <div className="mono mt-1 text-xs text-[var(--gold)]">{DIV[p.division] ?? p.division} · 🔥 {p.streak_days}</div>
+          {/* FX-14: la división enlaza a la temporada (si no, nadie la encuentra) */}
+          <Link href="/temporada" className="mono mt-1 block text-xs text-[var(--gold)] underline-offset-2 hover:underline">
+            {DIV[p.division] ?? p.division} · 🔥 {p.streak_days} <span aria-hidden>→</span>
+          </Link>
         </div>
       </section>
 

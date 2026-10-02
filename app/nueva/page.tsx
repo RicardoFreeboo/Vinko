@@ -9,7 +9,14 @@ import { t } from "@/lib/i18n";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: t("nueva.title"), robots: { index: false, follow: false } };
 
-export default async function Nueva() {
+export default async function Nueva({
+  searchParams,
+}: {
+  searchParams: Promise<{ g?: string }>;
+}) {
+  // FX-11: /nueva?g=<groupId> crea una porra PARA el grupo (privada por defecto).
+  const { g } = await searchParams;
+  const groupId = g && /^[0-9a-f-]{36}$/.test(g) ? g : null;
   const session = await getMemberSession();
   if (!session) {
     return (
@@ -31,7 +38,7 @@ export default async function Nueva() {
         <span className="mono text-xs text-[var(--muted)]">@{session.handle}</span>
       </header>
       <h1 className="text-2xl font-black">{t("nueva.title")}</h1>
-      <NuevaClient userId={session.id} origin={origin} handle={session.handle} />
+      <NuevaClient userId={session.id} origin={origin} handle={session.handle} groupId={groupId} />
       <AppNav />
     </main>
   );

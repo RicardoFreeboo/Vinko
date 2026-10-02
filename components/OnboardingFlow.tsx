@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
+import { syncTz } from "@/lib/tz";
 import { Logo } from "@/components/Logo";
 import { t as tBase } from "@/lib/i18n";
 import {
@@ -152,6 +153,9 @@ export function OnboardingFlow({
   const [lang, setLang] = useState<Lang>(profile.lang);
   const [gift, setGift] = useState(false);
   const [notice, setNotice] = useState("");
+  // FX-07: quien viene de una porra quiere VOLVER a la porra: tras los
+  // intereses se vuelve directo (sin pantalla 3; el avatar se cambia luego).
+  const fromPorra = next.startsWith("/p/");
 
   function go(href: string) {
     if (mock) return; // preview: sin navegación
@@ -175,7 +179,10 @@ export function OnboardingFlow({
       )}
       {step === 2 && (
         <StepInterests t={t} profile={profile} lang={lang} mock={mock}
-          onDone={(g, pending) => { setGift(g); setNotice(pending ? t("onb.err.pending") : ""); setStep(3); }} />
+          onDone={(g, pending) => {
+            if (fromPorra) { go(next); return; } // FX-07: directo de vuelta a la porra
+            setGift(g); setNotice(pending ? t("onb.err.pending") : ""); setStep(3);
+          }} />
       )}
       {step === 3 && (
         <StepStart t={t} profile={profile} next={next} gift={gift || mock} mock={mock} go={go} />
@@ -200,6 +207,8 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
   suggestedCountry: string | null; onDone: () => void; onLogin: () => void;
 }) {
   const [year, setYear] = useState(profile.birthYear ? String(profile.birthYear) : "");
+  // SEC-02: elige tu @ aquí mismo (viene uno autogenerado del registro).
+  const [handle, setHandle] = useState(profile.handle ?? "");
   // País: lo declarado gana; si no, la sugerencia por IP (personaliza el contenido).
   const [country, setCountry] = useState<string | null>(normIso(profile.country ?? suggestedCountry));
   const [err, setErr] = useState("");
@@ -221,6 +230,24 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
     setBusy(true);
     const { data: { user } } = await sb.auth.getUser();
     if (!user) { setBusy(false); onLogin(); return; }
+    // SEC-02: si cambió el @, va primero (set_handle valida formato/unicidad y
+    // su error SÍ bloquea para que el usuario lo corrija aquí).
+    const h = handle.trim().toLowerCase();
+    if (h && h !== profile.handle) {
+      const { error: he } = await sb.rpc("set_handle", { p_handle: h });
+      if (he) {
+        setBusy(false);
+        const m = he.message;
+        // 0058 sin aplicar → se sigue con el @ autogenerado, sin bloquear.
+        if (!/PGRST202|does not exist|schema cache/i.test(m)) {
+          setErr(m.includes("VINKO_HANDLE_TAKEN") ? t("onb.handleTaken") : t("onb.handleBad"));
+          return;
+        }
+        setBusy(true);
+      }
+    }
+    // FX-03: zona horaria del dispositivo, en silencio (nunca bloquea).
+    void syncTz(sb);
     // 0045 añade profiles.country; si aún no está aplicada, guardamos lo básico
     // (año + idioma) para no bloquear el onboarding.
     let error = (await sb.from("profiles").update({ birth_year: y, lang, country }).eq("id", user.id)).error;
@@ -243,6 +270,22 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
         aria-label={t("age.ph")}
         className="mono rounded-[13px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3.5 text-center text-lg tracking-[0.2em] text-[var(--cream)] outline-none focus:border-[var(--win)]"
       />
+      <div>
+        <label htmlFor="onb-handle" className="mb-2 block text-xs font-bold text-[var(--muted)]">{t("onb.handle")}</label>
+        <div className="flex items-center gap-2 rounded-[13px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3">
+          <span className="text-[16px] font-black text-[var(--muted)]">@</span>
+          <input
+            id="onb-handle"
+            value={handle}
+            onChange={(e) => { setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24)); setErr(""); }}
+            autoCapitalize="off"
+            autoComplete="off"
+            placeholder={t("onb.handlePh")}
+            className="mono w-full bg-transparent text-[15px] font-bold text-[var(--cream)] outline-none"
+          />
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-[var(--muted2)]">{t("onb.handleHint")}</p>
+      </div>
       <div>
         <p className="mb-2 text-xs font-bold text-[var(--muted)]">{t("onb.lang")}</p>
         <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={t("onb.lang")}>

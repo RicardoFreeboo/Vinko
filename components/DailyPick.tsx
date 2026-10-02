@@ -14,8 +14,9 @@ type PrevDay = {
   answer: { option_idx: number; correct: boolean | null; pts: number; score: number } | null;
 };
 
-export function DailyPick({ daily, myAnswer, prev }: {
+export function DailyPick({ daily, myAnswer, prev, opensSoon = false }: {
   daily: Daily | null; myAnswer: number | null; prev: PrevDay | null;
+  opensSoon?: boolean; // FX-13: aún no son las 9:00 → "se abre a las 9:00", no "no hay"
 }) {
   const router = useRouter();
   const [answered, setAnswered] = useState(myAnswer);
@@ -68,7 +69,7 @@ export function DailyPick({ daily, myAnswer, prev }: {
             {err && <p className="mt-2 text-center text-xs text-[var(--red)]">{err}</p>}
           </>
         ) : (
-          <p className="mt-2 text-sm text-[var(--muted)]">{t("hoy.none")}</p>
+          <p className="mt-2 text-sm text-[var(--muted)]">{opensSoon ? t("hoy.opensAt") : t("hoy.none")}</p>
         )}
       </section>
 

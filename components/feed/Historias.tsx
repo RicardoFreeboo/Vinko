@@ -4,6 +4,7 @@ import { StoriesViewer } from "./StoriesViewer";
 import { PorraCover } from "@/components/PorraCover";
 import { thumbOf } from "@/lib/thumb";
 import { makePick } from "@/lib/social";
+import { usePicksStore } from "@/components/feed/picks-store";
 import { capture } from "@/lib/analytics";
 import type { FeedPorra } from "@/lib/feed";
 import { t } from "@/lib/i18n";
@@ -20,8 +21,9 @@ export function Historias({ porras, initialPicks, loggedIn }: {
   loggedIn: boolean;
 }) {
   const withVideo = porras.filter((p) => p.video).slice(0, 12);
-  const [picks, setPicks] = useState(initialPicks);
-  const [stake, setStake] = useState(10);
+  // FX-12: estado de picks compartido con VerticalFeed (contexto); fuera del
+  // feed cae a estado local propio.
+  const { picks, setPick, stake, setStake } = usePicksStore(initialPicks);
   const [open, setOpen] = useState<number | null>(null);
 
   if (withVideo.length === 0) return null;
@@ -31,7 +33,7 @@ export function Historias({ porras, initialPicks, loggedIn }: {
     const e = await makePick(porraId, optionId, stake);
     if (e) return e;
     capture("pick_made", { is_seed: false });
-    setPicks((m) => ({ ...m, [porraId]: optionId }));
+    setPick(porraId, optionId);
     return null;
   }
 

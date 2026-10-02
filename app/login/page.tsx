@@ -9,8 +9,8 @@ export const metadata: Metadata = { title: t("login.title2"), robots: { index: f
 export default async function Login({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; err?: string }>;
 }) {
-  const { next } = await searchParams;
-  return <LoginForm next={next ?? "/feed"} />;
+  const { next, err } = await searchParams;
+  return <LoginForm next={next ?? "/feed"} err={err ?? null} />;
 }

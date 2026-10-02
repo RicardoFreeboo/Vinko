@@ -18,6 +18,7 @@ import { FastVideo } from "@/components/FastVideo";
 import { PorraCover } from "@/components/PorraCover";
 import { PorraSocial } from "@/components/PorraSocial";
 import { RetoView, type RetoSocial } from "@/components/RetoView";
+import { LocalDate } from "@/components/LocalDate";
 import { esReto } from "@/lib/reto";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { porraUrl, SITE } from "@/lib/share";
@@ -218,7 +219,9 @@ export default async function PorraPage({ params }: Props) {
         )}
         <p className="mono text-xs uppercase tracking-[0.1em]" style={{ color: disputed || (open && closed) ? "var(--gold)" : "var(--muted)" }}>
           {disputed ? t("p.inReview") : resolved ? t("p.resolved") : closed ? t("resolve.closedTag")
-            : reto ? t("reto.inPlayShort", { n: String(social.picks.length) }) : t("p.closes", { date: fmtDate(porra.closes_at) })}
+            : reto ? t("reto.inPlayShort", { n: String(social.picks.length) })
+            // FX-03: la hora de cierre en la hora del dispositivo (fallback: Madrid en SSR)
+            : <>{t("p.closes", { date: "" })}<LocalDate iso={porra.closes_at} fallback={fmtDate(porra.closes_at)} /></>}
         </p>
 
         <h1 className="text-[1.7rem] font-black leading-[1.12] tracking-tight text-[var(--cream)] [text-wrap:balance]">
@@ -229,7 +232,11 @@ export default async function PorraPage({ params }: Props) {
         {(criteria || (open && resolvesAt)) && (
           <div className="-mt-2 flex flex-col gap-0.5 text-[13px] text-[var(--muted)]">
             {criteria && <p>{t("p.criteria", { c: criteria })}</p>}
-            {open && resolvesAt && <p className="mono text-[11px] uppercase tracking-[0.1em]">{t("p.resolvesAt", { date: fmtDate(resolvesAt) })}</p>}
+            {open && resolvesAt && (
+              <p className="mono text-[11px] uppercase tracking-[0.1em]">
+                {t("p.resolvesAt", { date: "" })}<LocalDate iso={resolvesAt} fallback={fmtDate(resolvesAt)} />
+              </p>
+            )}
           </div>
         )}
 

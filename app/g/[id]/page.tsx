@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { LeaderRow } from "@/components/GroupLeaderboard";
-import { GroupView, weekCutoff, type GroupInfo } from "./group-view";
+import { GroupView, weekCutoff, type GroupInfo, type GroupPorraRow } from "./group-view";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -73,6 +73,13 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
     moneyEnabled = (cfg as { value?: { enabled?: boolean } } | null)?.value?.enabled === true;
   }
 
+  // FX-11: porras del grupo (RPC 0058, solo miembros). Pre-migración → lista vacía.
+  let porras: GroupPorraRow[] = [];
+  {
+    const { data, error } = await sb!.rpc("group_porras", { p_group: id });
+    if (!error && Array.isArray(data)) porras = data as GroupPorraRow[];
+  }
+
   return (
     <GroupView
       group={group}
@@ -82,6 +89,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       me={{ id: session!.id, handle: session!.handle ?? "", payHandle,
         isAdult: !!session!.birth_year && new Date().getFullYear() - session!.birth_year >= 18 }}
       moneyEnabled={moneyEnabled}
+      porras={porras}
       origin={origin}
     />
   );

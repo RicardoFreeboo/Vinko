@@ -34,6 +34,8 @@ export type Me = {
   daily_bonus_last: string | null;
   daily_bonus_step: number | null;
   referred_by: string | null;
+  deleted_at: string | null;
+  tz: string | null;
   created_at: string | null;
 } & Record<string, unknown>;
 

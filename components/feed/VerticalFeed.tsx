@@ -8,6 +8,7 @@ import { ADS_ENABLED } from "@/lib/ads";
 import { thumbOf } from "@/lib/thumb";
 import { capture } from "@/lib/analytics";
 import { loadSocial, toggleLike, makePick, EMPTY_SOCIAL, type Social } from "@/lib/social";
+import { PicksCtx } from "@/components/feed/picks-store";
 import type { FeedPorra } from "@/lib/feed";
 import { t } from "@/lib/i18n";
 
@@ -42,8 +43,16 @@ export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro, isAdm
 
   const root = useRef<HTMLDivElement>(null);
   const [current, setCurrent] = useState(0);
+  // FX-12: picks e importe en UN estado, compartido por contexto con Historias
+  // (vive en `intro`): jugar en una historia marca ✓ también en el slide.
   const [picks, setPicks] = useState(initialPicks);
   const [stake, setStake] = useState(10); // Vinkos por pronóstico, compartido entre slides
+  const store = useMemo(() => ({
+    picks,
+    setPick: (porraId: string, optionId: string) => setPicks((m) => ({ ...m, [porraId]: optionId })),
+    stake,
+    setStake,
+  }), [picks, stake]);
   const [social, setSocial] = useState<Record<string, Social>>({});
   const [sheet, setSheet] = useState<FeedPorra | null>(null);
   const cargadas = useRef(new Set<string>()); // ids con social pedido (evita repetir)
@@ -113,7 +122,7 @@ export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro, isAdm
   const cerrarComentarios = useCallback(() => setSheet(null), []);
 
   return (
-    <>
+    <PicksCtx.Provider value={store}>
       <div ref={root}
         className="mx-auto h-[100dvh] w-full max-w-[430px] snap-y snap-mandatory overflow-y-auto overscroll-y-contain [scrollbar-width:none] md:border-x md:border-[var(--line)] [&::-webkit-scrollbar]:hidden">
         {/* slide 0: pique del día / login, con hueco para el header fijo */}
@@ -167,6 +176,6 @@ export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro, isAdm
         <CommentsSheet p={sheet} social={social[sheet.id]} loggedIn={loggedIn}
           onClose={cerrarComentarios} onSent={() => void cargar(sheet, true)} />
       )}
-    </>
+    </PicksCtx.Provider>
   );
 }
