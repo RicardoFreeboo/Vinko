@@ -16,8 +16,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!sb) return NextResponse.json({ error: "no_backend" }, { status: 500 });
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return NextResponse.json({ error: "no_auth" }, { status: 401 });
-  const { data: me } = await sb.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (me?.role !== "admin") return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  // SEC-01: role ya no es columna pública → RPC is_admin() (0002).
+  const { data: adm } = await sb.rpc("is_admin");
+  if (adm !== true) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const { data: poolData, error: poolErr } = await sb.from("money_pools")
     .select("id, provider, external_pool_id, porra_id, status").eq("id", id).maybeSingle();

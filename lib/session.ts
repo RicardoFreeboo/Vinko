@@ -1,4 +1,5 @@
 import { supabaseServer } from "@/lib/supabase/server";
+import { fetchMe } from "@/lib/me";
 
 export type Session = {
   id: string;
@@ -11,37 +12,29 @@ export type Session = {
 };
 
 // Perfil del usuario autenticado (server). null si no hay sesión o sin backend.
+// SEC-01: birth_year y country ya no son columnas públicas; se leen del propio
+// perfil vía me() (con fallback al select directo mientras 0055 no esté aplicada).
 export async function getSession(): Promise<Session | null> {
   const sb = await supabaseServer();
   if (!sb) return null;
   const { data: { user } } = await sb.auth.getUser();
   if (!user) return null;
-  // 0045 añade profiles.country; si aún no está aplicada, se lee lo básico
-  // (mismo patrón defensivo que app/bienvenida/page.tsx) para no vaciar la sesión.
-  type Row = { handle: string | null; points: number | null; birth_year: number | null; country?: string | null };
-  let data: Row | null = null;
-  const full = await sb
-    .from("profiles")
-    .select("handle, points, birth_year, country")
-    .eq("id", user.id)
-    .maybeSingle();
-  if (full.error) {
-    const basic = await sb
-      .from("profiles")
-      .select("handle, points, birth_year")
-      .eq("id", user.id)
-      .maybeSingle();
-    data = basic.data as Row | null;
-  } else {
-    data = full.data as Row | null;
-  }
+  const me = await fetchMe(sb);
   return {
     id: user.id,
     email: user.email ?? null,
-    handle: data?.handle ?? null,
-    points: data?.points ?? null,
-    birth_year: data?.birth_year ?? null,
-    country: data?.country ?? null,
+    handle: me?.handle ?? null,
+    points: me?.points ?? null,
+    birth_year: me?.birth_year ?? null,
+    country: me?.country ?? null,
     is_anonymous: !!(user as { is_anonymous?: boolean }).is_anonymous,
   };
+}
+
+// FX-02 — fuera de /p, una sesión ANÓNIMA (invitado que hizo un pick) no es una
+// cuenta: las pantallas de la app la tratan como "sin sesión" (CTA de entrar /
+// terminar la cuenta) en vez de fallar con "Prueba otra vez".
+export async function getMemberSession(): Promise<Session | null> {
+  const s = await getSession();
+  return s && !s.is_anonymous ? s : null;
 }

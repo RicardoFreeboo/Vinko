@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchMe } from "@/lib/me";
 import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
@@ -41,16 +42,13 @@ export async function GET(req: Request) {
   const { data: { user } } = await sb.auth.getUser();
   let needsAge = false;
   if (user) {
-    const { data } = await sb.from("profiles").select("birth_year").eq("id", user.id).maybeSingle();
-    needsAge = !data?.birth_year;
+    // SEC-01: birth_year/onboarded_at son privadas → propio perfil vía me().
+    const me = await fetchMe(sb);
+    needsAge = !me?.birth_year;
     // Onboarding de 3 pantallas (spec F-08): quien tiene año pero no terminó las
-    // pantallas 2-3 también pasa por /bienvenida. Tolerante si 0036 no está aplicada.
-    if (!needsAge) {
-      try {
-        const { data: ob, error } = await sb.from("profiles").select("onboarded_at").eq("id", user.id).maybeSingle();
-        if (!error && ob && !ob.onboarded_at) needsAge = true;
-      } catch { /* columna aún no existe */ }
-    }
+    // pantallas 2-3 también pasa por /bienvenida (null explícito; si 0036 no está
+    // aplicada el campo no existe y no se fuerza).
+    if (!needsAge && me && me.onboarded_at === null) needsAge = true;
 
     const store = await cookies();
 

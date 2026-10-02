@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchMe } from "@/lib/me";
 import { supabaseServer } from "@/lib/supabase/server";
 
 // GET /api/me/export — descarga JSON con los datos del usuario (RGPD: acceso y
@@ -22,7 +23,7 @@ export async function GET() {
     data = rpc.data as Payload;
   } else {
     const [profile, picks, porras, comments, notifications] = await Promise.all([
-      sb.from("profiles").select("*").eq("id", user.id).maybeSingle(),
+      fetchMe(sb).then((m) => ({ data: m })), // SEC-01: select directo ya no ve lo privado
       sb.from("picks").select("porra_id, option_id, points_spent, created_at").eq("user_id", user.id),
       sb.from("porras").select("*").eq("created_by", user.id),
       sb.from("porra_comments").select("porra_id, body, created_at").eq("user_id", user.id),

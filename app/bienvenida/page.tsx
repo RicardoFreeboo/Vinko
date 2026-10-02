@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { fetchMe } from "@/lib/me";
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 import { OnboardingFlow, type OnboardingProfile } from "@/components/OnboardingFlow";
@@ -30,19 +31,8 @@ export default async function Bienvenida({
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect(`/login?next=${encodeURIComponent(safeNext)}`);
 
-  // Con 0036 aplicada hay interests/onboarded_at; si no, se lee lo básico.
-  let row: Row | null = null;
-  const full = await sb.from("profiles")
-    .select("handle, birth_year, lang, avatar_url, interests, onboarded_at, streak_shields, country")
-    .eq("id", user.id).maybeSingle();
-  if (full.error) {
-    const basic = await sb.from("profiles")
-      .select("handle, birth_year, lang, avatar_url, streak_shields")
-      .eq("id", user.id).maybeSingle();
-    row = basic.data as Row | null;
-  } else {
-    row = full.data as Row | null;
-  }
+  // SEC-01: perfil propio completo vía me() (fallback interno si 0055 no está).
+  const row = (await fetchMe(sb)) as unknown as Row | null;
   if (!row) redirect("/login");
 
   const profile: OnboardingProfile = {
