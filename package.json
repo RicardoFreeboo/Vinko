@@ -11,7 +11,8 @@
     "check": "node scripts/lexicon-check.mjs && node scripts/i18n-parity.mjs",
     "test:unit": "node tests/unit/run.mjs",
     "test:e2e": "node tests/e2e/smoke.mjs",
-    "predeploy": "node scripts/predeploy.mjs"
+    "predeploy": "node scripts/predeploy.mjs",
+    "test:sql": "bash tests/sql/run.sh"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.8",
