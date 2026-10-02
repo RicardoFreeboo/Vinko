@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { moneyUiEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { getPorraBySlug, getPorraExtras } from "@/lib/porras";
 import { getSession } from "@/lib/session";
@@ -79,6 +80,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PorraPage({ params }: Props) {
   const { slug } = await params;
   const [porra, session, sb] = await Promise.all([getPorraBySlug(slug), getSession(), supabaseServer()]);
+  const moneyUi = await moneyUiEnabled(sb); // MON-01: sin flag, cero dinero en /p
 
   if (!porra) return <NotAvailable />;
 
@@ -250,10 +252,11 @@ export default async function PorraPage({ params }: Props) {
           isTemplate={porra.is_template}
           closesAt={porra.closes_at}
           isAdult={isAdult}
-          moneyLive={!!moneyDict}
+          moneyLive={moneyUi && !!moneyDict}
+          moneyUi={moneyUi}
         />
 
-        {money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
+        {moneyUi && money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
 
         {/* Afiliación (regla de oro 5): solo sesión real +18 y país con afiliación
             habilitada. Apagado hoy → no pinta nada. Nunca a invitados/menores. */}

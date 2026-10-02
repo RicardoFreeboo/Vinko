@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     })));
   },
   async rewrites() {
-    return [{ source: "/dossier", destination: "/dossier/index.html" }];
+    return []; // MON-01: /dossier fuera (era el investment dossier)
   },
 };
 

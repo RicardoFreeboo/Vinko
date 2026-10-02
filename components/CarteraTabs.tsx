@@ -6,9 +6,11 @@ import { t } from "@/lib/i18n";
 // Dos pestañas en la Cartera: Vinkos (puntos, economía viva) y Euros (dinero,
 // motor del proveedor). Ambas quedan montadas (display:none la inactiva) para no
 // perder estado ni re-consultar. Vinkos y euros JAMÁS se mezclan (diseño §3.3).
-export function CarteraTabs({ vinkos, dinero, initial = "vinkos" }: {
+export function CarteraTabs({ vinkos, dinero, initial = "vinkos", showDinero = false }: {
   vinkos: ReactNode; dinero: ReactNode; initial?: "vinkos" | "dinero";
+  showDinero?: boolean; // MON-01: sin flag no hay pestaña € (solo Vinkos, sin tabs)
 }) {
+  if (!showDinero) return <div className="flex flex-col gap-5">{vinkos}</div>;
   const [tab, setTab] = useState<"vinkos" | "dinero">(initial);
   const base = "flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-[14px] font-black transition-colors";
   return (

@@ -86,7 +86,12 @@ async function nativeShare(title: string, text: string, url: string): Promise<bo
 
 const CLOSE_PRESETS: ClosePreset[] = ["1h", "tonight", "tomorrow", "weekend", "custom"];
 
-export function NuevaClient({ userId, handle }: { userId: string; origin?: string; handle?: string | null }) {
+export function NuevaClient({ userId, handle, moneyUi = false }: {
+  userId: string;
+  origin?: string;
+  handle?: string | null;
+  moneyUi?: boolean; // MON-01: sin flag no existe la opción Dinero
+}) {
   const libre = plantillaTextos(PLANTILLA_LIBRE, tr);
   const [tpl, setTpl] = useState<PlantillaKey>("libre");
   const [title, setTitle] = useState("");
@@ -323,8 +328,12 @@ export function NuevaClient({ userId, handle }: { userId: string; origin?: strin
         <>
           {/* PASO 3 — ¿QUÉ TE JUEGAS? (Vinkos / Dinero / Premio) */}
           <Block n={3} title={tr("crear.stakeQ")}>
-            <div className="grid grid-cols-3 gap-2">
-              {([["vinkos", "🪙"], ["dinero", "💶"], ["premio", "🎁"]] as const).map(([k, icon]) => {
+            <div className={moneyUi ? "grid grid-cols-3 gap-2" : "grid grid-cols-2 gap-2"}>
+              {/* MON-01: la opción Dinero solo existe con el flag de servidor */}
+              {(moneyUi
+                ? ([["vinkos", "🪙"], ["dinero", "💶"], ["premio", "🎁"]] as const)
+                : ([["vinkos", "🪙"], ["premio", "🎁"]] as const)
+              ).map(([k, icon]) => {
                 const on = stakeKind === k;
                 return (
                   <button key={k} type="button" onClick={() => setStakeKind(k)}

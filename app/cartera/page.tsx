@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { SaldoClient } from "@/components/SaldoClient";
 import { EuroWallet } from "@/components/EuroWallet";
@@ -8,6 +9,7 @@ import { CarteraTabs } from "@/components/CarteraTabs";
 import { getWallet } from "@/lib/money/wallet";
 import { getMoneyConfig } from "@/lib/money/config";
 import { ClubCard } from "@/components/ClubCard";
+import { fetchMe } from "@/lib/me";
 import { getClubConfig, stripeConfigured } from "@/lib/club";
 import { VinkosStreak } from "@/components/VinkosStreak";
 import { VinkoCoin } from "@/components/VinkoCoin";
@@ -71,7 +73,7 @@ function yesterdayOf(day: string): string {
 }
 
 export default async function Saldo() {
-  const session = await getSession();
+  const session = await getMemberSession();
 
   if (!session) {
     return (
@@ -106,11 +108,9 @@ export default async function Saldo() {
   const sb = await supabaseServer();
   // Marca la ENTRADA del día ANTES de leer la racha (idempotente por día).
   if (sb) await sb.rpc("daily_open");
-  const [{ data: p }, { data: cfgRows }] = await Promise.all([
-    sb!.from("profiles")
-      .select("points, xp, marcador_total, streak_days, streak_best, streak_last, streak_shields, streak_broken_days, streak_recover_until, division, daily_bonus_last, daily_bonus_step, role, club_active, country, safer_play")
-      .eq("id", session.id)
-      .maybeSingle(),
+  // SEC-01: todo esto es del PROPIO perfil (safer_play, club_active, bonus…) → me().
+  const [p, { data: cfgRows }] = await Promise.all([
+    fetchMe(sb!),
     sb!.from("remote_config").select("key, value").in("key", ["economy", "ads"]),
   ]);
   const eco = readEconomy(cfgRows);
@@ -156,6 +156,7 @@ export default async function Saldo() {
       {/* Dos pestañas: Vinkos (puntos, economía viva) y Euros (motor del proveedor,
           custodia fuera del núcleo). No se mezclan (diseño §3.3). */}
       <CarteraTabs
+        showDinero={await moneyUiEnabled(sb)}
         vinkos={<>
           {/* RACHA SEMANAL real + regalo diario + nivel (XP) */}
           <VinkosStreak

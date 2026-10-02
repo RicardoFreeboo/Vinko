@@ -7,6 +7,8 @@ import { StakeRotator } from "@/components/landing/StakeRotator";
 import { TiltCard } from "@/components/landing/TiltCard";
 import { Coin3D } from "@/components/landing/Coin3D";
 import { RevealObserver } from "@/components/landing/RevealObserver";
+import { createClient } from "@supabase/supabase-js";
+import { moneyUiEnabled } from "@/lib/flags";
 import { t } from "@/lib/i18n";
 import "./landing.css";
 
@@ -21,11 +23,25 @@ import "./landing.css";
 // Diseño: 3D con CSS (app/landing.css), sin three.js, para no penalizar la
 // carga en móvil. Las islas de cliente son pequeñas: el escenario del móvil,
 // el rotador de palabras, la inclinación de tarjetas y el reveal al scroll.
-export const metadata: Metadata = {
-  title: t("landing.title"),
-  description: t("landing.sub"),
-  robots: { index: true, follow: true },
-};
+// MON-01: el flag de dinero decide la variante de la portada (con/sin dinero).
+// Se lee con la anon key, sin cookies, para que la página siga siendo ISR.
+export const revalidate = 300;
+
+function supa() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anon) return null;
+  return createClient(url, anon, { auth: { persistSession: false } });
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const money = await moneyUiEnabled(supa());
+  return {
+    title: t(money ? "landing.title" : "landing.nm.title"),
+    description: t(money ? "landing.sub" : "landing.nm.sub"),
+    robots: { index: true, follow: true },
+  };
+}
 
 const CREATE_HREF = "/login?next=/nueva";
 const STAKES = [0, 1, 2, 3, 4, 5].map((i) => t(`landing.stake.${i}`));
@@ -52,7 +68,12 @@ function Ticker({ items, reverse = false }: { items: string[]; reverse?: boolean
   );
 }
 
-export default function Landing() {
+export default async function Landing() {
+  const money = await moneyUiEnabled(supa());
+  // Sin dinero: fuera los textos y fichas con € (índice 1 de STAKES, "💶" del ticker).
+  const stakes = money ? STAKES : STAKES.filter((x) => !x.includes("€"));
+  const ticker = money ? TICKER : TICKER.filter((x) => !x.includes("€"));
+  const modes = money ? MODES : MODES.filter((m) => m.k !== "money");
   return (
     <main className="lx min-h-dvh text-[var(--cream)]">
       <RevealObserver />
@@ -86,16 +107,16 @@ export default function Landing() {
             style={{ ["--d" as string]: "80ms" }}
             className="max-w-[640px] text-[2.25rem] font-black leading-[1.03] tracking-[-0.035em] [text-wrap:balance] sm:text-[3.3rem] lg:text-[4rem]"
           >
-            {t("landing.h1")}
+            {t(money ? "landing.h1" : "landing.nm.h1")}
           </h1>
 
           <div data-reveal style={{ ["--d" as string]: "160ms" }} className="flex w-full flex-col gap-1">
             <span className="mono text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">{t("landing.stakeLabel")}</span>
-            <StakeRotator items={STAKES} className="text-[1.9rem] font-black leading-[1.2] tracking-tight sm:text-[2.5rem]" itemClassName="lx-grad" />
+            <StakeRotator items={stakes} className="text-[1.9rem] font-black leading-[1.2] tracking-tight sm:text-[2.5rem]" itemClassName="lx-grad" />
           </div>
 
           <p data-reveal style={{ ["--d" as string]: "240ms" }} className="max-w-[560px] text-[16px] leading-relaxed text-[var(--muted)] sm:text-[17px]">
-            {t("landing.sub")}
+            {t(money ? "landing.sub" : "landing.nm.sub")}
           </p>
 
           <div data-reveal style={{ ["--d" as string]: "320ms" }} className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -110,18 +131,18 @@ export default function Landing() {
           <ul data-reveal style={{ ["--d" as string]: "400ms" }} className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[12px] font-bold sm:gap-x-5 sm:text-[13px] text-[var(--muted)] lg:justify-start">
             <li>⚡ {t("landing.trust.fast")}</li>
             <li>💬 {t("landing.trust.whatsapp")}</li>
-            <li>🔒 {t("landing.trust.money")}</li>
+            <li>{money ? <>🔒 {t("landing.trust.money")}</> : <>🤝 {t("landing.nm.trust")}</>}</li>
           </ul>
         </div>
 
-        <HeroStage />
+        <HeroStage money={money} />
       </section>
 
       {/* ============ CINTA: LO QUE OS JUGÁIS ============ */}
       <section aria-label={t("landing.stakeLabel")} className="lx-ticker-wrap py-6">
         <div className="lx-ticker-tilt flex flex-col gap-3">
-          <Ticker items={TICKER} />
-          <Ticker items={[...TICKER].reverse()} reverse />
+          <Ticker items={ticker} />
+          <Ticker items={[...ticker].reverse()} reverse />
         </div>
       </section>
 
@@ -134,8 +155,8 @@ export default function Landing() {
           </h2>
         </div>
 
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
-          {MODES.map((m, i) => (
+        <div className={modes.length === 3 ? "mt-10 grid gap-5 md:grid-cols-3" : "mx-auto mt-10 grid max-w-[820px] gap-5 md:grid-cols-2"}>
+          {modes.map((m, i) => (
             <div key={m.k} data-reveal style={{ ["--d" as string]: `${i * 110}ms` }}>
               <TiltCard className="lx-mode h-full p-6" max={9} style={{ ["--tint" as string]: m.tint }}>
                 <div className="lx-pop-z lx-mode-icon">{m.icon}</div>
@@ -236,11 +257,11 @@ export default function Landing() {
       </section>
 
       <footer className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 border-t border-[var(--line)] px-5 pb-10 pt-6 sm:px-8">
-        <p className="max-w-[900px] text-[12px] leading-relaxed text-[var(--muted)]">{t("landing.age")}</p>
+        <p className="max-w-[900px] text-[12px] leading-relaxed text-[var(--muted)]">{t(money ? "landing.age" : "landing.nm.age")}</p>
         <nav className="flex flex-wrap gap-x-5 gap-y-2 text-[12px] font-bold">
           <Link href="/privacidad" className="text-[var(--win)]">{t("legal.privacy.title")}</Link>
           <Link href="/terminos" className="text-[var(--win)]">{t("legal.terms.title")}</Link>
-          <Link href="/juego-seguro" className="text-[var(--win)]">{t("landing.safe")}</Link>
+          {money && <Link href="/juego-seguro" className="text-[var(--win)]">{t("landing.safe")}</Link>}
         </nav>
         <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted2)]">{t("og.footer")}</p>
       </footer>

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { supabaseServer } from "@/lib/supabase/server";
+import { moneyUiEnabled } from "@/lib/flags";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { MoneyDemo } from "@/components/demo/MoneyDemo";
 
 // Demo de inversor de la capa de dinero (SIMULACIÓN). No indexable, con sesión,
@@ -12,8 +15,19 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+
+// MON-01: material de inversores. Solo existe con el flag de dinero encendido Y
+// para un admin con sesión; para cualquier otro, 404.
+async function guardMoneyAdmin(): Promise<void> {
+  const sb = await supabaseServer();
+  if (!(await moneyUiEnabled(sb))) notFound();
+  const { data: adm } = sb ? await sb.rpc("is_admin") : { data: false };
+  if (adm !== true) notFound();
+}
+
 export default async function DemoDineroPage() {
-  const session = await getSession().catch(() => null);
+  await guardMoneyAdmin();
+  const session = await getMemberSession().catch(() => null);
   if (!session) redirect("/login?next=/demo/dinero");
   return (
     <main className="min-h-dvh w-full bg-[var(--ink)]">

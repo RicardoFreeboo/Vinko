@@ -32,7 +32,7 @@ const eur = (cents: number) =>
   new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(cents / 100);
 
 export function PickPanel({
-  porraId, slug, options, status, isTemplate, closesAt, isAdult = false, moneyLive = false,
+  porraId, slug, options, status, isTemplate, closesAt, isAdult = false, moneyLive = false, moneyUi = false,
 }: {
   porraId: string;
   slug: string;
@@ -41,6 +41,7 @@ export function PickPanel({
   isTemplate: boolean;
   closesAt: string;
   isAdult?: boolean;   // +18 registrado: ve el toggle del modo dinero ("muy pronto")
+  moneyUi?: boolean;   // MON-01: flag de servidor; false (por defecto) = cero UI de dinero
   moneyLive?: boolean; // el dinero real está aprobado → MoneyMount toma el relevo, sin maqueta
 }) {
   const router = useRouter();
@@ -150,7 +151,7 @@ export function PickPanel({
   const guestMode = !loggedIn || isGuest;
   // El toggle solo para +18 registrado (nunca invitado ni sin sesión) y sin
   // dinero real aprobado. Si el dinero real está vivo, MoneyMount toma el relevo.
-  const showToggle = isAdult && loggedIn && !isGuest && !moneyLive;
+  const showToggle = moneyUi && isAdult && loggedIn && !isGuest && !moneyLive;
 
   // Cuerpo de PUNTOS: termómetro (ya jugado/cerrado) o la propia selección.
   const pointsBody = (myPick || closed) ? (

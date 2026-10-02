@@ -13,7 +13,7 @@ export type ClubConfig = {
 };
 
 const DEFAULTS: ClubConfig = {
-  enabled: true, monthly_minor: 399, annual_minor: 3499, currency: "EUR",
+  enabled: false, monthly_minor: 399, annual_minor: 3499, currency: "EUR",
   trial_days: 0, invoicing_entity: null, perks: ["no_ads", "cosmetics", "stats", "more_groups", "focus_monthly"],
 };
 

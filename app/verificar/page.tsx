@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
-import { getSession } from "@/lib/session";
+import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { KycLevels } from "@/components/KycLevels";
 import { Logo } from "@/components/Logo";
@@ -14,7 +16,9 @@ export const metadata: Metadata = { title: t("kyc.title"), robots: { index: fals
 // 0 sin sesión · 1 con año de nacimiento · 2/3 según el KYC del proveedor
 // (money_accounts.kyc_level, que llega por webhook). Sin captura real aquí.
 export default async function Verificar() {
-  const session = await getSession();
+  // MON-01: sin el flag de dinero esta pantalla no existe (404).
+  if (!(await moneyUiEnabled(await supabaseServer()))) notFound();
+  const session = await getMemberSession();
   if (!session) {
     return (
       <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-5 px-6 text-center">
