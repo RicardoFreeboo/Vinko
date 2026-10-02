@@ -169,29 +169,37 @@ export type PorraOgData = {
   tallies: OgTally[];
   total: number; // participantes = picks (uno por persona y porra)
   creator: OgCreator | null; // null en editoriales (Vinko oficial) y plantillas
+  creatorIdx: number | null; // RT-04: la opción del creador («Yo digo NO»)
 };
 
 /** Porra + conteos por opción + creador. Nunca lanza: sin datos → sin termómetro. */
 export async function fetchPorraOgData(slug: string): Promise<PorraOgData> {
   let porra: Porra | null = null;
   try { porra = await getPorraBySlug(slug); } catch { porra = null; }
-  const empty: PorraOgData = { porra, tallies: [], total: 0, creator: null };
+  const empty: PorraOgData = { porra, tallies: [], total: 0, creator: null, creatorIdx: null };
   if (!porra || porra.status === "taken_down") return empty;
   const sb = anon();
   const real = !porra.is_template && UUID.test(porra.id);
   if (!sb || !real) return empty;
   try {
-    const [tal, cre] = await Promise.all([
+    const [tal, cre, soc] = await Promise.all([
       sb.from("porra_tallies").select("option_id, n").eq("porra_id", porra.id),
       porra.source === "user" && porra.created_by
         ? sb.from("profiles").select("handle, avatar_url").eq("id", porra.created_by).maybeSingle()
         : Promise.resolve({ data: null, error: null }),
+      // RT-04: porra_social dice qué opción lleva cada uno (anon la puede leer)
+      porra.source === "user" ? sb.rpc("porra_social", { p_porra: porra.id }) : Promise.resolve({ data: null, error: null }),
     ]);
     const tallies = (tal.error ? [] : (tal.data ?? [])) as OgTally[];
     const total = tallies.reduce((s, x) => s + (Number(x.n) > 0 ? Math.floor(Number(x.n)) : 0), 0);
     const c = (cre.error ? null : cre.data) as { handle?: string; avatar_url?: string | null } | null;
     const creator = c && c.handle ? { handle: c.handle, avatar_url: c.avatar_url ?? null } : null;
-    return { porra, tallies, total, creator };
+    let creatorIdx: number | null = null;
+    const picks = (soc.error ? null : (soc.data as { picks?: { handle: string | null; idx: number }[] } | null))?.picks;
+    if (creator && Array.isArray(picks)) {
+      creatorIdx = picks.find((k) => k.handle === creator.handle)?.idx ?? null;
+    }
+    return { porra, tallies, total, creator, creatorIdx };
   } catch {
     return empty;
   }

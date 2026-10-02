@@ -17,10 +17,22 @@ export function GuestConvert({ slug, hasPick = true }: { slug: string; hasPick?:
     if (!sb) { setErr(t("login.notready")); return; }
     setBusy(true); setErr(null);
     const next = encodeURIComponent(`/p/${slug}`);
-    const { error } = await sb.auth.linkIdentity({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${next}` },
-    });
+    // RT-06: ANTES de ir a Google se crea un token de fusión (solo JWT anónimo)
+    // y se deja en una cookie. Da igual si ese Google ya tenía cuenta o es
+    // nuevo: /auth/callback llama a merge_guest(token) y el pick se conserva
+    // en la cuenta real, sin @invitado_ duplicado. (Antes: linkIdentity, que
+    // fallaba con identity_already_exists y dejaba el pick huérfano.)
+    try {
+      const { data: tok } = await sb.rpc("create_merge_token");
+      if (typeof tok === "string") {
+        document.cookie = `vinko_merge=${tok}; path=/; max-age=3600; samesite=lax`;
+      }
+    } catch { /* pre-0057: sin token, linkIdentity de siempre */ }
+    const hasToken = document.cookie.includes("vinko_merge=");
+    const redirectTo = `${window.location.origin}/auth/callback?next=${next}`;
+    const { error } = hasToken
+      ? await sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo } })
+      : await sb.auth.linkIdentity({ provider: "google", options: { redirectTo } });
     // Sin error el navegador ya está yendo a Google; no hay nada que pintar.
     if (error) { setErr(t("guest.linkErr")); setBusy(false); }
   }

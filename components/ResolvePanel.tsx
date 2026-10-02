@@ -42,7 +42,16 @@ export function ResolvePanel({ porraId, options, source, canResolve, canVoid, ea
     const sb = supabaseBrowser();
     if (!sb) return;
     setBusy(true); setErr(null);
-    const { error } = await sb.rpc("resolve_porra", { p_porra: porraId, p_winning: chosen });
+    // RT-07: en las porras de usuario el juez PROPONE y los que perderían tienen
+    // 48 h para objetar (propose_result). resolve_porra directo queda para lo
+    // editorial y para /admin. Fallback si 0057 no está aplicada.
+    let res = source === "user"
+      ? await sb.rpc("propose_result", { p_porra: porraId, p_option: chosen })
+      : await sb.rpc("resolve_porra", { p_porra: porraId, p_winning: chosen });
+    if (res.error && (res.error.code === "PGRST202" || res.error.code === "42883")) {
+      res = await sb.rpc("resolve_porra", { p_porra: porraId, p_winning: chosen });
+    }
+    const { error } = res;
     setBusy(false);
     if (error) { setErr(mapErr(error.message, t("resolve.err"))); return; }
     // Editorial queda fuera de la tracción (is_seed=true); las de usuario, dentro.
@@ -67,7 +76,9 @@ export function ResolvePanel({ porraId, options, source, canResolve, canVoid, ea
     return (
       <section className="rounded-[16px] border border-[var(--win)] bg-[var(--ink2)] p-4 text-center">
         <Confetti />
-        <p className="text-[15px] font-black text-[var(--win)]">{t("resolve.done")}</p>
+        <p className="text-[15px] font-black text-[var(--win)]">
+          {source === "user" ? t("resolve.proposed") : t("resolve.done")}
+        </p>
       </section>
     );
   }

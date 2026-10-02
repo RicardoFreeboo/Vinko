@@ -7,6 +7,7 @@ import { StakePicker } from "@/components/StakePicker";
 import { GuestConvert } from "@/components/GuestConvert";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
+import { PushPrePrompt } from "@/components/PushPrePrompt";
 
 // Enhancement de /p (la landing SSR sigue usable sin JS: título+opciones ya
 // están en el HTML). Con sesión se hace el pick (make_pick con el importe del
@@ -257,6 +258,8 @@ export function PickPanel({
         </div>
       )}
       {showToggle && money ? moneyBody : pointsBody}
+      {/* RT-05: el pre-aviso de push sale cuando aporta algo — justo tras elegir */}
+      {myPick && loggedIn && !isGuest && <PushPrePrompt hasValue />}
     </>
   );
 }

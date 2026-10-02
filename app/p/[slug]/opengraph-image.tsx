@@ -2,6 +2,7 @@ import { ImageResponse } from "next/og";
 import { TEMPLATES } from "@/lib/templates";
 import { EDITORIAL } from "@/lib/editorial";
 import { t } from "@/lib/i18n";
+import { stakeEmoji } from "@/lib/reto";
 import {
   fetchPorraOgData,
   fetchAvatarDataUri,
@@ -55,20 +56,21 @@ const PCT_W = 96;
 
 export default async function OgImage({ params }: Props) {
   const { slug } = await params;
-  const { porra, tallies, total, creator } = await fetchPorraOgData(slug);
+  const { porra, tallies, total, creator, creatorIdx } = await fetchPorraOgData(slug);
   const p = porra && porra.status !== "taken_down" ? porra : null;
 
   const title = p ? p.title : t("p.notAvailable");
   const options = p ? p.options.slice(0, 4) : [];
   const thermo = !!p && !p.is_template && total >= MIN_PICKS_THERMO && options.length > 0;
   const byOption = new Map(tallies.map((x) => [x.option_id, x.n]));
+  const prize = p?.stake_kind === "prize";
   const rows = options.map((o, i) => ({
     id: o.id,
-    label: o.label,
+    label: creator && creatorIdx === i ? `${o.label} · ${creator.handle}` : o.label, // RT-04: su lado
     accent: OG_ACCENT[i],
     letter: OG_LETTER[i],
     pct: pctOf(byOption.get(o.id) ?? 0, total),
-    win: !!p && p.winning_option_id === o.id,
+    win: (!!p && p.winning_option_id === o.id) || (!!p && p.status === "open" && creatorIdx === i),
   }));
 
   // Alto reservado por el cuerpo → el título recibe el resto.
@@ -83,7 +85,10 @@ export default async function OgImage({ params }: Props) {
   });
 
   const avatar = creator ? await fetchAvatarDataUri(creator.avatar_url) : null;
-  const who = p?.official ? t("p.badgeOfficial") : creator ? t("og.by", { handle: creator.handle }) : null;
+  // RT-04: en un reto, la cabecera es «@ricardo te reta».
+  const who = p?.official ? t("p.badgeOfficial")
+    : creator && prize ? t("og.reta", { handle: creator.handle })
+    : creator ? t("og.by", { handle: creator.handle }) : null;
   const whoInitials = p?.official ? "V" : creator ? initials(creator.handle) : null;
   const participants = !p || p.is_template
     ? null
@@ -98,7 +103,9 @@ export default async function OgImage({ params }: Props) {
       ? { text: t("p.badgeOfficial"), color: C.win, filled: true }
       : p?.status === "resolved"
         ? { text: t("p.resolved"), color: C.gold, filled: false }
-        : null;
+        : prize && p?.stake_text
+          ? { text: `${stakeEmoji(p.stake_text)} ${p.stake_text}`, color: C.gold, filled: false } // RT-04: qué os jugáis
+          : null;
 
   return new ImageResponse(
     (

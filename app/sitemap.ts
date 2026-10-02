@@ -16,8 +16,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   if (!url || !anon) return fijas;
   try {
     const sb = createClient(url, anon, { auth: { persistSession: false } });
+    // FX-04: las porras de usuario no se indexan — al sitemap solo va lo editorial.
     const { data } = await sb.from("porras").select("slug, created_at")
-      .eq("status", "open").eq("is_template", false).eq("visibility", "public")
+      .eq("status", "open").eq("is_template", false).eq("visibility", "public").eq("source", "editorial")
       .gt("closes_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(500);
     return [...fijas, ...(data ?? []).map((p) => ({
       url: `${SITE}/p/${p.slug}`, lastModified: p.created_at, changeFrequency: "hourly" as const, priority: 0.7,

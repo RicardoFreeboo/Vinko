@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
 import { getMemberSession } from "@/lib/session";
-import { supabaseServer } from "@/lib/supabase/server";
 import { NuevaClient } from "@/components/NuevaClient";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
@@ -13,7 +11,6 @@ export const metadata: Metadata = { title: t("nueva.title"), robots: { index: fa
 
 export default async function Nueva() {
   const session = await getMemberSession();
-  const moneyUi = await moneyUiEnabled(await supabaseServer()); // MON-01
   if (!session) {
     return (
       <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col items-center justify-center gap-5 px-6 text-center">
@@ -34,7 +31,7 @@ export default async function Nueva() {
         <span className="mono text-xs text-[var(--muted)]">@{session.handle}</span>
       </header>
       <h1 className="text-2xl font-black">{t("nueva.title")}</h1>
-      <NuevaClient moneyUi={moneyUi} userId={session.id} origin={origin} handle={session.handle} />
+      <NuevaClient userId={session.id} origin={origin} handle={session.handle} />
       <AppNav />
     </main>
   );
