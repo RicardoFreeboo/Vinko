@@ -14,8 +14,8 @@ $$;
 
 do $$
 declare
-  u uuid; u2 uuid; g uuid; d uuid;
-  v jsonb; r boolean; s record;
+  u uuid; u2 uuid; u3 uuid; u4 uuid; u5 uuid; adm uuid; g uuid; d uuid;
+  v jsonb; v_money jsonb; r boolean; s record;
   h_u text; h_g text; h_d text;
 begin
   -- ── 1) safer_play_set_limit guarda, acumula y quita ─────────────────────────
@@ -37,6 +37,33 @@ begin
     raise exception '1: autoexclusión y límites deben convivir: %', v;
   end if;
   raise notice 'OK 0059.1 safer_play_set_limit: guarda, acumula, 0 quita, convive con la autoexclusión';
+
+  -- ── 1b) affiliate_go rechaza a un autoexcluido (u lo está desde arriba) ─────
+  insert into auth.users (email) values ('lat.admin@test.dev') returning id into adm;
+  update profiles set role = 'admin' where id = adm;
+  perform test_as(adm);
+  perform affiliate_link_upsert('ES', 'lat_op', 'https://op.test/?s={subid}', 'TEST-0059', true);
+  select value into v_money from remote_config where key = 'money';
+  update remote_config set value = coalesce(v_money, '{}'::jsonb) || jsonb_build_object('countries',
+      coalesce(v_money->'countries', '{}'::jsonb) || jsonb_build_object('ES',
+        coalesce(v_money->'countries'->'ES', '{}'::jsonb) || '{"affiliate":{"enabled":true}}'::jsonb))
+    where key = 'money';
+  update profiles set birth_year = 1990 where id = u;
+  perform test_as(u);
+  begin
+    perform affiliate_go('lat_op', 'ES');
+    raise exception '1b: un autoexcluido no debe llegar al operador';
+  exception when others then
+    if sqlerrm not like '%VINKO_AFFILIATE_SELF_EXCLUDED%' then raise; end if;
+  end;
+  insert into auth.users (email) values ('lat.adulto@test.dev') returning id into u3;
+  update profiles set birth_year = 1990 where id = u3;
+  perform test_as(u3);
+  if affiliate_go('lat_op', 'ES') not like 'https://op.test/?s=%' then
+    raise exception '1b: un +18 no autoexcluido sí debe recibir la URL del operador';
+  end if;
+  update remote_config set value = v_money where key = 'money'; -- se deja como estaba (apagado)
+  raise notice 'OK 0059.1b affiliate_go: autoexcluido rechazado, +18 normal recibe la URL';
 
   -- ── 2) profile_public: reales sí; invitados y borrados no; nada privado ─────
   perform test_as(null);
@@ -93,13 +120,13 @@ begin
     raise exception '3d: incomplete_expired debe quedar canceled';
   end if;
   r := club_apply_event('lat_evt_6', 'stripe', 'customer.subscription.updated', '{}'::jsonb,
-         u, 'lat_sub_2', 'unpaid', null, null, null);
-  if (select status::text from club_subscriptions where external_subscription_id = 'lat_sub_2') <> 'past_due' then
+         u, 'lat_sub_2b', 'unpaid', null, null, null);
+  if (select status::text from club_subscriptions where external_subscription_id = 'lat_sub_2b') <> 'past_due' then
     raise exception '3d: unpaid debe quedar past_due';
   end if;
   -- e) idempotencia por event_id
   if club_apply_event('lat_evt_6', 'stripe', 'customer.subscription.updated', '{}'::jsonb,
-       u, 'lat_sub_2', 'unpaid', null, null, null) then
+       u, 'lat_sub_2b', 'unpaid', null, null, null) then
     raise exception '3e: un event_id repetido debe devolver false';
   end if;
   -- f) checkout como PRIMER evento sigue activando al momento; luego se completa
@@ -113,6 +140,42 @@ begin
     raise exception '3f: la suscripción debe completar el plan';
   end if;
   if (select club_until from profiles where id = u2) is null then raise exception '3f: club_until debe quedar fijado'; end if;
+  -- h) dos suscripciones: la baja de la vieja no apaga la nueva
+  insert into auth.users (email) values ('lat.club4@test.dev') returning id into u4;
+  r := club_apply_event('lat_evt_h1', 'stripe', 'customer.subscription.created', '{}'::jsonb, u4, 'lat_sub_h_a', 'active', 'monthly', now() + interval '30 days', false);
+  r := club_apply_event('lat_evt_h2', 'stripe', 'customer.subscription.updated', '{}'::jsonb, u4, 'lat_sub_h_a', 'past_due', null, null, null);
+  if (select club_active from profiles where id = u4) then raise exception '3h: con la única suscripción en past_due no hay Club'; end if;
+  r := club_apply_event('lat_evt_h3', 'stripe', 'customer.subscription.created', '{}'::jsonb, u4, 'lat_sub_h_b', 'active', 'annual', now() + interval '365 days', false);
+  r := club_apply_event('lat_evt_h4', 'stripe', 'customer.subscription.deleted', '{}'::jsonb, u4, 'lat_sub_h_a', 'canceled', null, null, null);
+  if not (select club_active from profiles where id = u4) then raise exception '3h: la baja de la suscripción vieja apagó la nueva'; end if;
+  if (select club_until from profiles where id = u4) < now() + interval '300 days' then raise exception '3h: club_until debe ser el de la suscripción viva'; end if;
+  -- i) updated(active) → created(incomplete) tardío → checkout: sigue activa
+  insert into auth.users (email) values ('lat.club5@test.dev') returning id into u5;
+  r := club_apply_event('lat_evt_i1', 'stripe', 'customer.subscription.updated', '{}'::jsonb, u5, 'lat_sub_i', 'active', 'monthly', now() + interval '30 days', false);
+  r := club_apply_event('lat_evt_i2', 'stripe', 'customer.subscription.created', '{}'::jsonb, u5, 'lat_sub_i', 'incomplete', 'monthly', null, false);
+  r := club_apply_event('lat_evt_i3', 'stripe', 'checkout.session.completed', '{}'::jsonb, u5, 'lat_sub_i', 'active', null, null, null);
+  if (select status::text from club_subscriptions where external_subscription_id = 'lat_sub_i') <> 'active' then
+    raise exception '3i: un incomplete tardío degradó una suscripción activa';
+  end if;
+  if not (select club_active from profiles where id = u5) then raise exception '3i: el Club debía seguir activo'; end if;
+  -- j) created(active) → deleted → updated(active) viejo: la baja es definitiva
+  r := club_apply_event('lat_evt_j1', 'stripe', 'customer.subscription.created', '{}'::jsonb, u3, 'lat_sub_j', 'active', 'monthly', now() + interval '30 days', false);
+  r := club_apply_event('lat_evt_j2', 'stripe', 'customer.subscription.deleted', '{}'::jsonb, u3, 'lat_sub_j', 'canceled', null, null, null);
+  r := club_apply_event('lat_evt_j3', 'stripe', 'customer.subscription.updated', '{}'::jsonb, u3, 'lat_sub_j', 'active', null, null, null);
+  if (select status::text from club_subscriptions where external_subscription_id = 'lat_sub_j') <> 'canceled' then
+    raise exception '3j: un evento viejo reactivó una baja';
+  end if;
+  if (select club_active from profiles where id = u3) then raise exception '3j: el Club debía quedar inactivo'; end if;
+  -- k) cuenta purgada: se registra con error y responde OK (sin 500 en bucle)
+  d := gen_random_uuid();
+  r := club_apply_event('lat_evt_k1', 'stripe', 'customer.subscription.updated', '{}'::jsonb, d, 'lat_sub_k', 'active', 'monthly', null, false);
+  if not r then raise exception '3k: el evento de una cuenta purgada debe darse por procesado'; end if;
+  if (select error from billing_events where event_id = 'lat_evt_k1') is distinct from 'VINKO_USER_GONE' then
+    raise exception '3k: debe quedar registrado como VINKO_USER_GONE';
+  end if;
+  if exists (select 1 from club_subscriptions where external_subscription_id = 'lat_sub_k') then
+    raise exception '3k: no debe crear suscripción para un usuario inexistente';
+  end if;
   -- g) solo service role
   perform test_as(u);
   begin
@@ -121,5 +184,5 @@ begin
   exception when others then
     if sqlerrm not like '%VINKO_SERVICE_ONLY%' then raise; end if;
   end;
-  raise notice 'OK 0059.3 club_apply_event: no pisa plan/fechas, checkout tardío no reactiva, estados mapeados, idempotente';
+  raise notice 'OK 0059.3 club_apply_event: no pisa plan/fechas, checkout/incomplete tardíos no degradan, baja definitiva, varias suscripciones, cuenta purgada sin 500, idempotente';
 end $$;

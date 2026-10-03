@@ -39,6 +39,16 @@ test("0059.1 safer_play_set_limit construye 'limits' en vez de jsonb_set anidado
   assert.ok(!ECONOMIA.test(body), "Juego más seguro no toca la economía de puntos");
 });
 
+test("0059.1b affiliate_go rechaza la autoexclusión y AffiliateSlot la comprueba", () => {
+  const { file, body } = latestFn("affiliate_go");
+  assert.ok(file >= "0059", `la definición vigente debe ser la de 0059 (es ${file})`);
+  assert.match(body, /self_excluded_until[\s\S]*VINKO_AFFILIATE_SELF_EXCLUDED/, "affiliate_go debe parar a un autoexcluido");
+  assert.match(body, /VINKO_AFFILIATE_UNDERAGE/, "conserva el +18 (regla de oro 8)");
+  assert.match(body, /VINKO_AFFILIATE_OFF/, "conserva el interruptor por país");
+  const slot = readFileSync(join(ROOT, "components/AffiliateSlot.tsx"), "utf8");
+  assert.match(slot, /rpc\("safer_play_get"\)[\s\S]*is_excluded\s*!==\s*false/, "el slot cierra si hay autoexclusión o error");
+});
+
 test("0059.2 profile_public filtra invitados y borrados y solo da columnas públicas", () => {
   const { body } = latestFn("profile_public");
   assert.match(body, /not\s+coalesce\(p\.is_anonymous,\s*false\)/, "debe excluir invitados (0040)");
@@ -59,8 +69,17 @@ test("0059.3 club_apply_event no pisa con nulls, protege el estado ante el check
   assert.match(body, /checkout\.session\.completed/, "el checkout no cambia el estado de una suscripción conocida");
   assert.match(body, /incomplete_expired/, "mapea estados de Stripe fuera del enum");
   assert.ok(!/coalesce\(p_status,\s*'none'\)::club_status/.test(body), "el cast directo rompe con estados desconocidos (22P02)");
-  assert.match(body, /coalesce\(v_final_end,\s*club_until\)/, "club_until nunca pasa a null por un evento sin fecha");
+  assert.match(body, /v_status\s*=\s*'none'/, "'incomplete'/desconocido no degrada un estado conocido");
+  assert.match(body, /club_subscriptions\.status\s*=\s*'canceled'/, "'canceled' es definitivo");
+  assert.match(body, /bool_or\(cs\.status in \('active', 'trialing'\)\)/, "el derecho al Club mira TODAS las suscripciones del usuario");
+  assert.match(body, /coalesce\(v_until,\s*club_until\)/, "club_until nunca pasa a null por un evento sin fecha");
+  assert.match(body, /VINKO_USER_GONE/, "cuenta purgada: se registra y se responde OK, sin 500 en bucle");
   assert.ok(!ECONOMIA.test(body), "el Club no toca la economía de puntos");
+});
+
+test("0059.3 el workflow despliega billing-webhook (si no, el arreglo TS no llega a producción)", () => {
+  const wf = readFileSync(join(ROOT, ".github/workflows/supabase-deploy.yml"), "utf8");
+  assert.match(wf, /supabase functions deploy billing-webhook --project-ref \S+ --no-verify-jwt/, "falta desplegar billing-webhook sin JWT");
 });
 
 test("0059.3 billing-webhook: fecha de fin de la API nueva y plan desconocido = null", () => {
@@ -106,9 +125,11 @@ test("SEC-01: los select literales a profiles solo piden columnas públicas", ()
   assert.deepEqual(bad, [], `columnas privadas leídas directamente (usa me()/RPC): ${bad.join(" · ")}`);
 });
 
-test("SEC-01: afiliación y cartera no leen profiles directamente", () => {
+test("SEC-01: afiliación y cartera no leen profiles directamente y respetan la autoexclusión", () => {
   for (const rel of ["components/AffiliateSlot.tsx", "app/cartera/actions.ts"]) {
     const src = readFileSync(join(ROOT, rel), "utf8");
     assert.ok(!/from\(\s*["']profiles["']\s*\)/.test(src), `${rel} debe usar la sesión (me()) o una RPC`);
+    assert.match(src, /rpc\("safer_play_get"\)/, `${rel} debe comprobar la autoexclusión (§5.11)`);
+    assert.match(src, /birth_year[\s\S]*<\s*18/, `${rel} debe mantener el +18 (regla de oro 8)`);
   }
 });

@@ -17,6 +17,10 @@ export async function AffiliateSlot({ porraId }: { porraId?: string }) {
   if (new Date().getFullYear() - session.birth_year < 18) return null;
   const sb = await supabaseServer();
   if (!sb) return null;
+  // Autoexclusión (§5.11): apaga también la afiliación (affiliate_go la vuelve
+  // a comprobar en el servidor, 0059). Ante cualquier error, cerrado.
+  const { data: sp, error: spErr } = await sb.rpc("safer_play_get");
+  if (spErr || !sp || (sp as { is_excluded?: boolean }).is_excluded !== false) return null;
 
   const { data } = await sb.rpc("affiliate_offer", { p_country: session.country });
   const offers = Array.isArray(data) ? (data as { operator: string; country: string }[]) : [];
