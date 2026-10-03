@@ -127,7 +127,7 @@ jobs:
         with:
           version: latest
 
-      - name: Desplegar push-dispatch y account-purge
+      - name: Desplegar push-dispatch, account-purge y billing-webhook
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -137,4 +137,7 @@ jobs:
           fi
           supabase functions deploy push-dispatch --project-ref uarnpxjdccbidgzhhavc
           supabase functions deploy account-purge --project-ref uarnpxjdccbidgzhhavc
+          # Webhook del Club (Stripe): sin JWT (lo sustituye la firma de Stripe,
+          # verify_jwt=false en config.toml). Sin STRIPE_WEBHOOK_SECRET responde 503.
+          supabase functions deploy billing-webhook --project-ref uarnpxjdccbidgzhhavc --no-verify-jwt
           echo "✓ Edge Functions desplegadas."

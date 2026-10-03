@@ -33,11 +33,12 @@ Deno.serve(async (req) => {
     status = type.endsWith(".deleted") ? "canceled" : str(obj.status);
     user = str(metaUser(obj.metadata));
     cancel = obj.cancel_at_period_end === true;
-    periodEnd = unixToIso(obj.current_period_end);
+    periodEnd = unixToIso(obj.current_period_end) ?? itemsPeriodEnd(obj.items);
     plan = planFromItems(obj.items);
   } else if (type === "checkout.session.completed") {
-    // El alta: el user_id viaja en metadata; la subscription se confirma luego
-    // por customer.subscription.created. Aquí solo registramos el evento.
+    // El alta: el user_id viaja en metadata. Suele llegar DESPUÉS de
+    // customer.subscription.*; si la suscripción ya existe, club_apply_event
+    // (0059) no cambia su estado ni pisa plan/fechas con nulls.
     user = str(metaUser(obj.metadata));
     subId = str(obj.subscription);
     status = "active";
@@ -59,12 +60,20 @@ function str(v: unknown): string | null { return typeof v === "string" && v ? v 
 function unixToIso(v: unknown): string | null {
   return typeof v === "number" && v > 0 ? new Date(v * 1000).toISOString() : null;
 }
-// plan a partir del intervalo del price (year → annual, si no monthly).
+// plan a partir del intervalo del price (year → annual, month → monthly). Si no
+// se sabe, null: el SQL (0059) conserva el plan guardado en vez de pisarlo.
 function planFromItems(items: unknown): string | null {
-  try {
-    const d = (items as { data?: Array<{ price?: { recurring?: { interval?: string } } }> })?.data?.[0];
-    return d?.price?.recurring?.interval === "year" ? "annual" : "monthly";
-  } catch { return null; }
+  const iv = (items as { data?: Array<{ price?: { recurring?: { interval?: unknown } } }> } | null)
+    ?.data?.[0]?.price?.recurring?.interval;
+  return iv === "year" ? "annual" : iv === "month" ? "monthly" : null;
+}
+// API de Stripe ≥ 2025-03-31 («basil»): current_period_end ya no va en la raíz
+// de la suscripción sino en cada item. Se toma el más lejano.
+function itemsPeriodEnd(items: unknown): string | null {
+  const data = (items as { data?: Array<{ current_period_end?: unknown }> } | null)?.data;
+  if (!Array.isArray(data)) return null;
+  const ends = data.map((i) => i?.current_period_end).filter((n): n is number => typeof n === "number" && n > 0);
+  return ends.length ? unixToIso(Math.max(...ends)) : null;
 }
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });

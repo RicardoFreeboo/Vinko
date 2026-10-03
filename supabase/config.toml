@@ -7,6 +7,12 @@ project_id = "uarnpxjdccbidgzhhavc"
 [functions.push-dispatch]
 verify_jwt = false
 
+# billing-webhook la llama Stripe (no lleva JWT de Supabase): la firma de Stripe
+# (STRIPE_WEBHOOK_SECRET) sustituye al JWT. Con verify_jwt=true la pasarela
+# rechazaría todos los webhooks antes de llegar a la función.
+[functions.billing-webhook]
+verify_jwt = false
+
 # account-purge se invoca con la sesión del usuario → JWT verificado.
 [functions.account-purge]
 verify_jwt = true
