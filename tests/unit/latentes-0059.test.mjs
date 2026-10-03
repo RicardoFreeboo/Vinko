@@ -93,6 +93,19 @@ test("0059.3 billing-webhook: fecha de fin de la API nueva y plan desconocido = 
   assert.match(toml, /\[functions\.billing-webhook\]\s*\nverify_jwt\s*=\s*false/, "Stripe no lleva JWT: la firma lo sustituye");
 });
 
+// ── Re-aplicación en cada deploy (supabase-deploy.yml re-ejecuta las ≥0055) ──
+test("≥0055: ninguna migración pisa remote_config sin guarda (si no, revierte lo que cambie el admin)", () => {
+  const bad = [];
+  for (const f of migs.filter((f) => f >= "0055")) {
+    const src = readFileSync(join(MIG, f), "utf8");
+    for (const m of src.matchAll(/insert\s+into\s+(?:public\.)?remote_config[\s\S]*?;/gi)) {
+      const stmt = m[0];
+      if (/on\s+conflict[\s\S]*do\s+update/i.test(stmt) && !/\bwhere\b/i.test(stmt)) bad.push(`${f}: ${stmt.slice(0, 80)}…`);
+    }
+  }
+  assert.deepEqual(bad, [], `remote_config sobrescrito en cada deploy: ${bad.join(" · ")}`);
+});
+
 // ── Guardia SEC-01: nada vuelve a leer de profiles columnas privadas ─────────
 function walk(dir) {
   const out = [];
