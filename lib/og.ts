@@ -224,11 +224,22 @@ export async function fetchProfileOgData(handle: string): Promise<ProfileOgData 
   const sb = anon();
   if (!sb) return null;
   try {
-    const { data: p } = await sb
-      .from("profiles")
-      .select("id, handle, avatar_url, xp, marcador_total, division, title, streak_days")
-      .eq("handle", h)
-      .maybeSingle();
+    // 0059: profile_public no devuelve invitados ni cuentas borradas (como /u).
+    // Si la RPC aún no existe, el select de antes.
+    type P = { id: string; handle: string; avatar_url: string | null; xp: number | null; marcador_total: number | null;
+      division: string | null; title: string | null; streak_days: number | null };
+    let p: P | null = null;
+    const pub = await sb.rpc("profile_public", { p_handle: h });
+    if (!pub.error) {
+      p = (pub.data as P | null) ?? null;
+    } else if (pub.error.code === "PGRST202" || pub.error.code === "42883") {
+      const { data } = await sb
+        .from("profiles")
+        .select("id, handle, avatar_url, xp, marcador_total, division, title, streak_days")
+        .eq("handle", h)
+        .maybeSingle();
+      p = (data as P | null) ?? null;
+    }
     if (!p) return null;
     let played = 0, hits = 0;
     try {

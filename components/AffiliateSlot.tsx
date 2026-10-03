@@ -11,15 +11,14 @@ import { t } from "@/lib/i18n";
 export async function AffiliateSlot({ porraId }: { porraId?: string }) {
   const session = await getMemberSession();
   if (!session || session.is_anonymous) return null;
+  // SEC-01 (0055): birth_year y country son privados; llegan con la sesión
+  // (me()). Un select directo a profiles falla y dejaba el slot siempre vacío.
+  if (!session.birth_year || !session.country) return null;
+  if (new Date().getFullYear() - session.birth_year < 18) return null;
   const sb = await supabaseServer();
   if (!sb) return null;
 
-  const { data: prof } = await sb.from("profiles").select("birth_year, country").eq("id", session.id).maybeSingle();
-  const p = prof as { birth_year?: number | null; country?: string | null } | null;
-  if (!p?.birth_year || !p.country) return null;
-  if (new Date().getFullYear() - p.birth_year < 18) return null;
-
-  const { data } = await sb.rpc("affiliate_offer", { p_country: p.country });
+  const { data } = await sb.rpc("affiliate_offer", { p_country: session.country });
   const offers = Array.isArray(data) ? (data as { operator: string; country: string }[]) : [];
   if (offers.length === 0) return null;
 

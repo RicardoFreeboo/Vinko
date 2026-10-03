@@ -22,14 +22,15 @@ const ctx = () => ({ env: "", siteUrl: SITE, supabaseUrl: process.env.NEXT_PUBLI
 async function meAndCountry() {
   const session = await getMemberSession();
   if (!session || session.is_anonymous) return null;
+  // SEC-01 (0055): birth_year/country/safer_play son privados. El +18 llega con
+  // la sesión (me()) y la autoexclusión la calcula safer_play_get en el servidor.
+  if (!session.birth_year || new Date().getFullYear() - session.birth_year < 18) return null; // +18 (regla de oro 8)
   const sb = await supabaseServer();
   if (!sb) return null;
-  const { data } = await sb.from("profiles").select("country, birth_year, safer_play").eq("id", session.id).maybeSingle();
-  const p = data as { country?: string | null; birth_year?: number | null; safer_play?: { self_excluded_until?: string | null } | null } | null;
-  if (!p?.birth_year || new Date().getFullYear() - p.birth_year < 18) return null; // +18 (regla de oro 8)
-  const until = p.safer_play?.self_excluded_until ?? null; // autoexclusión (§5.11) bloquea el dinero
-  if (until && new Date(until) > new Date()) return null;
-  return { sb, userId: session.id, country: p.country ?? "" };
+  // Autoexclusión (§5.11) bloquea el dinero. Ante cualquier error, cerrado.
+  const { data: sp, error } = await sb.rpc("safer_play_get");
+  if (error || !sp || (sp as { is_excluded?: boolean }).is_excluded !== false) return null;
+  return { sb, userId: session.id, country: session.country ?? "" };
 }
 
 export async function depositAction(amountMinor: number, method: string, idempotencyKey: string): Promise<WalletActionResult> {
