@@ -1,5 +1,10 @@
 name: Supabase
 
+# Re-disparo 3-oct-2026: en producción faltaban stake_kind/stake_text/listed y
+# create_porra (migraciones 0057/0058 del Reto). El creador caía al fallback
+# legacy → se perdían el premio y el pick del creador. Este push re-aplica las
+# migraciones idempotentes ≥0055 para cerrar ese hueco.
+#
 # Despliegue automático de la base y las Edge Functions en cada cambio de
 # supabase/** que llegue a main (y a mano desde la pestaña Actions → Run).
 #
