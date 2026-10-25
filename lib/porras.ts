@@ -37,7 +37,9 @@ const SELECT =
   "created_by, arbiter_id, arbiter_status, visibility, porra_options!porra_options_porra_id_fkey ( id, idx, label )";
 // RT-01/FX-04: columnas del reto (0057). Se piden aparte con fallback para que
 // /p no se caiga si la migración aún no está aplicada.
-const SELECT_RETO = SELECT + ", stake_kind, stake_text, listed, creator:profiles!porras_created_by_fkey ( handle, display_name, avatar_url )";
+// §1.5 solo-puntos: stake_kind/stake_text se eliminaron de porras (0061). Se
+// mantienen como opcionales en el tipo (siempre undefined) hasta limpiar la UI.
+const SELECT_RETO = SELECT + ", listed, creator:profiles!porras_created_by_fkey ( handle, display_name, avatar_url )";
 
 type Row = Omit<Porra, "options" | "video" | "official"> & {
   media_url: string | null;
