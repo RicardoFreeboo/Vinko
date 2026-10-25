@@ -32,12 +32,14 @@ Aparte: sesión de **infra** lanzada (`claude/infra-multientorno`): multi-entorn
 - **Dinero residual (follow-up, no es fuga viva)**: plumbing muerto del flag `money` en la landing (`app/page.tsx` + variantes `landing.*`/`landing.nm.*` + `STAKES`/`TICKER`/`MODES` con €; `money=false` ya lo oculta — conviene colapsar las variantes "nm" a canónicas y quitar las claves de dinero de la landing). `SaferPlay`: "límites de depósito" en € → decisión de producto (sin dinero, ¿el límite va en Vinkos o se quita?).
 
 **Mercados (spec mercados/agente §1 — manda):**
-- Tabla `markets` (code, name, locale, tz, active, path, daily_pick_hour, league_cutoff, noun, prizes_enabled, operator_ads_enabled, vinko_ads_targeting, content_quota). Sembrar `CO` + `GLOBAL`.
-- Columnas nuevas: `porras.market` (CO/GLOBAL; grupo = null), `profiles.market`, `daily_picks.market` (sustituye `lang='es'`), `league_groups.market`.
-- i18n **enrutado** (quitar `LOCALE="es"` de `lib/i18n.ts`) + locale **es-CO** + sustantivo por mercado (`noun.*`; CO "polla" pendiente de confirmación).
-- Zona horaria por usuario/mercado: **eliminar ~65 `Europe/Madrid`**; corte de liga **lunes 04:00 hora del mercado**; pique del día a la hora local.
-- `getFeed` filtra por `market`; **Descubrir con pestañas [Colombia] | [Global]**; liga y pique por mercado.
-- **Quitar España**: catálogo/porras editoriales ES → `market='ES'` inactivo; parámetros de noticias y prompt por mercado.
+- ✅ **Cimientos (`0064`, hecho)**: tabla `markets` (todas las columnas de la spec) con RLS; seed `GLOBAL`+`CO` activos, `ES` inactivo; columna `market` nullable (FK) en `porras`/`profiles`/`daily_picks`/`league_groups`. Aditivo, nadie la lee aún.
+- **Backfill (siguiente, migración `0065`)** — decisión tomada: a `GLOBAL` el contenido/usuario actual (es el público global-español, y GLOBAL está activo, así nada desaparece al encender los filtros). PERO por tabla: `profiles`, `daily_picks`, `league_groups` → `set market='GLOBAL' where market is null`; **`porras` SOLO las oficiales/editoriales** (verificar la columna: `source`/`official`/`is_template`) — **las de grupo quedan `market=null`** (invariante de la spec: grupo = sin mercado). (Mover porras editoriales Spain-específicas a `ES` inactivo es curación de contenido posterior.)
+- **Resolución del mercado del que mira**: logueado → `profiles.market`; invitado/sin valor → `GLOBAL`. (Más adelante: ruta `/co` y geo asignan `CO`; el alta pone `profiles.market` según locale/geo.) Helper nuevo `lib/markets.ts` (lee `markets`, cachea, expone `tz/noun/locale/daily_pick_hour` por código).
+- **`getFeed` filtra por `market`** (ver `lib/feed.ts`): porras oficiales/editoriales del mercado del que mira (las de grupo, `market=null`, siguen su canal). Con el backfill a GLOBAL el feed del usuario GLOBAL no cambia. **Descubrir con pestañas [Colombia] | [Global]**.
+- **i18n enrutado**: quitar `LOCALE="es"` de `lib/i18n.ts`, locale `es-CO`, sustantivo por mercado (`noun.*`; "polla" CO **pendiente de confirmación** — por ahora `noun='porra'` en la tabla). OJO: `t()` lo usa TODO; cambio delicado.
+- **Zona horaria por usuario/mercado**: **eliminar ~65 `Europe/Madrid`** (hoy hardcodeado en `fmtFecha`, `madrid_today`, crons…); corte de liga `league_week_start` → **lunes `league_cutoff`:00 hora del mercado**; pique del día a `daily_pick_hour` local (hoy `cron_open_daily` usa hora Madrid fija).
+- **Quitar España**: catálogo/porras editoriales ES → `market='ES'` (inactivo); parámetros de noticias y prompt por mercado (va con el agente).
+- **Orden sugerido**: backfill (`0065`) → `lib/markets.ts` + resolución → filtro de `getFeed` + Descubrir CO|Global → zona horaria → i18n enrutado. Cada paso: verde (`test:sql` desde cero + build + unit + léxico) y commit pequeño.
 
 **Agente de contenido (spec §2 — manda):**
 - Desbloqueo: `ANTHROPIC_API_KEY`, sembrar `internal.secrets.cron_secret` (== `CRON_SECRET`), desplegar `trend-generate`/`voice-porra`/`rewards-claim`, registrar respuesta del cron en `agent_runs` (fin del fallo silencioso), permitir política (§2.6).
