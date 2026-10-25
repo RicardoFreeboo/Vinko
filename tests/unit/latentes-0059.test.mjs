@@ -79,7 +79,10 @@ test("0059.3 club_apply_event no pisa con nulls, protege el estado ante el check
 
 test("0059.3 el workflow despliega billing-webhook (si no, el arreglo TS no llega a producción)", () => {
   const wf = readFileSync(join(ROOT, ".github/workflows/supabase-deploy.yml"), "utf8");
-  assert.match(wf, /supabase functions deploy billing-webhook --project-ref \S+ --no-verify-jwt/, "falta desplegar billing-webhook sin JWT");
+  // El deploy pasó a scripts/deploy-edge.mjs (parametrizado por entorno); sin
+  // --verify-jwt → verify_jwt=false, que es lo que Stripe necesita (lo sustituye
+  // su firma). El verify_jwt=false se re-asegura en config.toml (test de abajo).
+  assert.match(wf, /node scripts\/deploy-edge\.mjs billing-webhook(?! --verify-jwt)/, "falta desplegar billing-webhook sin JWT");
 });
 
 test("0059.3 billing-webhook: fecha de fin de la API nueva y plan desconocido = null", () => {

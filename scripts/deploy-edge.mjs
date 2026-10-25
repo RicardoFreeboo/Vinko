@@ -1,7 +1,7 @@
 // Despliega una Edge Function de Supabase SIN la CLI (Node 18+, cero deps).
 //
 // Uso:
-//   SUPABASE_ACCESS_TOKEN=sbp_xxx SUPABASE_PROJECT_REF=uarnpxjdccbidgzhhavc \
+//   SUPABASE_ACCESS_TOKEN=sbp_xxx SUPABASE_PROJECT_REF=<ref-del-proyecto> \
 //     node scripts/deploy-edge.mjs trend-generate
 //   node scripts/deploy-edge.mjs trend-generate --verify-jwt   (si la función
 //     debe exigir JWT; por defecto verify_jwt=false: trend-generate valida por
@@ -34,7 +34,7 @@ const ref = process.env.SUPABASE_PROJECT_REF ?? flag("--ref");
 function fail(msg) { console.error(`✗ ${msg}`); process.exit(1); }
 if (!slug || !/^[a-z0-9-]{2,60}$/.test(slug)) fail("uso: node scripts/deploy-edge.mjs <slug> [--verify-jwt]");
 if (!token) fail("falta SUPABASE_ACCESS_TOKEN (token personal de supabase.com/dashboard/account/tokens)");
-if (!ref) fail("falta SUPABASE_PROJECT_REF (ref del proyecto, p.ej. uarnpxjdccbidgzhhavc)");
+if (!ref) fail("falta SUPABASE_PROJECT_REF (ref del proyecto, el subdominio <ref>.supabase.co)");
 
 const dir = join(root, "supabase", "functions", slug);
 let entries;

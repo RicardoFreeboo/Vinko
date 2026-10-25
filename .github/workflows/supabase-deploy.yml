@@ -1,23 +1,26 @@
 name: Supabase
 
-# Re-disparo 3-oct-2026: en producción faltaban stake_kind/stake_text/listed y
-# create_porra (migraciones 0057/0058 del Reto). El creador caía al fallback
-# legacy → se perdían el premio y el pick del creador. Este push re-aplica las
-# migraciones idempotentes ≥0055 para cerrar ese hueco.
+# Despliegue de la base y las Edge Functions en cada cambio de supabase/** que
+# llegue a main (y a mano desde Actions → Run). PARAMETRIZADO POR ENTORNO: el
+# proyecto destino NO está hardcodeado, sale de la variable del repo/entorno
+# SUPABASE_PROJECT_REF (Settings → Secrets and variables → Actions → Variables).
+# Así el mismo workflow sirve para staging y prod; cada entorno de GitHub define
+# su SUPABASE_PROJECT_REF, su SUPABASE_ACCESS_TOKEN y (opcional) su SUPABASE_DB_URL.
 #
-# Despliegue automático de la base y las Edge Functions en cada cambio de
-# supabase/** que llegue a main (y a mano desde la pestaña Actions → Run).
+# Secretos/variables por entorno:
+#   · vars.SUPABASE_PROJECT_REF  → ref del proyecto (p.ej. uarnpxjdccbidgzhhavc).
+#       Si no se define, cae al ref histórico de prod (con aviso) para no romper
+#       el despliegue existente; define la variable para staging.
+#   · vars.MIGRATIONS_FROM       → primera migración a aplicar (default 55). Un
+#       proyecto NUEVO desde cero usa 1 (o `supabase db reset`, ver RUNBOOK-INFRA).
+#       Las ≥ 55 son idempotentes; re-aplicarlas no rompe nada.
+#   · secrets.SUPABASE_ACCESS_TOKEN → token personal (supabase.com/dashboard/account/tokens).
+#   · secrets.SUPABASE_DB_URL (opcional) → "Session pooler" con contraseña: si está,
+#       las migraciones van por psql; si no, por la Management API (/database/query).
 #
-# Necesita UN secreto del repositorio (Settings → Secrets and variables →
-# Actions → New repository secret):
-#   · SUPABASE_ACCESS_TOKEN → token personal (supabase.com/dashboard/account/tokens).
-# Con él se aplican las migraciones (Management API, /database/query) y se
-# despliegan las funciones (CLI). Si además existe SUPABASE_DB_URL (cadena
-# "Session pooler" con contraseña), las migraciones van por psql directo.
-#
-# Las migraciones ≥ 0055 son IDEMPOTENTES por diseño (nota v1.0 §5): re-aplicarlas
-# no rompe nada, así que este workflow las pasa todas en orden en cada ejecución.
-# Las < 0055 ya están aplicadas en producción y NO se tocan.
+# La base URL de las Edge Functions de ESTE proyecto se siembra en
+# internal.config (functions_base_url) tras migrar, para que los crons despachen
+# a SUS funciones y no a las de otro entorno (ver 0060).
 
 on:
   push:
@@ -25,27 +28,39 @@ on:
     paths:
       - "supabase/**"
       - ".github/workflows/supabase-deploy.yml"
+      - "scripts/deploy-edge.mjs"
   workflow_dispatch: {}
 
 concurrency:
-  group: supabase-deploy
+  group: supabase-deploy-${{ vars.SUPABASE_PROJECT_REF || 'prod' }}
   cancel-in-progress: false
+
+env:
+  # Ref del proyecto destino. Sin la variable, cae a prod (con aviso en el log).
+  PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || 'uarnpxjdccbidgzhhavc' }}
+  MIGRATIONS_FROM: ${{ vars.MIGRATIONS_FROM || '55' }}
 
 jobs:
   migraciones:
-    name: Migraciones (≥ 0055)
+    name: Migraciones + config del entorno
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Aplicar migraciones idempotentes
+      - name: Aviso si falta la variable de entorno
+        run: |
+          if [ -z "${{ vars.SUPABASE_PROJECT_REF }}" ]; then
+            echo "::warning::vars.SUPABASE_PROJECT_REF no definida: usando el ref de prod ($PROJECT_REF). Defínela por entorno (Settings → Variables) para staging."
+          fi
+          echo "Destino: $PROJECT_REF · migraciones desde: $MIGRATIONS_FROM"
+
+      - name: Aplicar migraciones
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          PROJECT_REF: uarnpxjdccbidgzhhavc
         run: |
           if [ -z "$DB_URL" ] && [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN. Créalo en supabase.com/dashboard/account/tokens (Generate new token) y pégalo en GitHub: Settings → Secrets and variables → Actions → New repository secret."
+            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN (supabase.com/dashboard/account/tokens) o SUPABASE_DB_URL."
             exit 1
           fi
           # Ejecuta un fichero SQL: psql directo si hay DB_URL; si no, Management API.
@@ -58,28 +73,48 @@ jobs:
                 -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
                 -H "Content-Type: application/json" -d @-)
               if [ "$code" -ge 300 ]; then
-                echo "::error::Fallo aplicando $1 (HTTP $code):"
-                cat /tmp/resp.json
-                exit 1
+                echo "::error::Fallo aplicando $1 (HTTP $code):"; cat /tmp/resp.json; exit 1
               fi
             fi
           }
           applied=0
           for f in supabase/migrations/*.sql; do
             v=$(basename "$f" | cut -d_ -f1)
-            if [ $((10#$v)) -ge 55 ]; then
+            if [ $((10#$v)) -ge $((10#$MIGRATIONS_FROM)) ]; then
               echo "→ aplicando $f"
               run_sql_file "$f"
               applied=$((applied+1))
             fi
           done
-          echo "✓ $applied migración(es) aplicadas (idempotentes)."
+          echo "✓ $applied migración(es) aplicadas (desde $MIGRATIONS_FROM)."
+
+      - name: Sembrar la base URL de las Edge Functions de este entorno
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          # Los crons (0060) construyen la URL desde internal.config; si no está,
+          # NO despachan (lo registran) en vez de llamar a otro proyecto. Aquí se
+          # fija a las funciones de ESTE ref.
+          cat > /tmp/seed-config.sql <<SQL
+          insert into internal.config(key, value)
+            values ('functions_base_url', 'https://$PROJECT_REF.supabase.co/functions/v1')
+          on conflict (key) do update set value = excluded.value;
+          SQL
+          if [ -n "$DB_URL" ]; then
+            psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f /tmp/seed-config.sql
+          else
+            code=$(jq -Rs '{query: .}' /tmp/seed-config.sql | curl -sS -o /tmp/resp.json -w "%{http_code}" \
+              -X POST "https://api.supabase.com/v1/projects/$PROJECT_REF/database/query" \
+              -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d @-)
+            [ "$code" -lt 300 ] || { echo "::error::Fallo sembrando functions_base_url (HTTP $code):"; cat /tmp/resp.json; exit 1; }
+          fi
+          echo "✓ internal.config.functions_base_url → https://$PROJECT_REF.supabase.co/functions/v1"
 
       - name: Verificar que las piezas existen
         env:
           DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-          PROJECT_REF: uarnpxjdccbidgzhhavc
         run: |
           cat > /tmp/verify.sql <<'SQL'
           do $$
@@ -108,12 +143,9 @@ jobs:
               -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
               -H "Content-Type: application/json" -d @-)
             if [ "$code" -ge 300 ]; then
-              echo "::error::La verificación falló (HTTP $code):"
-              cat /tmp/resp.json
-              exit 1
+              echo "::error::La verificación falló (HTTP $code):"; cat /tmp/resp.json; exit 1
             fi
-            echo "Cron jobs en la base:"
-            cat /tmp/resp.json
+            echo "Cron jobs en la base:"; cat /tmp/resp.json
           fi
           echo "✓ Todas las funciones del S0/S1/S2 están en la base."
 
@@ -122,22 +154,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: supabase/setup-cli@v1
+      - uses: actions/setup-node@v4
         with:
-          version: latest
+          node-version: 20
 
-      - name: Desplegar push-dispatch, account-purge y billing-webhook
+      - name: Desplegar TODAS las Edge Functions del producto
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || 'uarnpxjdccbidgzhhavc' }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN. Créalo en supabase.com/dashboard/account/tokens (Generate new token) y pégalo en GitHub: Settings → Secrets and variables → Actions."
+            echo "::error::Falta el secreto SUPABASE_ACCESS_TOKEN (supabase.com/dashboard/account/tokens)."
             exit 1
           fi
-          supabase functions deploy push-dispatch --project-ref uarnpxjdccbidgzhhavc
-          supabase functions deploy account-purge --project-ref uarnpxjdccbidgzhhavc
-          # Webhook del Club (Stripe): sin JWT (lo sustituye la firma de Stripe,
-          # verify_jwt=false en config.toml). Sin STRIPE_WEBHOOK_SECRET responde 503.
-          supabase functions deploy billing-webhook --project-ref uarnpxjdccbidgzhhavc --no-verify-jwt
-          echo "✓ Edge Functions desplegadas."
+          # Todas las funciones que usa el producto, con su verify_jwt (coincide con
+          # supabase/config.toml). money-webhook queda FUERA (dinero, rama aparte).
+          #   verify_jwt=true  → account-purge, rewards-claim (sesión de usuario)
+          #   verify_jwt=false → push-dispatch, trend-generate, voice-porra (validan
+          #                      el x-cron-secret), billing-webhook (firma de Stripe)
+          node scripts/deploy-edge.mjs push-dispatch
+          node scripts/deploy-edge.mjs account-purge --verify-jwt
+          node scripts/deploy-edge.mjs billing-webhook
+          node scripts/deploy-edge.mjs rewards-claim --verify-jwt
+          node scripts/deploy-edge.mjs trend-generate
+          node scripts/deploy-edge.mjs voice-porra
+          echo "✓ Edge Functions desplegadas en $SUPABASE_PROJECT_REF."

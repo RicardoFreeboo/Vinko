@@ -13,7 +13,10 @@ const TONE_CHIP: Record<Tone, "win" | "gold" | "muted"> = { ok: "win", warn: "go
 
 export default async function AdminHealth() {
   const sb = await supabaseServer();
-  let h: { cron_jobs?: number; anthropic?: boolean; buffer_days?: number } = {};
+  let h: {
+    cron_jobs?: number; anthropic?: boolean; buffer_days?: number;
+    cron_secret_set?: boolean; functions_base_url_set?: boolean; cron_errors_24h?: number;
+  } = {};
   if (sb) {
     const { data } = await sb.rpc("system_health");
     h = (data ?? {}) as typeof h;

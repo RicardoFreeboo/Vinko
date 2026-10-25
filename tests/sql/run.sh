@@ -20,7 +20,12 @@ stop() { RUN "'$BIN/pg_ctl' -D '$PGDIR' stop -m immediate" >/dev/null 2>&1 || tr
 trap stop EXIT
 stop; rm -rf "$PGDIR"; mkdir -p "$PGDIR"; chown "$(id -u postgres 2>/dev/null || id -u)" "$PGDIR" 2>/dev/null || true
 RUN "'$BIN/initdb' -D '$PGDIR' -U postgres -A trust" >/dev/null
-RUN "'$BIN/pg_ctl' -D '$PGDIR' -o '-p $PORT -c listen_addresses=localhost -c fsync=off' -l '$PGDIR/log' start" >/dev/null
+# unix_socket_directories -> $PGDIR: el socket por defecto (/var/run/postgresql) no
+# es escribible por un usuario no-root (p. ej. `runner` en GitHub Actions) y el
+# servidor no arrancaría. Conectamos por TCP (PGHOST=localhost), así que el socket
+# solo necesita un sitio escribible. Si aun así falla, se vuelca el log.
+RUN "'$BIN/pg_ctl' -D '$PGDIR' -o '-p $PORT -c listen_addresses=localhost -c unix_socket_directories=$PGDIR -c fsync=off' -l '$PGDIR/log' start" >/dev/null \
+  || { echo "✗ pg_ctl no arrancó; log de Postgres:"; cat "$PGDIR/log" 2>/dev/null; exit 1; }
 
 psql -v ON_ERROR_STOP=1 -q -f "$ROOT/tests/sql/stubs.sql"
 
