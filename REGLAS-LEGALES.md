@@ -20,6 +20,11 @@ Vinko es **legal sin licencia SOLO si es un juego social sin contraprestación n
 5. **Sin afiliación a casas de apuestas** ni publicidad/enlaces/tracking/revenue-share de operadores de juego. (Mostrar un anuncio de juego a un menor registrado infringe la norma — ASA, caso Hollywoodbets 2025. En CL no existe operador legal al que afiliar.)
 6. **Solo mayores de 18.** (Pendiente de aplicar en el código la subida del gate de registro de 14 → 18; ver el plan de tareas.)
 7. **El agente de tendencias nunca ingiere cuotas/odds** (veto en la capa de ingesta + en la salida del modelo + triggers de BD). Esto se mantiene.
+8. **Nunca se simula actividad de otros usuarios.** Todo aviso social ("Juan votó contra ti", "Ana acepta tu reto", "N ya votaron") corresponde a hechos reales. Prohibido inventar amigos, votos o mensajes (precedente FTC vs. NGL, jul-2024).
+
+## Geo (decisión de producto §3, 25-oct-2026)
+
+**Jugar (votar, crear, grupos) está abierto en todo el mundo** (la diáspora también comparte). **Premios, afiliación, anuncios de operadores y segmentación publicitaria: solo Colombia** al inicio, por país detectado (IP) + país declarado. Esta apertura global para jugar es decisión de producto y **prevalece** sobre el bloqueo US/BR/UK del análisis legal previo; el riesgo en esos mercados (US; BR/UK con verificación de edad) queda **asumido y pendiente de confirmación del abogado**.
 
 ## Léxico prohibido en toda la copy pública (ES / EN / PT)
 
