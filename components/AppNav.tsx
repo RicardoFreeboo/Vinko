@@ -1,38 +1,9 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { ensurePushSubscription, registerSW } from "@/lib/push";
-import { supabaseBrowser } from "@/lib/supabase/client";
 import { t } from "@/lib/i18n";
-
-// Marca la ENTRADA del día para la racha (cuenta abrir la app, no solo picar).
-// IMPORTANTE: el día NO se marca como hecho hasta que el servidor confirma, y
-// solo se cuenta con sesión ya cargada. Si no, una primera llamada que falla o
-// llega antes de que la sesión esté lista dejaría la racha sin contar TODO el
-// día (el servidor deduplica, pero nunca llegaría a contar). Al confirmar,
-// refrescamos para que la racha (server component) se vea actualizada ya.
-async function tickDailyOpen(refresh: () => void) {
-  let today: string;
-  try {
-    today = new Date().toISOString().slice(0, 10);
-    if (localStorage.getItem("vinko_open") === today) return;
-  } catch {
-    today = new Date().toISOString().slice(0, 10);
-  }
-  const sb = supabaseBrowser();
-  if (!sb) return;
-  try {
-    // Sin sesión aún: no contamos ni marcamos; se reintenta en la próxima
-    // navegación, cuando la sesión ya esté disponible.
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    const { error } = await sb.rpc("daily_open");
-    if (error) return; // no marcar hecho: que reintente
-    try { localStorage.setItem("vinko_open", today); } catch { /* noop */ }
-    refresh();
-  } catch { /* red caída: se reintenta al navegar */ }
-}
 
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
 // limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
@@ -48,7 +19,6 @@ const TABS: ReadonlyArray<{ href: string; key: string; icon: React.ReactNode; pr
 
 export function AppNav() {
   const path = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     // Registrar el SW SIEMPRE (aunque no haya permiso de push): sin esto Chrome
@@ -56,9 +26,7 @@ export function AppNav() {
     void registerSW();
     // Revalidar la suscripción push en CADA apertura (iOS la cancela solo, §5.1)
     void ensurePushSubscription();
-    // Racha: marcar la entrada del día (una vez/día, solo si el servidor la cuenta).
-    void tickDailyOpen(() => router.refresh());
-  }, [path, router]);
+  }, [path]);
 
   return (
     <nav

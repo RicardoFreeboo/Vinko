@@ -35,9 +35,6 @@ export default async function Feed() {
   const feedPicks: Record<string, string> = {};
 
   if (session && sb) {
-    // Marca la ENTRADA del día ANTES de leer la racha, para que se vea ya en esta
-    // carga sin parpadeo (idempotente por día; complementa el tick de cliente).
-    await sb.rpc("daily_open");
     // SEC-01: streak_last y role ya no son columnas públicas → propio perfil vía me().
     const [p, { data: d }, { data: pv }, { count: n }] = await Promise.all([
       fetchMe(sb),
