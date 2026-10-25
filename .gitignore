@@ -11,6 +11,7 @@ vinko-web-v1.zip
 # Next.js / Node (alfa)
 node_modules/
 .next/
+tsconfig.tsbuildinfo
 .netlify/
 .env.local
 .env*.local
