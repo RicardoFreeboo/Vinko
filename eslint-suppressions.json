@@ -1,0 +1,37 @@
+{
+  "app/p/[slug]/page.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "app/u/[handle]/page.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/CarteraTabs.tsx": {
+    "react-hooks/rules-of-hooks": {
+      "count": 1
+    }
+  },
+  "components/NuevaClient.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 2
+    }
+  },
+  "components/SaldoClient.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "components/feed/PorraSlide.tsx": {
+    "@typescript-eslint/no-unused-vars": {
+      "count": 1
+    }
+  },
+  "lib/analytics.ts": {
+    "@typescript-eslint/no-unused-expressions": {
+      "count": 1
+    }
+  }
+}
