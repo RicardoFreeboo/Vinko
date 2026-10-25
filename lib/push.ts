@@ -3,10 +3,11 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 import { capture } from "@/lib/analytics";
 
 // Web push (§5). La clave pública VAPID es pública por diseño (va en el
-// cliente); la privada vive SOLO en los secretos de la Edge Function.
-export const VAPID_PUBLIC_KEY =
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ??
-  "BB1K-nDyk0AAka5FfVTxqi3TP1ALOMYZPpThstvfSXM3inp1-4vfyAOALeER32r8ydOhUXYTMi96MlZB-kSjn2w";
+// cliente); la privada vive SOLO en los secretos de la Edge Function. SIN
+// fallback hardcodeado: una pública que no case con la privada del entorno hace
+// que el navegador se suscriba y el push se rechace EN SILENCIO. Si falta el env,
+// no nos suscribimos (y /admin/health lo marca) en vez de usar una clave ajena.
+export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 function b64ToUint8(base64: string): Uint8Array {
   const pad = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -58,6 +59,7 @@ async function saveSubscription(sub: PushSubscription): Promise<void> {
 export async function ensurePushSubscription(): Promise<void> {
   if (!pushSupported()) return;
   if (Notification.permission !== "granted") return;
+  if (!VAPID_PUBLIC_KEY) { capture("push_vapid_missing", { is_seed: false }); return; }
   const reg = await registerSW();
   if (!reg) return;
   let sub = await reg.pushManager.getSubscription();

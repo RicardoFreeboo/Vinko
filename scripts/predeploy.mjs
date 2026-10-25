@@ -28,6 +28,7 @@ const STEPS = [
   { name: "Paridad i18n es/en", cmd: "node scripts/i18n-parity.mjs", needsFile: "scripts/i18n-parity.mjs" },
   { name: "Tests unitarios", cmd: "node tests/unit/run.mjs" },
   { name: "Invariante de esquema de dinero (base real)", cmd: "node scripts/schema-invariant.mjs", needsFile: "scripts/schema-invariant.mjs" },
+  { name: "Par VAPID (si hay claves en el entorno)", cmd: "node scripts/check-vapid.mjs", needsFile: "scripts/check-vapid.mjs" },
   { name: "SQL: migraciones desde cero + tests (tests/sql/run.sh)", cmd: "bash tests/sql/run.sh", needsFile: "tests/sql/run.sh", probe: hasLocalPostgres, probeMsg: "no hay Postgres local (initdb/pg_ctl)" },
   { name: "ESLint (eslint .)", cmd: "npx eslint .", needsFile: "eslint.config.mjs" },
   { name: "TypeScript (tsc --noEmit)", cmd: "npx tsc --noEmit" },
