@@ -12,8 +12,11 @@
 - **B1** — Dinero fuera de la BD (migración `0060`: 16 tablas, columnas, ~36 RPCs).
 - **B2** — Reto sin premio (migración `0061`: núcleo redefinido, `stake_kind`/`stake_text` fuera).
 - **C.1** — Edad 18 (migración `0062` + cliente + copy) y nav sin el 404 de Cartera.
+- **C.2** — Racha = **votar** (`0063` elimina `daily_open()`; votar y el regalo ya tocaban racha) + **captura de UTM** de primer toque (atribución, solo a PostHog con consentimiento).
+- **§12 higiene** — fuera `legacy-web-v1/`, `vinko-static.zip`, `netlify.toml`, `TemasBoard`, flag muerto `LEGAL_LOCK`.
+- **Dinero que la Fase A NO quitó (fuga legal real; el léxico no escanea `.tsx` ni veta "dinero")** — maqueta de dinero (toggle €, input, `moneyMock`) fuera de `PickPanel` (/p) y `PorraSlide` (feed); copy huérfana fuera de mensajes (`pick.*`, `teaser.money.*`, `moneyMock.*`); admin capa-2 fuera (`/admin/negocio` + `PartnerBrief`/`LicensePlan`, nav muerto `/admin/money`, 233 claves `adminMoney.*`); traductor de errores de dinero `lib/errors.ts` + dict `messages/money/` fuera.
 - **Docs/guardrails** — `REGLAS-LEGALES.md`, `CLAUDE.md` (geo global + "nunca simular usuarios"), `AUDITORIA-VINKO.md`. Higiene: `tsconfig.tsbuildinfo` desindexado.
-- Verde: 63 migraciones aplican desde cero + reto/s2/latentes SQL · 153 unit · léxico · paridad i18n · build.
+- Verde en cada commit: 64 migraciones aplican desde cero + reto/s2/latentes SQL · 153 unit · léxico · paridad i18n · build.
 
 Aparte: sesión de **infra** lanzada (`claude/infra-multientorno`): multi-entorno + gate de CI + siembra de secretos. Brief en `scratchpad/TAREA-INFRA-MULTIENTORNO.md`.
 
@@ -22,10 +25,11 @@ Aparte: sesión de **infra** lanzada (`claude/infra-multientorno`): multi-entorn
 ### P0 — antes de la beta cerrada (primera quincena de enero)
 
 **Teardown (terminar lo legal/estructural):**
-- Resto de **C**: racha = **votar** (no abrir la app) · pique del día por mercado (no Madrid 9:00) · feed sin sesión deja votar · tapar fuga de reparto (`PorraSocial`/`RetoView` antes de votar) · captura de UTM (hoy solo `?ref=`).
+- Resto de **C**: racha = votar → **hecho** (`0063`) · captura de UTM → **hecho** · pique del día por mercado (no Madrid 9:00) → va con **mercados** · feed sin sesión deja votar **+** tapar fuga de reparto (`PorraSocial`/`RetoView` antes de votar) → **dependen del doc de diseño** (el patrón de invitado ya existe en `PickPanel`/`RetoView`; falta confirmar el UX exacto del reveal pre-voto).
 - **D**: scrub de copy de dinero restante + **tuteo es-CO** (fuera "vosotros") · páginas `/legal/*` (términos/privacidad/cookies/normas con lo de `VINKO_PRODUCT_SPEC §3.2`) · consentimiento (Ley 1581 en el registro; banner solo UE; PostHog tras consentimiento; push opt-in; registro de consentimientos).
 - **E**: invariantes de Vinkos forzados en BD + **test de CI que falle si se violan** (incl. "nunca simular usuarios") · recompensas **deterministas** (sin aleatoriedad) · tablas de cumplimiento append-only (edad, consentimientos, versión de términos, ledger de Vinkos, porras rechazadas) · cola de moderación cableada de verdad · CI: lexicon ES/EN/PT + test de términos prohibidos (`bizum|paypal|wallet|withdraw|retirada|kyc|affiliate|escrow|payout|cashout|odds|cuota`) · `LEGAL-STATUS.md`.
-- **§12 higiene**: borrar `legacy-web-v1/`, `vinko-static.zip`, `netlify.toml`, `TemasBoard`, flag muerto `LEGAL_LOCK`.
+- **§12 higiene** → **hecho**.
+- **Dinero residual (follow-up, no es fuga viva)**: plumbing muerto del flag `money` en la landing (`app/page.tsx` + variantes `landing.*`/`landing.nm.*` + `STAKES`/`TICKER`/`MODES` con €; `money=false` ya lo oculta — conviene colapsar las variantes "nm" a canónicas y quitar las claves de dinero de la landing). `SaferPlay`: "límites de depósito" en € → decisión de producto (sin dinero, ¿el límite va en Vinkos o se quita?).
 
 **Mercados (spec mercados/agente §1 — manda):**
 - Tabla `markets` (code, name, locale, tz, active, path, daily_pick_hour, league_cutoff, noun, prizes_enabled, operator_ads_enabled, vinko_ads_targeting, content_quota). Sembrar `CO` + `GLOBAL`.
