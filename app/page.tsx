@@ -7,8 +7,6 @@ import { StakeRotator } from "@/components/landing/StakeRotator";
 import { TiltCard } from "@/components/landing/TiltCard";
 import { Coin3D } from "@/components/landing/Coin3D";
 import { RevealObserver } from "@/components/landing/RevealObserver";
-import { createClient } from "@supabase/supabase-js";
-import { moneyUiEnabled } from "@/lib/flags";
 import { t } from "@/lib/i18n";
 import "./landing.css";
 
@@ -27,15 +25,8 @@ import "./landing.css";
 // Se lee con la anon key, sin cookies, para que la página siga siendo ISR.
 export const revalidate = 300;
 
-function supa() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) return null;
-  return createClient(url, anon, { auth: { persistSession: false } });
-}
-
 export async function generateMetadata(): Promise<Metadata> {
-  const money = await moneyUiEnabled(supa());
+  const money = false;
   return {
     title: t(money ? "landing.title" : "landing.nm.title"),
     description: t(money ? "landing.sub" : "landing.nm.sub"),
@@ -69,7 +60,7 @@ function Ticker({ items, reverse = false }: { items: string[]; reverse?: boolean
 }
 
 export default async function Landing() {
-  const money = await moneyUiEnabled(supa());
+  const money = false;
   // Sin dinero: fuera los textos y fichas con € (índice 1 de STAKES, "💶" del ticker).
   const stakes = money ? STAKES : STAKES.filter((x) => !x.includes("€"));
   const ticker = money ? TICKER : TICKER.filter((x) => !x.includes("€"));

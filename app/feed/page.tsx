@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
 import { getMemberSession } from "@/lib/session";
 import { fetchMe } from "@/lib/me";
@@ -110,7 +109,6 @@ export default async function Feed() {
       </header>
 
       <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} isAdmin={isAdmin}
-        moneyUi={session && sb ? await moneyUiEnabled(sb) : false}
         isAdult={!!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18}
         intro={
           <>

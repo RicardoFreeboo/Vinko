@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { moneyUiEnabled } from "@/lib/flags";
 import Link from "next/link";
 import { getPorraBySlug, getPorraExtras } from "@/lib/porras";
 import { getSession } from "@/lib/session";
-import { AffiliateSlot } from "@/components/AffiliateSlot";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
-import { MoneyMount } from "@/components/money/MoneyMount";
-import { moneyForPorra } from "@/lib/money/server";
-import { loadMoneyDict } from "@/lib/money/i18n";
 import { ResolvePanel } from "@/components/ResolvePanel";
 import { ArbiterPanel } from "@/components/ArbiterPanel";
 import { DisputePanel, type DisputeState } from "@/components/DisputePanel";
@@ -86,7 +81,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PorraPage({ params }: Props) {
   const { slug } = await params;
   const [porra, session, sb] = await Promise.all([getPorraBySlug(slug), getSession(), supabaseServer()]);
-  const moneyUi = await moneyUiEnabled(sb); // MON-01: sin flag, cero dinero en /p
 
   if (!porra) return <NotAvailable />;
 
@@ -145,12 +139,6 @@ export default async function PorraPage({ params }: Props) {
   const criteria = extras?.resolution_criteria?.trim() || null;
   const resolvesAt = extras?.resolves_at ?? null;
   const outcome = extras?.dispute_outcome ?? null;
-
-  // Modalidad de dinero (M0, §B4): solo si la porra tiene bolsa elegible y está
-  // abierta. moneyForPorra devuelve null salvo bolsa real; loadMoneyDict devuelve
-  // null en producción sin copy aprobado → la UI de dinero no se monta.
-  const money = isReal && open && !closed ? await moneyForPorra(porra.id, session) : null;
-  const moneyDict = money ? await loadMoneyDict("es") : null;
 
   return (
     // ESCRITORIO (lg+): dos columnas — el vídeo/portada a la izquierda como
@@ -330,15 +318,7 @@ export default async function PorraPage({ params }: Props) {
           isTemplate={porra.is_template}
           closesAt={porra.closes_at}
           isAdult={isAdult}
-          moneyLive={moneyUi && !!moneyDict}
-          moneyUi={moneyUi}
         />}
-
-        {moneyUi && money && moneyDict && <MoneyMount view={money} slug={slug} dict={moneyDict} options={options} />}
-
-        {/* Afiliación (regla de oro 5): solo sesión real +18 y país con afiliación
-            habilitada. Apagado hoy → no pinta nada. Nunca a invitados/menores. */}
-        {!porra.is_template && <AffiliateSlot porraId={porra.id} />}
 
         {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
         {rows && (

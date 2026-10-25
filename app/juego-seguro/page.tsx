@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { moneyUiEnabled } from "@/lib/flags";
 import type { Metadata } from "next";
 import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -16,8 +14,6 @@ export const metadata: Metadata = { title: t("safer.title"), robots: { index: fa
 // la Cartera. La preferencia del usuario (autoexclusión, límites) apaga su UI de
 // dinero; la aplicación real sobre cuentas la hace el operador en producción.
 export default async function JuegoSeguro() {
-  // MON-01: sin el flag de dinero esta pantalla no existe (404).
-  if (!(await moneyUiEnabled(await supabaseServer()))) notFound();
   const session = await getMemberSession();
   if (!session) {
     return (
@@ -42,7 +38,7 @@ export default async function JuegoSeguro() {
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-4 px-5 pb-24 pt-6">
       <header className="flex items-center justify-between">
         <Logo mark={28} word={20} />
-        <Link href="/cartera" className="mono text-[11px] text-[var(--muted)]">{t("cartera.back")}</Link>
+        <Link href="/ajustes" className="mono text-[11px] text-[var(--muted)]">{t("cartera.back")}</Link>
       </header>
       <h1 className="text-2xl font-black">{t("safer.title")}</h1>
       <p className="text-[13px] leading-snug text-[var(--muted)]">{t("safer.intro")}</p>
