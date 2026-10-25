@@ -27,7 +27,7 @@ export default async function Feed() {
   const sb = await supabaseServer();
   const today = madridDay(), yesterday = madridDay(-1);
 
-  let streak = 0, unread = 0, isAdmin = false;
+  let streak = 0, unread = 0;
   let daily: { id: string; question: string; options: string[]; status: string; correct_idx: number | null } | null = null;
   let myAnswer: number | null = null;
   let prev: { question: string; options: string[]; correct_idx: number | null;
@@ -47,7 +47,6 @@ export default async function Feed() {
     const sl = p?.streak_last ?? null;
     streak = sl && (sl === today || sl === yesterday) ? (p?.streak_days ?? 0) : 0;
     unread = n ?? 0;
-    isAdmin = p?.role === "admin";
     if (d) {
       daily = { id: d.id, question: d.question, options: d.options as string[], status: d.status, correct_idx: d.correct_idx };
       const { data: a } = await sb.from("daily_pick_answers").select("option_idx").eq("day_id", d.id).eq("user_id", session.id).maybeSingle();
@@ -105,8 +104,7 @@ export default async function Feed() {
         </div>
       </header>
 
-      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} isAdmin={isAdmin}
-        isAdult={!!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18}
+      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()}
         intro={
           <>
             {session ? (

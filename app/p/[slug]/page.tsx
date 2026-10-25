@@ -119,9 +119,6 @@ export default async function PorraPage({ params }: Props) {
   const isJudge = isCreator || (!!uid && porra.arbiter_id === uid && porra.arbiter_status === "accepted");
   const isInvited = !!uid && porra.arbiter_id === uid && porra.arbiter_status === "invited";
   const open = porra.status === "open";
-  // +18 declarado (año de nacimiento): habilita el toggle del modo dinero
-  // ("muy pronto"). Menores e invitados/visitantes sin sesión NO (regla de oro 8).
-  const isAdult = !!session?.birth_year && new Date().getFullYear() - session.birth_year >= 18;
   const social = socialRes && !socialRes.error ? ((socialRes.data ?? { picks: [] }) as RetoSocial) : { picks: [] as RetoSocial["picks"] };
   // RT-03: vista de RETO para porras con premio y porras de usuario pequeñas.
   const reto = isReal && esReto(porra.stake_kind ?? "vinkos", porra.source, social.picks.length);
@@ -307,9 +304,7 @@ export default async function PorraPage({ params }: Props) {
             canResolve={canResolve} canVoid={canVoid} early={!closed} criteria={criteria} />
         )}
 
-        {/* PickPanel: pick real de puntos + toggle "muy pronto" del modo dinero
-            (mismas opciones, sin tarjeta aparte). El toggle solo para +18
-            registrado y mientras el dinero real no esté aprobado (moneyLive). */}
+        {/* PickPanel: pick de puntos (o invitado, gratis). Solo-puntos: sin dinero. */}
         {!reto && <PickPanel
           porraId={porra.id}
           slug={porra.slug}
@@ -317,7 +312,6 @@ export default async function PorraPage({ params }: Props) {
           status={porra.status}
           isTemplate={porra.is_template}
           closesAt={porra.closes_at}
-          isAdult={isAdult}
         />}
 
         {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
