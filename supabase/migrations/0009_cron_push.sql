@@ -15,6 +15,28 @@ create table if not exists internal.secrets (
 revoke all on schema internal from public, anon, authenticated;
 revoke all on internal.secrets from public, anon, authenticated;
 
+-- Config POR ENTORNO (no secreta): base URL de las Edge Functions de ESTE
+-- proyecto, etc. Cada entorno (local/staging/prod) rellena 'functions_base_url'
+-- con SU proyecto, de modo que los crons NO lleven hardcodeada la URL de
+-- producción (una BD de staging, si no, llamaría a las funciones de prod).
+create table if not exists internal.config (
+  key   text primary key,
+  value text not null
+);
+revoke all on internal.config from public, anon, authenticated;
+
+-- Base URL de las Edge Functions para este entorno. Orden: internal.config →
+-- GUC app.functions_base_url → NULL. Si es NULL, los crons NO disparan (y 0060
+-- lo deja registrado) en vez de llamar a un proyecto ajeno.
+create or replace function internal.functions_base_url() returns text
+language sql stable security definer set search_path = internal, public as $fn$
+  select coalesce(
+    (select value from internal.config where key = 'functions_base_url'),
+    nullif(current_setting('app.functions_base_url', true), '')
+  )
+$fn$;
+revoke all on function internal.functions_base_url() from public, anon, authenticated;
+
 alter table public.profiles
   add column reactivation_sent smallint not null default 0,
   add column reactivation_last date;
@@ -206,12 +228,15 @@ end $$;
 
 select cron.schedule('vinko-tick', '*/15 * * * *', $$select public.cron_tick()$$);
 
--- despacho de web-push cada 5 min (la función comprueba el secreto)
+-- despacho de web-push cada 5 min (la función comprueba el secreto). La URL se
+-- construye desde la config del entorno (internal.functions_base_url), nunca
+-- hardcodeada. 0060 reprograma este job para despachar con registro (log).
 select cron.schedule('vinko-push-dispatch', '*/5 * * * *', $$
   select net.http_post(
-    url := 'https://uarnpxjdccbidgzhhavc.supabase.co/functions/v1/push-dispatch',
+    url := internal.functions_base_url() || '/push-dispatch',
     headers := jsonb_build_object('Content-Type', 'application/json',
       'x-cron-secret', (select value from internal.secrets where key = 'cron_secret')),
     body := '{}'::jsonb
-  ) where exists (select 1 from public.push_queue where status = 'queued')
+  ) where internal.functions_base_url() is not null
+    and exists (select 1 from public.push_queue where status = 'queued')
 $$);

@@ -117,12 +117,15 @@ end $$;
 revoke execute on function public.agent_autopublish(int) from public, anon;
 grant execute on function public.agent_autopublish(int) to authenticated;
 
--- crons: barrer cada 3h y auto-publicar 5 min después
+-- crons: barrer cada 3h y auto-publicar 5 min después. La URL sale de la config
+-- del entorno (internal.functions_base_url, 0009), nunca hardcodeada; 0060
+-- reprograma este job para despachar con registro (log).
 select cron.schedule('vinko-agent-sweep', '0 */3 * * *', $$
   select net.http_post(
-    url := 'https://uarnpxjdccbidgzhhavc.supabase.co/functions/v1/trend-generate',
+    url := internal.functions_base_url() || '/trend-generate',
     headers := jsonb_build_object('Content-Type','application/json',
       'x-cron-secret', (select value from internal.secrets where key='cron_secret')),
     body := '{"limit":6}'::jsonb)
+  where internal.functions_base_url() is not null
 $$);
 select cron.schedule('vinko-agent-publish', '5 */3 * * *', $$ select public.agent_autopublish(6) $$);
