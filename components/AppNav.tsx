@@ -4,7 +4,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ensurePushSubscription, registerSW } from "@/lib/push";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
 
 // Marca la ENTRADA del día para la racha (cuenta abrir la app, no solo picar).
@@ -37,14 +36,14 @@ async function tickDailyOpen(refresh: () => void) {
 
 // Navegación inferior de la app logueada (nunca en /p — la landing pública va
 // limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
-// (header del Feed). Orden: Feed · Perfil · Crear · Grupos · Liga · Vinkos.
+// (header del Feed). Los Vinkos viven en Perfil (§5.1, solo-puntos). Orden:
+// Feed · Perfil · Crear · Grupos · Liga.
 const TABS: ReadonlyArray<{ href: string; key: string; icon: React.ReactNode; primary: boolean }> = [
   { href: "/feed", key: "nav.feed", icon: "▦", primary: false },
   { href: "/perfil", key: "nav.perfil", icon: "◉", primary: false },
   { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
   { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
   { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
-  { href: "/cartera", key: "nav.cartera", icon: <VinkoCoin size={16} />, primary: false },
 ];
 
 export function AppNav() {
