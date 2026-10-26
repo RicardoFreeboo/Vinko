@@ -18,10 +18,10 @@ const BANNED = [
 ];
 const UNSAFE = /(asesin|matar\b|homicid|pederast|pedofil|porno|coca.na|hero.na|narcotr|arma de fuego|explosiv|nazi|violent)/i;
 
-const SYSTEM = `Eres el estratega de VINKO ADS. Una MARCA quiere patrocinar una porra:
+const SYSTEM = `Eres el estratega de VINKO ADS. Una MARCA quiere patrocinar una predicción:
 una pregunta social de pronóstico que la gente juega con PUNTOS virtuales, sin dinero.
 
-A partir del brief de la marca, propón 3 preguntas de porra que:
+A partir del brief de la marca, propón 3 preguntas de predicción que:
 - conecten de forma natural con la marca y den pie a pique u opinión;
 - tengan 2 a 4 opciones concretas y claras;
 - sean de FUTURO y resolubles (un desenlace objetivo), o de opinión clara;
@@ -31,7 +31,7 @@ PROHIBIDO (si una idea lo incumple, NO la incluyas):
 - Léxico de juego con dinero: apuesta, apostar, bet, cuota, odds, bote, jackpot,
   casino, dinero real, ganar dinero. Usa: porra, pronóstico, predicción, puntos.
 - Prometer premios con valor, dinero, regalos caros o descuentos como recompensa
-  del juego: el premio de una porra son SOLO puntos.
+  del juego: el premio de una predicción son SOLO puntos.
 - Menores, política partidista, difamación, violencia, delitos, salud o medicina.
 
 Devuelve SOLO JSON: {"ideas":[{"pregunta":"…","opciones":["…","…"]}]}. Máximo 3.`;
