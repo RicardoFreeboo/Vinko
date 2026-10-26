@@ -6,6 +6,7 @@ import { PorraCover } from "@/components/PorraCover";
 import { StakePicker } from "@/components/StakePicker";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { VinkoCoin } from "@/components/VinkoCoin";
+import { optionLetter, optionAccent } from "@/components/vote/VoteOption";
 import { VMark } from "@/components/Logo";
 import { Avatar } from "./Avatar";
 import { thumbOf } from "@/lib/thumb";
@@ -161,7 +162,13 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
                   <span aria-hidden className="absolute inset-y-0 left-0 transition-[width] duration-500"
                     style={{ width: `${n}%`, background: chosen ? "rgba(31,224,122,0.28)" : "rgba(255,255,255,0.14)" }} />
                 )}
-                <span className="relative">{o.label}</span>
+                <span className="relative flex items-center gap-2.5">
+                  <span className="grid h-7 w-7 flex-none place-items-center rounded-full border-2 font-black"
+                    style={{ borderColor: optionAccent(o.idx), color: optionAccent(o.idx), fontFamily: "var(--mono)", fontSize: 12.5 }}>
+                    {optionLetter(o.idx)}
+                  </span>
+                  {o.label}
+                </span>
                 <span className="relative flex items-center gap-1.5">
                   {n !== null && <span className="mono text-[13px] font-black">{n}%</span>}
                   {chosen ? <span className="text-[var(--win)]">✓</span>
