@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { StakePicker } from "@/components/StakePicker";
 import { GuestConvert } from "@/components/GuestConvert";
+import { VoteOption } from "@/components/vote/VoteOption";
+import { ResultBar } from "@/components/vote/ResultBar";
+import { LockedResults } from "@/components/vote/LockedResults";
+import { ChevronRight } from "lucide-react";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 import { PushPrePrompt } from "@/components/PushPrePrompt";
@@ -158,21 +162,9 @@ export function PickPanel({
         <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: closed ? "var(--gold)" : "var(--muted)" }}>
           {closed ? t("resolve.closedTag") : t("pick.meter")}
         </p>
-        {options.map((o) => {
-          const n = tallies[o.id] ?? 0;
-          const pct = total > 0 ? Math.round((n / total) * 100) : 0;
-          return (
-            <div key={o.id} className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] p-3">
-              <div className="flex items-center justify-between text-sm font-bold text-[var(--cream)]">
-                <span>{o.label}{myPick === o.id ? ` · ${t("pick.yours")}` : ""}</span>
-                <span className="mono text-[var(--win)]">{pct}%</span>
-              </div>
-              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--ink)]">
-                <div className="h-full rounded-full bg-[var(--win)]" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })}
+        {options.map((o, i) => (
+          <ResultBar key={o.id} idx={i} label={o.label} n={tallies[o.id] ?? 0} total={total} mine={myPick === o.id} />
+        ))}
         <p className="text-center text-xs text-[var(--muted)]">
           {closed ? t("resolve.closedNote") : isGuest ? t("guest.locked") : t("pick.locked")}
         </p>
@@ -185,13 +177,14 @@ export function PickPanel({
         {guestMode && (
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("guest.free")}</p>
         )}
-        {options.map((o) => (
-          <button key={o.id} onClick={() => pick(o.id)} disabled={busy}
-            className="rounded-[14px] border bg-[var(--ink2)] px-4 py-3.5 text-left text-[15px] font-bold text-[var(--cream)] disabled:opacity-50 hover:border-[var(--win)]"
-            style={{ borderColor: confirmId === o.id ? "var(--win)" : "var(--line)" }}>
-            {o.label}{confirmId === o.id ? " ✓" : ""}
-          </button>
+        {options.map((o, i) => (
+          <VoteOption key={o.id} idx={i} label={o.label}
+            state={confirmId === o.id ? "chosen" : "idle"}
+            onClick={() => pick(o.id)} disabled={busy}
+            trailing={<ChevronRight size={18} className="text-[var(--muted2)]" aria-hidden />} />
         ))}
+        {/* Reparto oculto hasta votar: tapa la fuga de reparto antes del voto. */}
+        {total > 0 && <LockedResults total={total} />}
         {/* FX-10: confirmación con el importe ANTES de gastar nada */}
         {!guestMode && confirmId && (
           <div className="flex flex-col gap-2.5 rounded-[14px] border border-[var(--win)] bg-[var(--ink2)] p-3">
