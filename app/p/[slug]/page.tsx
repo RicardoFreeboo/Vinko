@@ -5,6 +5,7 @@ import { getSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { PickPanel } from "@/components/PickPanel";
+import { ResultView } from "@/components/vote/ResultView";
 import { ResolvePanel } from "@/components/ResolvePanel";
 import { ArbiterPanel } from "@/components/ArbiterPanel";
 import { DisputePanel, type DisputeState } from "@/components/DisputePanel";
@@ -136,6 +137,39 @@ export default async function PorraPage({ params }: Props) {
   const criteria = extras?.resolution_criteria?.trim() || null;
   const resolvesAt = extras?.resolves_at ?? null;
   const outcome = extras?.dispute_outcome ?? null;
+
+  // Resultado del que participó (VINKO_PANTALLAS 07/08): su pick + datos §5.
+  // El reparto se mide sobre todos los picks (social.picks = el termómetro).
+  let myResult: {
+    won: boolean; visionario: boolean; saidLabel: string; pctAtPick: number | null;
+    receiptNo: number | string; votedAt: string; handle: string;
+    winningLabel: string; sawItPct: number; yoursPct: number;
+  } | null = null;
+  if (resolved && uid && isReal && sb && porra.winning_option_id) {
+    const { data: mp } = await sb
+      .from("picks")
+      .select("option_id, pct_at_pick, visionario, receipt_no, created_at")
+      .eq("porra_id", porra.id).eq("user_id", uid).maybeSingle();
+    if (mp) {
+      const winIdx = options.findIndex((o) => o.id === porra.winning_option_id);
+      const myIdx = options.findIndex((o) => o.id === mp.option_id);
+      const all = social.picks.length || 1;
+      const nWin = social.picks.filter((p) => p.idx === winIdx).length;
+      const nMine = social.picks.filter((p) => p.idx === myIdx).length;
+      myResult = {
+        won: mp.option_id === porra.winning_option_id,
+        visionario: !!mp.visionario,
+        saidLabel: options[myIdx]?.label ?? "",
+        pctAtPick: mp.pct_at_pick ?? null,
+        receiptNo: mp.receipt_no ?? "—",
+        votedAt: mp.created_at,
+        handle: social.picks.find((p) => p.mine)?.handle || porra.creator?.handle || "yo",
+        winningLabel: options[winIdx]?.label ?? "",
+        sawItPct: Math.round((100 * nWin) / all),
+        yoursPct: Math.round((100 * nMine) / all),
+      };
+    }
+  }
 
   return (
     // ESCRITORIO (lg+): dos columnas — el vídeo/portada a la izquierda como
@@ -313,6 +347,17 @@ export default async function PorraPage({ params }: Props) {
           isTemplate={porra.is_template}
           closesAt={porra.closes_at}
         />}
+
+        {/* RESULTADO del que participó (07/08): "Lo dije" / fallo + recibo, antes del ranking */}
+        {myResult && (
+          <ResultView
+            won={myResult.won} visionario={myResult.visionario} question={porra.title}
+            handle={myResult.handle} votedAt={myResult.votedAt} receiptNo={myResult.receiptNo}
+            saidLabel={myResult.saidLabel} pctAtPick={myResult.pctAtPick}
+            winningLabel={myResult.winningLabel} sawItPct={myResult.sawItPct} yoursPct={myResult.yoursPct}
+            slug={porra.slug}
+          />
+        )}
 
         {/* RANKING de ESA porra (SSR): quién puso qué y qué cobra (provisional si está impugnada) */}
         {rows && (
