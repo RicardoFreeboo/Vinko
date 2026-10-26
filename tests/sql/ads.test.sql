@@ -14,6 +14,7 @@ $$;
 do $$
 declare
   a uuid; cid uuid; v_adv uuid; v_price int; v_budget bigint; v_status text;
+  v_q text; v_opts text[];
 begin
   insert into auth.users (email) values ('adv.ana@test.dev') returning id into a;
   perform test_as(a);
@@ -21,7 +22,9 @@ begin
   -- (ADS-01) Campaña válida: mercado GLOBAL activo, presupuesto >= mínimo (5000).
   cid := create_campaign(
     p_name => 'Arepa Co', p_market => 'GLOBAL', p_budget_cents => 12000,
-    p_objective => 'opinion', p_cta_text => 'Prueba la arepa de la casa'
+    p_objective => 'opinion', p_cta_text => 'Prueba la arepa de la casa',
+    p_question => '¿Qué arepa pedirá la mayoría para el clásico?',
+    p_options => array['De queso', 'Con todo', '  ']  -- la vacía se descarta
   );
   if cid is null then raise exception 'ADS-01: create_campaign no devolvió id'; end if;
   select status, price_per_vote_cents, budget_cents, advertiser_id
@@ -33,6 +36,10 @@ begin
   if not exists (select 1 from advertisers where id = v_adv and owner = a and name = 'Arepa Co') then
     raise exception 'ADS-01: anunciante no creado o propiedad incorrecta';
   end if;
+  -- Borrador de contenido (0069): pregunta guardada y opciones limpias (sin vacía).
+  select draft_question, draft_options into v_q, v_opts from ad_campaigns where id = cid;
+  if v_q is null or v_q not like '%clásico%' then raise exception 'ADS-01: pregunta borrador no guardada'; end if;
+  if array_length(v_opts, 1) <> 2 then raise exception 'ADS-01: opciones borrador mal (esperaba 2, hay %)', array_length(v_opts, 1); end if;
 
   -- (ADS-02) Repetir el MISMO nombre reutiliza el anunciante (no lo duplica).
   perform create_campaign(p_name => 'Arepa Co', p_market => 'GLOBAL', p_budget_cents => 5000);
