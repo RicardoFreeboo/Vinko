@@ -102,8 +102,18 @@ export function AdsNuevaClient() {
         p_question: question.trim(),
         p_options: cleanOpts,
       });
-      if (error || !data) setErr(true);
-      else setDoneId(data as string);
+      if (error || !data) { setErr(true); return; }
+      const campaignId = data as string;
+      // Intenta el pago con Stripe Checkout. Si no hay Stripe (gated) o falla, la
+      // campaña queda en borrador y mostramos la pantalla de «creada».
+      try {
+        const { data: co } = await sb.functions.invoke("ads-checkout", {
+          body: { campaign_id: campaignId, origin: window.location.origin },
+        });
+        const payUrl = (co as { url?: string } | null)?.url;
+        if (payUrl) { window.location.href = payUrl; return; }
+      } catch { /* sin Stripe: cae a borrador */ }
+      setDoneId(campaignId);
     } catch {
       setErr(true);
     } finally {
