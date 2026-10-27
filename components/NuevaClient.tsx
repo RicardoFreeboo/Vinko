@@ -1,29 +1,33 @@
 "use client";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { Mic, Paperclip, Pencil, Plus, Send, Sparkles, Users, X } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { MediaCapture } from "@/components/MediaCapture";
 import { VoiceToPorra } from "@/components/VoiceToPorra";
 import { Confetti } from "@/components/Confetti";
+import { optionAccent, optionLetter } from "@/components/vote/VoteOption";
 import { capture } from "@/lib/analytics";
 import { porraUrl, SITE } from "@/lib/share";
 import { PushPrePrompt } from "@/components/PushPrePrompt";
-import { STAKE_PRESETS, stakeTextError, stakeEmoji, type StakePresetKey } from "@/lib/reto";
 import { t } from "@/lib/i18n";
 import crearEs from "@/messages/parts/crear.es.json";
 import {
-  PLANTILLAS, PLANTILLA_LIBRE, plantilla, plantillaTextos,
+  PLANTILLAS, plantilla, plantillaTextos,
   closeFromPreset, closeRangeOk, defaultResolves, maxClose, toLocalInput, MIN_CLOSE_MS,
   type ClosePreset, type PlantillaKey,
 } from "@/lib/plantillas";
 
-// Crear porra en <30 s (F-03): chips de plantilla arriba (precargan TODO) y una
-// sola pantalla con scroll en 3 bloques: (1) pregunta —o dictado por voz—,
-// (2) opciones 2–6, (3) cierre (15 min – 12 meses) + criterio de resolución
-// OBLIGATORIO + fecha esperada del resultado. Juez, visibilidad y vídeo viven
-// en "Más ajustes" (plegado: el camino rápido no los necesita). Al publicar se
-// abre el share sheet nativo y, siempre, la pantalla de compartir por wa.me.
+// CREAR (VINKO_PANTALLAS 06) en una sola pantalla: plantillas arriba (precargan
+// pregunta, opciones, cierre y criterio), la PREGUNTA en grande (o dictada por
+// voz, con vídeo/foto), las opciones A/B…, tu voto, cuándo CIERRA, «Cómo se
+// resuelve» (sugerido por la plantilla, editable), PARA quién (un grupo tuyo,
+// quien tenga el enlace o todo Vinko) y «Crear y mandar». Juez y «¿cuándo se
+// sabe?» en «Más ajustes». Al publicar: share sheet nativo y pantalla de wa.me.
+//
+// Sin «qué os jugáis»: en modo solo-puntos toda predicción es de Vinkos
+// (REGLAS-LEGALES §3; create_porra ignora p_stake_* desde 0061).
 //
 // Todo enlace que sale de aquí lleva ?ref=<tu handle>: RefCatcher lo guarda y
 // /auth/callback lo convierte en referred_by. Los Vinkos de la invitación se
@@ -63,7 +67,7 @@ function fmtLocal(d: Date): string {
   }).format(d);
 }
 
-type ErrField = "title" | "opts" | "close" | "criteria" | "arb" | "form" | "you" | "stake";
+type ErrField = "title" | "opts" | "close" | "criteria" | "arb" | "form" | "you";
 type Err = { field: ErrField; msg: string };
 
 // Errores del trigger 0041 (y del guard de seguridad 0020) → mensaje en línea.
@@ -86,40 +90,49 @@ async function nativeShare(title: string, text: string, url: string): Promise<bo
   } catch { return false; }
 }
 
-const CLOSE_PRESETS: ClosePreset[] = ["1h", "tonight", "tomorrow", "week", "custom"]; // RT-02
+// Los tres cierres del diseño; si una plantilla trae otro (1 h, mañana, 1
+// semana), se pinta delante y seleccionado.
+const CLOSE_PILLS: ClosePreset[] = ["tonight", "weekend", "custom"];
+const PILL_KEY: Partial<Record<ClosePreset, string>> = {
+  tonight: "nueva06.closeTonight", weekend: "nueva06.closeWeekend", custom: "nueva06.closeCustom",
+};
 
-export function NuevaClient({ userId, handle, groupId = null }: {
+// «Para»: un grupo tuyo (privada, colgada del grupo), quien tenga el enlace
+// (pública sin listar) o todo Vinko (pública y en Descubrir).
+type Target = { kind: "group"; id: string; name: string } | { kind: "link" } | { kind: "feed" };
+
+export function NuevaClient({ userId, handle, groupId = null, groups = [] }: {
   userId: string;
-  origin?: string;
   handle?: string | null;
-  groupId?: string | null; // FX-11: /nueva?g=<id> → porra para el grupo (privada)
+  groupId?: string | null; // FX-11: /nueva?g=<id> → para ese grupo
+  groups?: { id: string; name: string }[];
 }) {
-  const libre = plantillaTextos(PLANTILLA_LIBRE, tr);
-  const [tpl, setTpl] = useState<PlantillaKey>("libre");
-  const [title, setTitle] = useState("");
-  const [opts, setOpts] = useState<string[]>(libre.options.length >= 2 ? libre.options : ["Sí", "No"]);
-  const [preset, setPreset] = useState<ClosePreset>(PLANTILLA_LIBRE.close);
+  // Arranca con la primera plantilla («¿Quién…?»), como el diseño.
+  const first = PLANTILLAS[0];
+  const start = plantillaTextos(first, tr);
+  const [tpl, setTpl] = useState<PlantillaKey>(first.key);
+  const [title, setTitle] = useState(start.question);
+  const [opts, setOpts] = useState<string[]>(start.options.length >= 2 ? start.options : ["Sí", "No"]);
+  const [preset, setPreset] = useState<ClosePreset>(first.close);
   const [custom, setCustom] = useState("");
-  const [criteria, setCriteria] = useState("");
+  const [criteria, setCriteria] = useState(start.criteria);
+  const [editCrit, setEditCrit] = useState(false);
   const [resolves, setResolves] = useState("");
   const [resolvesTouched, setResolvesTouched] = useState(false);
+  const [whenMode, setWhenMode] = useState<"close" | "later">("close");
   const [arbiter, setArbiter] = useState<"me" | "friend">("me");
   const [arbHandle, setArbHandle] = useState("");
-  const [visibility, setVisibility] = useState<"public" | "private">(groupId ? "private" : "public");
+  const initial: Target = (() => {
+    const g = groups.find((x) => x.id === groupId) ?? (groupId ? null : groups[0]);
+    return g ? { kind: "group", id: g.id, name: g.name } : { kind: "link" };
+  })();
+  const [target, setTarget] = useState<Target>(initial);
+  const [pickTarget, setPickTarget] = useState(false);
   const [media, setMedia] = useState<{ url: string; kind: string } | null>(null);
+  const [tool, setTool] = useState<"none" | "dictate" | "media">("none");
   const [more, setMore] = useState(false);
-  // RT-02 — asistente en 2 fases: 1) pregunta + opciones; 2) tu lado («¿Tú qué
-  // dices?», obligatorio salvo «Solo organizo»), qué os jugáis (SIN preselección)
-  // y hasta cuándo se puede entrar.
-  const [phase, setPhase] = useState<1 | 2>(1);
   const [myIdx, setMyIdx] = useState<number | null>(null);
   const [organizer, setOrganizer] = useState(false);
-  const [stake, setStake] = useState<StakePresetKey | "">("");
-  const [stakeCustom, setStakeCustom] = useState("");
-  const [stakeVinkos, setStakeVinkos] = useState(10);   // cantidad en Vinkos
-  const [whenMode, setWhenMode] = useState<"close" | "later">("close");
-  const [listed, setListed] = useState(false); // FX-04: por defecto solo con enlace
-  const [showDictar, setShowDictar] = useState(false);
   const [err, setErr] = useState<Err | null>(null);
   const [warn, setWarn] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -152,12 +165,18 @@ export function NuevaClient({ userId, handle, groupId = null }: {
     setPreset(p.close);
     setCustom("");
     setCriteria(tx.criteria);
+    setEditCrit(false);
+    setMyIdx(null);
     setResolvesTouched(false);
     setErr(null);
   }
 
   function setOpt(i: number, v: string) { setOpts((o) => o.map((x, j) => (j === i ? v : x))); setErr(null); }
-  function removeOpt(i: number) { setOpts((o) => (o.length > 2 ? o.filter((_, j) => j !== i) : o)); setErr(null); }
+  function removeOpt(i: number) {
+    setOpts((o) => (o.length > 2 ? o.filter((_, j) => j !== i) : o));
+    setMyIdx((m) => (m === null ? m : m === i ? null : m > i ? m - 1 : m));
+    setErr(null);
+  }
 
   async function create() {
     const clean = opts.map((o) => o.trim()).filter(Boolean);
@@ -171,15 +190,6 @@ export function NuevaClient({ userId, handle, groupId = null }: {
     // RT-02: tu lado es obligatorio (o marcas que solo organizas, modo juez).
     if (!organizer && (myIdx === null || myIdx >= clean.length)) {
       setErr({ field: "you", msg: tr("crear.youRequired") }); return;
-    }
-    // RT-02: qué os jugáis, sin preselección: hay que elegir un chip.
-    if (stake === "") { setErr({ field: "stake", msg: tr("crear.stakeRequired") }); return; }
-    const stakeKindFinal: "vinkos" | "prize" = stake === "vinkos" ? "vinkos" : "prize";
-    const stakeText = stake === "vinkos" ? null
-      : (stake === "otro" ? stakeCustom.trim() : tr(`crear.sk.${stake}`));
-    if (stakeKindFinal === "prize") {
-      const bad = stakeTextError(stakeText ?? "");
-      if (bad) { setErr({ field: "stake", msg: tr(`crear.stakeErr.${bad}`) }); return; }
     }
     const critFinal = (crit.length >= 5 ? crit : tr("crear.criteriaDefault")).slice(0, 280);
     if (arbiter === "friend" && !arb) { setErr({ field: "arb", msg: tr("nueva.badArb") }); return; }
@@ -198,17 +208,16 @@ export function NuevaClient({ userId, handle, groupId = null }: {
     // RT-02: «¿Cuándo se sabe?» — al cerrar, o más adelante (nunca antes del cierre).
     const resolvesDate = whenMode === "later" && resolves ? new Date(resolves) : close;
     const resolvesAt = Number.isNaN(resolvesDate.getTime()) || resolvesDate < close ? close : resolvesDate;
+    const visibility = target.kind === "group" ? "private" : "public";
+    const listed = target.kind === "feed";
 
-    // RT-01: creación TRANSACCIONAL (porra + opciones + premio + mi pick +
-    // árbitro, todo o nada). Fallback a los inserts de siempre si 0057 aún no
-    // está aplicada en la base (entonces sin pick del creador ni premio).
+    // RT-01: creación TRANSACCIONAL (porra + opciones + mi pick + árbitro, todo
+    // o nada). Fallback a los inserts de siempre si 0057 aún no está aplicada.
     const rpc = await sb.rpc("create_porra", {
       p_title: title.trim(),
       p_options: clean.slice(0, 6).map((o) => o.slice(0, 40)),
       p_closes_at: close.toISOString(),
       p_my_option_idx: organizer ? null : myIdx,
-      p_stake_kind: stakeKindFinal,
-      p_stake_text: stakeText,
       p_resolves_at: resolvesAt.toISOString(),
       p_criteria: critFinal,
       p_arbiter_handle: arbiter === "friend" ? arb : null,
@@ -225,10 +234,7 @@ export function NuevaClient({ userId, handle, groupId = null }: {
       const missing = rpc.error.code === "PGRST202" || rpc.error.code === "42883";
       if (!missing) {
         setBusy(false);
-        if (m.includes("VINKO_STAKE_MONEY")) setErr({ field: "stake", msg: tr("crear.stakeErr.money") });
-        else if (m.includes("VINKO_STAKE_LEXICON")) setErr({ field: "stake", msg: tr("crear.stakeErr.lexicon") });
-        else if (m.includes("VINKO_STAKE_TEXT")) setErr({ field: "stake", msg: tr("crear.stakeErr.short") });
-        else if (m.includes("VINKO_NO_USER")) setErr({ field: "arb", msg: tr("nueva.arbNotFound") });
+        if (m.includes("VINKO_NO_USER")) setErr({ field: "arb", msg: tr("nueva.arbNotFound") });
         else if (m.includes("VINKO_NO_POINTS")) setErr({ field: "you", msg: tr("pick.noPoints") });
         else setErr(dbErr(m));
         return;
@@ -259,23 +265,20 @@ export function NuevaClient({ userId, handle, groupId = null }: {
       }
     }
     if (!porra) { setBusy(false); setErr(dbErr(undefined)); return; }
-    // FX-11: cuélgala del grupo (miembros la ven en /g/<id>). Nunca bloquea.
-    if (groupId) {
-      try { await sb.rpc("porra_set_group", { p_porra: porra.id, p_group: groupId }); } catch { /* pre-0058 */ }
+    // FX-11: cuélgala del grupo (miembros la ven en /g/<id> y en su inicio). Nunca bloquea.
+    if (target.kind === "group") {
+      try { await sb.rpc("porra_set_group", { p_porra: porra.id, p_group: target.id }); } catch { /* pre-0058 */ }
     }
     capture("porra_created", {
       is_seed: false, visibility, arbiter: arbiter === "friend" ? "friend" : "me",
-      template: tpl, close_preset: preset, stake: stakeKindFinal, listed,
+      template: tpl, close_preset: preset, target: target.kind, listed,
     });
-    // RT-04: el texto de WhatsApp lleva tu lado y el premio.
+    // RT-04: el texto de WhatsApp lleva tu lado.
     const url = withRef(porraUrl(porra.slug), myHandle);
     const myOpt = organizer || myIdx === null ? null : clean[myIdx];
-    const share =
-      stakeKindFinal === "prize" && myOpt
-        ? tr("nueva.shareReto", { emoji: stakeEmoji(stakeText), stake: stakeText ?? "", title: title.trim(), opt: myOpt, url })
-        : myOpt
-          ? tr("nueva.sharePick", { opt: myOpt, url })
-          : tr("nueva.shareText", { title: title.trim(), url });
+    const share = myOpt
+      ? tr("nueva.sharePick", { opt: myOpt, url })
+      : tr("nueva.shareText", { title: title.trim(), url });
     setBusy(false);
     setDone({ id: porra.id, slug: porra.slug, share });
     // Share sheet automático al publicar (F-03): mismo tick que el clic.
@@ -285,20 +288,19 @@ export function NuevaClient({ userId, handle, groupId = null }: {
   if (done) {
     const url = withRef(porraUrl(done.slug), myHandle);
     const arb = normHandle(arbHandle);
-    const text = done.share; // RT-04: «Te reto a una cena… Yo digo NO…»
     const inviteText = tr("nueva.inviteText", { handle: arb, url });
     return (
       <section className="flex flex-col gap-3">
         <Confetti />
-        <p className="text-center text-sm font-bold text-[var(--win)]">{tr("nueva.share")}</p>
+        <p className="text-center text-[18px] font-black text-[var(--win)]">{tr("nueva.share")}</p>
         {warn && <p className="text-center text-xs text-[var(--gold)]">{warn}</p>}
-        <ShareWhatsApp text={text} porraId={done.id}
-          className="block w-full rounded-[14px] bg-[#25D366] px-4 py-4 text-center text-[15px] font-black text-white">
+        <ShareWhatsApp text={done.share} porraId={done.id}
+          className="flex h-14 w-full items-center justify-center rounded-full bg-[#25D366] px-4 text-center text-[16px] font-black text-white">
           {tr("nueva.shareCta")}
         </ShareWhatsApp>
         {arbiter === "friend" && arb && !warn && (
           <ShareWhatsApp text={inviteText}
-            className="block w-full rounded-[14px] border border-[var(--gold)] px-4 py-3 text-center text-[14px] font-black text-[var(--gold)]">
+            className="flex h-12 w-full items-center justify-center rounded-full border border-[var(--gold)] px-4 text-center text-[14px] font-black text-[var(--gold)]">
             {tr("nueva.inviteArb")}
           </ShareWhatsApp>
         )}
@@ -310,192 +312,212 @@ export function NuevaClient({ userId, handle, groupId = null }: {
   }
 
   const now = new Date();
-  const judgeLabel = arbiter === "friend" && normHandle(arbHandle) ? `@${normHandle(arbHandle)}` : tr("crear.judgeMe");
-  const summary = tr("crear.moreSummary", {
-    judge: judgeLabel,
-    vis: visibility === "private" ? tr("nueva.private") : tr("nueva.public"),
-    media: media ? tr("crear.mediaYes") : tr("crear.mediaNone"),
-  });
-
-  const phase1Ok = title.trim().length >= 3 && opts.map((o) => o.trim()).filter(Boolean).length >= 2;
+  const pills: ClosePreset[] = CLOSE_PILLS.includes(preset) ? CLOSE_PILLS : [preset, ...CLOSE_PILLS];
+  const named = opts.map((o, i) => ({ o: o.trim(), i })).filter((x) => x.o);
+  const critShown = criteria.trim() || tr("crear.criteriaDefault");
+  const targetLabel = target.kind === "group" ? target.name : target.kind === "feed" ? tr("nueva06.forFeed") : tr("nueva06.forLink");
+  const targets: Target[] = [
+    ...groups.map((g) => ({ kind: "group" as const, id: g.id, name: g.name })),
+    { kind: "link" }, { kind: "feed" },
+  ];
+  const sameTarget = (a: Target, b: Target) => a.kind === b.kind && (a.kind !== "group" || (b.kind === "group" && a.id === b.id));
 
   return (
     <>
-      {phase === 1 ? (
-        <>
-          {/* PASO 1 — PREGUNTA (+ dictado por voz) */}
-          <Block n={1} title={tr("crear.step1")}>
-            <input value={title} onChange={(e) => { setTitle(e.target.value); setErr(null); }} placeholder={tr("nueva.qPh")}
-              aria-invalid={err?.field === "title"}
-              className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-[15px] text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
-            <ErrLine err={err} field="title" />
-            {/* 4 opciones junto a la pregunta: grabar vídeo, grabar voz, subir
-                archivo y dictar (rellena pregunta y opciones hablando). */}
-            <Field label={tr("nueva.media")}>
-              <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)}
-                extra={
-                  <button type="button" onClick={() => setShowDictar((s) => !s)} aria-pressed={showDictar}
-                    className="flex flex-col items-center gap-1 rounded-[10px] border px-2 py-3 text-center"
-                    style={{ borderColor: showDictar ? "var(--gold)" : "var(--line)" }}>
-                    <span className="text-xl leading-none">🎙️</span>
-                    <span className="text-[11px] font-bold text-[var(--cream)]">{tr("nueva.dictate")}</span>
-                  </button>
-                } />
-              {showDictar && (
-                <div className="mt-2">
-                  <VoiceToPorra onFilled={(q, o) => {
-                    setTitle(q);
-                    setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
-                    setErr(null); setShowDictar(false);
-                  }} />
-                </div>
-              )}
-            </Field>
-          </Block>
-
-          {/* PASO 2 — OPCIONES */}
-          <Block n={2} title={tr("crear.step2")}>
-            <div className="flex flex-col gap-2">
-              {opts.map((o, i) => (
-                <div key={i} className="flex gap-2">
-                  <input value={o} onChange={(e) => setOpt(i, e.target.value)} placeholder={tr("nueva.optPh", { n: String(i + 1) })}
-                    maxLength={40}
-                    className="min-w-0 flex-1 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-                  {opts.length > 2 && (
-                    <button type="button" onClick={() => removeOpt(i)} aria-label={tr("crear.removeOpt", { n: String(i + 1) })}
-                      className="w-10 shrink-0 rounded-[12px] border border-[var(--line)] text-lg font-bold text-[var(--muted)]">
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-              {opts.length < 6 && (
-                <button type="button" onClick={() => setOpts((o) => [...o, ""])} className="self-start text-sm font-bold text-[var(--gold)]">{tr("nueva.addOpt")}</button>
-              )}
-            </div>
-            <ErrLine err={err} field="opts" />
-          </Block>
-
-          <button type="button" onClick={() => setPhase(2)} disabled={!phase1Ok}
-            className="rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)] disabled:opacity-40">
-            {tr("crear.next")}
-          </button>
-          {!phase1Ok && <p className="text-center text-[11px] text-[var(--muted)]">{tr("crear.nextHint")}</p>}
-        </>
-      ) : (
-        <>
-          {/* PASO 3 — ¿TÚ QUÉ DICES? (RT-02: obligatorio, o «Solo organizo») */}
-          <Block n={3} title={tr("crear.you")}>
-            <div className="grid grid-cols-2 gap-2">
-              {opts.map((o, i) => o.trim() && (
-                <Chip key={i} active={!organizer && myIdx === i}
-                  onClick={() => { setMyIdx(i); setOrganizer(false); setErr(null); }}>
-                  {o.trim()}
-                </Chip>
-              ))}
-            </div>
-            <button type="button"
-              onClick={() => { setOrganizer((v) => !v); setMyIdx(null); setErr(null); }}
-              className="self-start text-[12px] font-bold underline decoration-dotted"
-              style={{ color: organizer ? "var(--gold)" : "var(--muted)" }}>
-              {organizer ? "✓ " : ""}{tr("crear.organizer")}
+      {/* plantillas (precargan todo) */}
+      <div className="-mx-[18px] flex gap-2 overflow-x-auto px-[18px] pb-1 [scrollbar-width:none]">
+        {PLANTILLAS.map((p) => {
+          const on = tpl === p.key;
+          return (
+            <button key={p.key} type="button" onClick={() => applyTemplate(p.key)} aria-pressed={on}
+              className="mono flex h-11 shrink-0 items-center gap-2 rounded-full border-[1.5px] px-4 text-[12px] font-bold uppercase tracking-[0.1em]"
+              style={on
+                ? { borderColor: "var(--win)", color: "var(--win)", background: "rgba(31,224,122,0.10)" }
+                : { borderColor: "var(--line2)", color: "var(--cream)", background: "var(--ink2)" }}>
+              <span aria-hidden className="text-[16px] leading-none">{p.emoji}</span>{tr(`crear.tpl.${p.key}`)}
             </button>
-            {organizer && <p className="text-[11px] text-[var(--muted)]">{tr("crear.organizerHint")}</p>}
-            <ErrLine err={err} field="you" />
-          </Block>
+          );
+        })}
+      </div>
 
-          {/* PASO 4 — ¿QUÉ OS JUGÁIS? (RT-02: chips SIN preselección; Dinero no existe) */}
-          <Block n={4} title={tr("crear.stakeQ")}>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {STAKE_PRESETS.map(({ key, emoji }) => {
-                const on = stake === key;
-                return (
-                  <button key={key} type="button"
-                    onClick={() => { setStake(key); setErr(null); }}
-                    aria-pressed={on}
-                    className="flex flex-col items-center justify-center gap-1 rounded-[12px] border-2 px-1 py-3 text-center text-[12px] font-black leading-tight"
-                    style={{
-                      borderColor: on ? "var(--gold)" : "var(--line)",
-                      color: on ? "var(--gold)" : "var(--muted)",
-                      background: on ? "rgba(255,194,61,0.10)" : "var(--ink2)",
-                    }}>
-                    <span className="text-xl leading-none">{emoji}</span>
-                    {tr(`crear.sk.${key}`)}
-                  </button>
-                );
-              })}
-            </div>
-            {stake === "otro" && (
-              <input value={stakeCustom} onChange={(e) => { setStakeCustom(e.target.value); setErr(null); }}
-                placeholder={tr("crear.sk.otroPh")} maxLength={60}
-                className="w-full rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-            )}
-            {stake === "vinkos" && (
-              <div className="flex flex-col gap-2">
-                <Field label={tr("crear.stakeAmount")}>
-                  <div className="flex items-center gap-2 rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-2.5">
-                    <span className="text-[15px]">🪙</span>
-                    <input type="number" inputMode="numeric" min={10} max={1000} value={stakeVinkos}
-                      onChange={(e) => setStakeVinkos(Math.max(10, Math.min(1000, Math.round(Number(e.target.value)))))}
-                      className="w-full bg-transparent text-[15px] font-black text-[var(--cream)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-                    <span className="mono text-[10px] text-[var(--muted)]">10–1000</span>
-                  </div>
-                </Field>
-                <p className="text-[12px] text-[var(--muted)]">{tr("crear.stake.vinkosNote")}</p>
-              </div>
-            )}
-            <ErrLine err={err} field="stake" />
-          </Block>
+      {/* PREGUNTA */}
+      <section className="rounded-[20px] border-[1.5px] bg-[var(--ink2)] p-4"
+        style={{ borderColor: err?.field === "title" ? "var(--red)" : "rgba(31,224,122,0.8)" }}>
+        <label htmlFor="q" className="eyebrow text-[11.5px] font-bold">{tr("nueva06.question")}</label>
+        <textarea id="q" value={title} rows={2} maxLength={120}
+          onChange={(e) => { setTitle(e.target.value); setErr(null); }}
+          placeholder={tpl === "quien" ? tr("crear.tpl.quien.ph") : tr("nueva06.qPh")}
+          className="mt-2 w-full resize-none bg-transparent text-[26px] font-black leading-[1.12] tracking-[-0.03em] text-[var(--cream)] outline-none placeholder:text-[var(--muted2)]" />
+        <div className="mt-1 flex gap-2">
+          <ToolButton on={tool === "dictate"} onClick={() => setTool((x) => (x === "dictate" ? "none" : "dictate"))} icon={<Mic size={15} aria-hidden />}>
+            {tr("nueva06.toolDictate")}
+          </ToolButton>
+          <ToolButton on={tool === "media" || !!media} onClick={() => setTool((x) => (x === "media" ? "none" : "media"))} icon={<Paperclip size={15} aria-hidden />}>
+            {tr("nueva06.toolMedia")}
+          </ToolButton>
+        </div>
+        {tool === "dictate" && (
+          <div className="mt-3">
+            <VoiceToPorra onFilled={(q, o) => {
+              setTitle(q);
+              setOpts(o.length >= 2 ? o.slice(0, 6) : [...o, "", ""].slice(0, 2));
+              setMyIdx(null); setErr(null); setTool("none");
+            }} />
+          </div>
+        )}
+        {(tool === "media" || media) && (
+          <div className={tool === "media" ? "mt-3" : "hidden"}>
+            <MediaCapture userId={userId} onMedia={(url, kind) => setMedia(url && kind ? { url, kind } : null)} />
+          </div>
+        )}
+      </section>
+      <ErrLine err={err} field="title" />
 
-          {/* PASO 5 — ¿HASTA CUÁNDO SE PUEDE ENTRAR? + ¿CUÁNDO SE SABE? (RT-02) */}
-          <Block n={5} title={tr("crear.entryUntil")}>
-            <div className="flex flex-wrap gap-2">
-              {CLOSE_PRESETS.map((p) => (
-                <Pill key={p} active={preset === p} onClick={() => { setPreset(p); setErr(null); }}>{tr(`crear.close.${p}`)}</Pill>
-              ))}
-            </div>
-            {preset === "custom" && (
-              <>
-                <input type="datetime-local" value={custom}
-                  min={toLocalInput(new Date(now.getTime() + MIN_CLOSE_MS))} max={toLocalInput(maxClose(now))}
-                  onChange={(e) => { setCustom(e.target.value); setErr(null); }}
-                  className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-                <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("crear.customHint")}</p>
-              </>
+      {/* OPCIONES */}
+      <section className="flex flex-col gap-2.5">
+        {opts.map((o, i) => (
+          <div key={i} className="flex h-[58px] items-center gap-3 rounded-[16px] border-[1.5px] border-[var(--line)] bg-[var(--ink2)] px-4">
+            <span className="grid h-8 w-8 flex-none place-items-center rounded-full border-2 font-black"
+              style={{ borderColor: optionAccent(i), color: optionAccent(i), fontFamily: "var(--mono)", fontSize: 14 }}>
+              {optionLetter(i)}
+            </span>
+            <input value={o} onChange={(e) => setOpt(i, e.target.value)} placeholder={tr("nueva.optPh", { n: String(i + 1) })}
+              maxLength={40} aria-label={tr("nueva.optPh", { n: String(i + 1) })}
+              className="min-w-0 flex-1 bg-transparent text-[17px] font-bold text-[var(--cream)] outline-none placeholder:font-semibold placeholder:text-[var(--muted2)]" />
+            {opts.length > 2 ? (
+              <button type="button" onClick={() => removeOpt(i)} aria-label={tr("crear.removeOpt", { n: String(i + 1) })}
+                className="grid h-8 w-8 place-items-center text-[var(--muted)]"><X size={18} /></button>
+            ) : (
+              <Pencil size={18} aria-hidden className="shrink-0 text-[var(--muted2)]" />
             )}
-            {closeDate && (
-              <p className="mono text-[12px] text-[var(--win)]">⏱ {tr("crear.closesAt", { date: fmtLocal(closeDate) })}</p>
-            )}
-            <p className="text-[11px] text-[var(--muted)]">{tr("crear.entryHelp")}</p>
-            <ErrLine err={err} field="close" />
+          </div>
+        ))}
+        {opts.length < 6 && (
+          <button type="button" onClick={() => setOpts((o) => [...o, ""])}
+            className="flex items-center gap-2 self-start px-1 py-1 text-[15px] font-semibold text-[var(--muted)]">
+            <Plus size={18} aria-hidden /> {tr("nueva06.addOpt")}
+          </button>
+        )}
+        <ErrLine err={err} field="opts" />
+      </section>
 
-            <Field label={tr("crear.when")}>
-              <div className="grid grid-cols-2 gap-2">
-                <Chip active={whenMode === "close"} onClick={() => setWhenMode("close")}>{tr("crear.when.close")}</Chip>
-                <Chip active={whenMode === "later"} onClick={() => setWhenMode("later")}>{tr("crear.when.later")}</Chip>
-              </div>
-              {whenMode === "later" && (
-                <input type="datetime-local" value={resolves}
-                  min={closeDate ? toLocalInput(closeDate) : undefined}
-                  onChange={(e) => { setResolves(e.target.value); setResolvesTouched(true); }}
-                  className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
-              )}
-            </Field>
-          </Block>
+      {/* TU VOTO (RT-02: obligatorio, o «Solo organizo») */}
+      {named.length >= 2 && (
+        <section className="flex flex-col gap-2">
+          <p className="eyebrow text-[11.5px] font-bold">{tr("crear.you")}</p>
+          <div className="flex flex-wrap gap-2">
+            {named.map(({ o, i }) => {
+              const on = !organizer && myIdx === i;
+              return (
+                <button key={i} type="button" aria-pressed={on}
+                  onClick={() => { setMyIdx(i); setOrganizer(false); setErr(null); }}
+                  className="flex h-10 max-w-full items-center gap-2 rounded-full border-[1.5px] px-3.5 text-[14px] font-bold"
+                  style={on
+                    ? { borderColor: "var(--win)", color: "var(--ink)", background: "var(--win)" }
+                    : { borderColor: "var(--line2)", color: "var(--cream)", background: "var(--ink2)" }}>
+                  <span className="mono text-[12px]">{optionLetter(i)}</span><span className="truncate">{o}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button"
+            onClick={() => { setOrganizer((v) => !v); setMyIdx(null); setErr(null); }}
+            className="self-start text-[13px] font-semibold underline decoration-dotted underline-offset-2"
+            style={{ color: organizer ? "var(--gold)" : "var(--muted)" }}>
+            {organizer ? "✓ " : ""}{tr("crear.organizer")}
+          </button>
+          {organizer && <p className="text-[12px] text-[var(--muted)]">{tr("crear.organizerHint")}</p>}
+          <ErrLine err={err} field="you" />
+        </section>
+      )}
 
-      {/* MÁS AJUSTES (plegado): juez, quién la ve, vídeo/foto/voz */}      {/* MÁS AJUSTES (plegado): juez, quién la ve, vídeo/foto/voz */}
-      <div className="rounded-[14px] border border-[var(--line)] bg-[var(--ink2)]/60">
+      {/* CIERRA */}
+      <section className="flex flex-col gap-2">
+        <p className="eyebrow text-[11.5px] font-bold">{tr("nueva06.closes")}</p>
+        <div className="grid grid-cols-3 gap-2" style={pills.length > 3 ? { gridTemplateColumns: "repeat(4, minmax(0, 1fr))" } : undefined}>
+          {pills.map((p) => {
+            const on = preset === p;
+            return (
+              <button key={p} type="button" aria-pressed={on} onClick={() => { setPreset(p); setErr(null); }}
+                className="mono min-h-11 rounded-full border-[1.5px] px-2 py-1.5 text-[12px] font-bold uppercase leading-tight tracking-[0.08em]"
+                style={on
+                  ? { borderColor: "var(--cream)", color: "var(--ink)", background: "var(--cream)" }
+                  : { borderColor: "var(--line2)", color: "var(--cream)", background: "var(--ink2)" }}>
+                {tr(PILL_KEY[p] ?? `crear.close.${p}`)}
+              </button>
+            );
+          })}
+        </div>
+        {preset === "custom" && (
+          <>
+            <input type="datetime-local" value={custom} aria-label={tr("nueva06.closeCustom")}
+              min={toLocalInput(new Date(now.getTime() + MIN_CLOSE_MS))} max={toLocalInput(maxClose(now))}
+              onChange={(e) => { setCustom(e.target.value); setErr(null); }}
+              className="mono w-full rounded-[13px] border-[1.5px] border-[var(--line2)] bg-[var(--ink3)] px-3.5 py-3 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+            <p className="text-[12px] text-[var(--muted)]">{tr("crear.customHint")}</p>
+          </>
+        )}
+        {closeDate && <p className="mono text-[12px] text-[var(--win)]">⏱ {tr("crear.closesAt", { date: fmtLocal(closeDate) })}</p>}
+        <ErrLine err={err} field="close" />
+      </section>
+
+      {/* CÓMO SE RESUELVE (sugerido por la plantilla; editable) */}
+      <section className="rounded-[20px] border border-[var(--line)] bg-[var(--ink2)] p-4">
+        <div className="flex items-center gap-2 text-[15px] font-bold text-[var(--win)]">
+          <Sparkles size={17} aria-hidden /> {tr("nueva06.how")} · {tr("nueva06.suggested")}
+          <span className="flex-1" />
+          {!editCrit && (
+            <button type="button" onClick={() => setEditCrit(true)} className="text-[13px] font-semibold text-[var(--muted)]">
+              {tr("nueva06.edit")}
+            </button>
+          )}
+        </div>
+        {editCrit ? (
+          <textarea value={criteria} autoFocus rows={3} maxLength={280}
+            onChange={(e) => { setCriteria(e.target.value); setErr(null); }} placeholder={tr("crear.criteriaPh")}
+            aria-invalid={err?.field === "criteria"}
+            className="mt-2 w-full resize-none rounded-[13px] border-[1.5px] border-[var(--line2)] bg-[var(--ink3)] px-3.5 py-3 text-[15px] leading-snug text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
+        ) : (
+          <p className="mt-1.5 text-[15.5px] leading-snug text-[var(--cream)]">{critShown}</p>
+        )}
+        <ErrLine err={err} field="criteria" />
+      </section>
+
+      {/* PARA */}
+      <section className="rounded-[20px] border border-[var(--line)] bg-[var(--ink2)]">
+        <button type="button" onClick={() => setPickTarget((v) => !v)} aria-expanded={pickTarget}
+          className="flex w-full items-center gap-3 px-4 py-3.5 text-left">
+          <Users size={20} aria-hidden className="shrink-0 text-[var(--muted)]" />
+          <span className="min-w-0 flex-1 truncate text-[16px] text-[var(--cream)]">
+            {tr("nueva06.for")} <b>{targetLabel}</b>
+          </span>
+          <span className="text-[14px] text-[var(--muted)]">{tr("nueva06.change")}</span>
+        </button>
+        {pickTarget && (
+          <div className="flex flex-col border-t border-[var(--line)] p-2">
+            {targets.map((x, k) => {
+              const on = sameTarget(x, target);
+              return (
+                <button key={k} type="button" onClick={() => { setTarget(x); setPickTarget(false); }}
+                  className="rounded-[12px] px-3 py-2.5 text-left text-[15px]"
+                  style={{ color: on ? "var(--win)" : "var(--cream)", background: on ? "rgba(31,224,122,0.08)" : "transparent" }}>
+                  {x.kind === "group" ? x.name : x.kind === "feed" ? tr("nueva06.forFeed") : tr("nueva06.forLink")}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* MÁS AJUSTES (plegado): juez y cuándo se sabe */}
+      <section className="rounded-[20px] border border-[var(--line)] bg-[var(--ink2)]/60">
         <button type="button" onClick={() => setMore((m) => !m)} aria-expanded={more}
           className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left">
-          <span className="flex flex-col">
-            <span className="text-sm font-black text-[var(--cream)]">{tr("crear.more")}</span>
-            <span className="text-[11px] text-[var(--muted)]">{summary}</span>
-          </span>
+          <span className="text-[14px] font-bold text-[var(--cream)]">{tr("crear.more")}</span>
           <span className="text-[var(--muted)]" aria-hidden>{more ? "▲" : "▼"}</span>
         </button>
         {more && (
           <div className="flex flex-col gap-4 border-t border-[var(--line)] px-4 pb-4 pt-3">
-            {/* ÁRBITRO */}
             <Field label={tr("nueva.arbiter")}>
               <div className="grid grid-cols-2 gap-2">
                 <Chip active={arbiter === "me"} onClick={() => setArbiter("me")}>{tr("nueva.arbMe")}</Chip>
@@ -505,108 +527,73 @@ export function NuevaClient({ userId, handle, groupId = null }: {
                 <>
                   <input value={arbHandle} onChange={(e) => { setArbHandle(e.target.value); setErr(null); }} placeholder={tr("nueva.arbPh")}
                     autoCapitalize="none" autoCorrect="off" spellCheck={false}
-                    className="mono mt-2 w-full rounded-[10px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+                    className="mono mt-2 w-full rounded-[12px] border-[1.5px] border-[var(--line2)] bg-[var(--ink3)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
                   <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("nueva.arbHint")}</p>
                   <ShareWhatsApp text={tr("nueva.inviteReg", { url: withRef(`${SITE}/`, myHandle) })}
-                    className="mt-2 block w-full rounded-[10px] border border-[var(--gold)] px-3 py-2 text-center text-[13px] font-bold text-[var(--gold)]">
+                    className="mt-2 block w-full rounded-full border border-[var(--gold)] px-3 py-2 text-center text-[13px] font-bold text-[var(--gold)]">
                     {tr("nueva.inviteWa")}
                   </ShareWhatsApp>
                 </>
               )}
               <ErrLine err={err} field="arb" />
             </Field>
-
-            {/* PÚBLICA / PRIVADA */}
-            <Field label={tr("nueva.visibility")}>
+            <Field label={tr("crear.when")}>
               <div className="grid grid-cols-2 gap-2">
-                <Chip active={visibility === "public"} onClick={() => setVisibility("public")}>{tr("nueva.public")}</Chip>
-                <Chip active={visibility === "private"} onClick={() => setVisibility("private")}>{tr("nueva.private")}</Chip>
+                <Chip active={whenMode === "close"} onClick={() => setWhenMode("close")}>{tr("crear.when.close")}</Chip>
+                <Chip active={whenMode === "later"} onClick={() => setWhenMode("later")}>{tr("crear.when.later")}</Chip>
               </div>
-              <p className="mt-1 text-[11px] text-[var(--muted)]">{visibility === "private" ? tr("nueva.privateHint") : tr("nueva.publicHint")}</p>
-            </Field>
-
-            {/* CRITERIO + RESULTADO ESPERADO — movidos aquí para no estorbar el
-                flujo rápido de crear. Opcional: si se deja vacío, se usa uno por defecto. */}
-            <Field label={tr("crear.criteria")}>
-              <p className="mb-1.5 text-[13px] font-bold text-[var(--cream)]">{tr("crear.criteriaHelp")}</p>
-              <textarea value={criteria} onChange={(e) => { setCriteria(e.target.value); setErr(null); }}
-                placeholder={tr("crear.criteriaPh")} rows={2} maxLength={280}
-                aria-invalid={err?.field === "criteria"}
-                className="w-full resize-none rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3 text-sm leading-snug text-[var(--cream)] outline-none focus:border-[var(--win)] aria-[invalid=true]:border-[var(--red)]" />
-              <ErrLine err={err} field="criteria" />
-            </Field>
-
-            {/* FX-04: por defecto la porra es solo-con-enlace; esto la lista en el feed */}
-            <Field label={tr("crear.listed")}>
-              <label className="flex items-center gap-2">
-                <input type="checkbox" checked={listed} onChange={(e) => setListed(e.target.checked)} />
-                <span className="text-[13px] text-[var(--cream)]">{tr("crear.listed")}</span>
-              </label>
-              <p className="mt-1 text-[11px] text-[var(--muted)]">{tr("crear.listedHint")}</p>
+              {whenMode === "later" && (
+                <input type="datetime-local" value={resolves} aria-label={tr("crear.when")}
+                  min={closeDate ? toLocalInput(closeDate) : undefined}
+                  onChange={(e) => { setResolves(e.target.value); setResolvesTouched(true); }}
+                  className="mono mt-2 w-full rounded-[12px] border-[1.5px] border-[var(--line2)] bg-[var(--ink3)] px-3 py-2.5 text-sm text-[var(--cream)] outline-none focus:border-[var(--win)]" />
+              )}
             </Field>
           </div>
         )}
-      </div>
+      </section>
 
-          {err && err.field !== "arb" && <p className="text-center text-xs text-[var(--red)]">{err.msg}</p>}
-          {err && err.field === "arb" && !more && <p className="text-center text-xs text-[var(--red)]">{err.msg}</p>}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setPhase(1)}
-              className="shrink-0 rounded-[14px] border border-[var(--line)] px-4 py-4 text-[14px] font-bold text-[var(--muted)]">
-              {tr("crear.back")}
-            </button>
-            <button onClick={create} disabled={busy}
-              className="flex-1 rounded-[14px] bg-[var(--win)] px-4 py-4 text-center text-[15px] font-black text-[var(--ink)] disabled:opacity-50">
-              {busy ? tr("crear.publishing") : tr("nueva.create")}
-            </button>
-          </div>
-        </>
+      {err && !["title", "opts", "you", "close", "criteria", "arb"].includes(err.field) && (
+        <p role="alert" className="text-center text-xs font-bold text-[var(--red)]">{err.msg}</p>
       )}
+      {err?.field === "arb" && !more && <p role="alert" className="text-center text-xs font-bold text-[var(--red)]">{err.msg}</p>}
+
+      <button type="button" onClick={create} disabled={busy}
+        className="mt-1 flex h-14 w-full items-center justify-center gap-2.5 rounded-full bg-[var(--win)] px-4 text-[17px] font-black text-[var(--ink)] disabled:opacity-60"
+        style={{ boxShadow: "0 5px 0 var(--windeep), 0 10px 26px -8px rgba(31,224,122,0.45)" }}>
+        <Send size={20} strokeWidth={2.4} aria-hidden />
+        {busy ? tr("crear.publishing") : target.kind === "group" ? tr("nueva06.ctaGroup") : tr("nueva06.cta")}
+      </button>
     </>
   );
 }
 
-function Block({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function ToolButton({ on, onClick, icon, children }: { on: boolean; onClick: () => void; icon: ReactNode; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-3">
-      <h2 className="flex items-center gap-2 text-[15px] font-black text-[var(--cream)]">
-        <span className="mono flex h-6 w-6 items-center justify-center rounded-full bg-[var(--win)] text-[12px] text-[var(--ink)]">{n}</span>
-        {title}
-      </h2>
-      {children}
-    </section>
+    <button type="button" onClick={onClick} aria-pressed={on}
+      className="flex h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold"
+      style={{ borderColor: on ? "var(--win)" : "var(--line2)", color: on ? "var(--win)" : "var(--muted)" }}>
+      {icon}{children}
+    </button>
   );
 }
 function ErrLine({ err, field }: { err: Err | null; field: ErrField }) {
   if (!err || err.field !== field) return null;
-  return <p role="alert" className="mt-1.5 text-xs font-bold text-[var(--red)]">{err.msg}</p>;
+  return <p role="alert" className="-mt-1 text-xs font-bold text-[var(--red)]">{err.msg}</p>;
 }
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div>
-      <label className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{label}</label>
+      <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">{label}</p>
       <div className="mt-1.5">{children}</div>
     </div>
   );
 }
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick}
-      className="rounded-[10px] border px-3 py-2.5 text-sm font-bold"
-      style={{ borderColor: active ? "var(--win)" : "var(--line)", color: active ? "var(--win)" : "var(--muted)" }}>
-      {children}
-    </button>
-  );
-}
-function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
   return (
     <button type="button" onClick={onClick} aria-pressed={active}
-      className="rounded-full border px-3.5 py-2 text-[13px] font-bold"
-      style={{
-        borderColor: active ? "var(--win)" : "var(--line)",
-        color: active ? "var(--win)" : "var(--muted)",
-        background: active ? "rgba(31,224,122,0.10)" : "transparent",
-      }}>
+      className="rounded-full border-[1.5px] px-3 py-2.5 text-sm font-bold"
+      style={{ borderColor: active ? "var(--win)" : "var(--line2)", color: active ? "var(--win)" : "var(--muted)" }}>
       {children}
     </button>
   );
