@@ -1693,5 +1693,21 @@
   "grupo11.shameWon": "«{winner}» won",
   "grupo11.shameShare": "Share the shame",
   "grupo11.shameText": "🤡 {who} was dead sure: «{option}» on «{title}»… and «{winner}» won. {url}",
-  "grupo11.inviteTitle": "Invite your people"
+  "grupo11.inviteTitle": "Invite your people",
+  "liga12.eyebrow": "{market} league",
+  "liga12.week": "Week {n}",
+  "liga12.division": "{name} division",
+  "liga12.closes": "Closes {when}",
+  "liga12.people": "{n} people",
+  "liga12.zoneUp": "Promotion zone",
+  "liga12.zoneUpSub": "top {n} go up",
+  "liga12.zoneDown": "Relegation zone",
+  "liga12.zoneDownSub": "bottom {n} go down",
+  "liga12.lastUp": "last one going up",
+  "liga12.you": "You",
+  "liga12.toUp": "{n} pts from promotion",
+  "liga12.inUp": "in the promotion zone",
+  "liga12.needScore": "score points to go up",
+  "liga12.inDown": "{n} pts from safety",
+  "liga12.belowYou": "{n} behind you"
 }

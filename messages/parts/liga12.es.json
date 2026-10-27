@@ -1,0 +1,18 @@
+{
+  "liga12.eyebrow": "Liga {market}",
+  "liga12.week": "Semana {n}",
+  "liga12.division": "División {name}",
+  "liga12.closes": "Cierra {when}",
+  "liga12.people": "{n} personas",
+  "liga12.zoneUp": "Zona de ascenso",
+  "liga12.zoneUpSub": "los {n} primeros suben",
+  "liga12.zoneDown": "Zona de descenso",
+  "liga12.zoneDownSub": "los {n} últimos bajan",
+  "liga12.lastUp": "último en subir",
+  "liga12.you": "Tú",
+  "liga12.toUp": "a {n} pts del ascenso",
+  "liga12.inUp": "en zona de ascenso",
+  "liga12.needScore": "suma puntos para subir",
+  "liga12.inDown": "a {n} pts de salvarte",
+  "liga12.belowYou": "a {n} de ti"
+}
