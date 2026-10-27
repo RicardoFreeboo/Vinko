@@ -100,7 +100,8 @@ await test("el floor nunca crea Vinkos (caso con división inexacta)", () => {
 await test("la última migración que define resolve_porra sigue siendo parimutuel con floor + devolución", () => {
   const dir = join(ROOT, "supabase", "migrations");
   const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-  const defs = files.filter((f) => /function\s+public\.resolve_porra/.test(readFileSync(join(dir, f), "utf8")));
+  // resolve_porra( exacto: resolve_porra_system (0076) delega en porra_settle y no es una redefinición
+  const defs = files.filter((f) => /function\s+public\.resolve_porra\s*\(/.test(readFileSync(join(dir, f), "utf8")));
   assert.ok(defs.length > 0, "ninguna migración define resolve_porra");
   const last = defs[defs.length - 1];
   const sql = readFileSync(join(dir, last), "utf8");

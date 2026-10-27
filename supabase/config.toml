@@ -38,3 +38,8 @@ verify_jwt = false
 # de usuario → SIN verificación de JWT.
 [functions.voice-porra]
 verify_jwt = false
+
+# sports-provider (motor, F2) la invocan los crons de calendario y resultados
+# (x-cron-secret) o una sesión admin que valida ella misma → SIN JWT.
+[functions.sports-provider]
+verify_jwt = false
