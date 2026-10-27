@@ -92,6 +92,14 @@ npm run dev
   `functions_base_url` y despliega **todas** las funciones del producto
   (`push-dispatch`, `account-purge`, `billing-webhook`, `rewards-claim`,
   `trend-generate`, `voice-porra`). `money-webhook` queda fuera (dinero).
+
+  > **Permisos del token para desplegar funciones.** Aplicar migraciones puede ir
+  > por `SUPABASE_DB_URL` (psql, sin rol especial), pero **desplegar Edge Functions
+  > usa la Management API y exige que `SUPABASE_ACCESS_TOKEN` tenga rol
+  > Owner/Administrator** en la organización del proyecto. Si el token no lo tiene,
+  > el job de funciones **no rompe el deploy**: avisa (`::warning::`) y la BD queda
+  > aplicada igualmente; las funciones no se (re)despliegan hasta poner un token de
+  > Owner. Comprueba tu rol en Supabase → Organization → **Team / Members**.
 - **Gate de CI** (`ci.yml`, bloquea el merge): `node scripts/predeploy.mjs`
   (léxico → términos prohibidos → i18n → unit → invariante de esquema → par
   VAPID → SQL desde cero → ESLint → tsc → build) + Postgres para `tests/sql`.
