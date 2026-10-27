@@ -11,9 +11,11 @@ name: Supabase
 #   · vars.SUPABASE_PROJECT_REF  → ref del proyecto (p.ej. uarnpxjdccbidgzhhavc).
 #       Si no se define, cae al ref histórico de prod (con aviso) para no romper
 #       el despliegue existente; define la variable para staging.
-#   · vars.MIGRATIONS_FROM       → primera migración a aplicar (default 55). Un
+#   · vars.MIGRATIONS_FROM       → primera migración a aplicar (default 72). Un
 #       proyecto NUEVO desde cero usa 1 (o `supabase db reset`, ver RUNBOOK-INFRA).
-#       Las ≥ 55 son idempotentes; re-aplicarlas no rompe nada.
+#       Prod ya tiene hasta la 0071; desde 0060 (solo-puntos) las 0059/0064/0067
+#       ya no se pueden re-aplicar, así que el umbral pasó de 55 a 72. Las ≥ 72
+#       tienen que ser idempotentes: se re-aplican en cada deploy.
 #   · secrets.SUPABASE_ACCESS_TOKEN → token personal (supabase.com/dashboard/account/tokens).
 #   · secrets.SUPABASE_DB_URL (opcional) → "Session pooler" con contraseña: si está,
 #       las migraciones van por psql; si no, por la Management API (/database/query).
@@ -38,7 +40,7 @@ concurrency:
 env:
   # Ref del proyecto destino. Sin la variable, cae a prod (con aviso en el log).
   PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF || 'uarnpxjdccbidgzhhavc' }}
-  MIGRATIONS_FROM: ${{ vars.MIGRATIONS_FROM || '55' }}
+  MIGRATIONS_FROM: ${{ vars.MIGRATIONS_FROM || '72' }}
 
 jobs:
   migraciones:
