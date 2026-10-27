@@ -39,10 +39,14 @@ export const KPI_BLOCKS = [
 // Health: honesto y REAL. Vercel/OG = ok si esta página renderiza. Supabase por
 // env. Sentry activo (DSN inline en el código). Anthropic y cron desde la BD
 // (system_health). PostHog = sin configurar hasta que haya clave (honesto).
-export function healthChecks(h: { cron_jobs?: number; anthropic?: boolean } = {}): { key: string; tone: Tone }[] {
+export function healthChecks(h: {
+  cron_jobs?: number; anthropic?: boolean;
+  cron_secret_set?: boolean; functions_base_url_set?: boolean; cron_errors_24h?: number;
+} = {}): { key: string; tone: Tone }[] {
   const has = (v?: string) => (v && v.length > 0 ? true : false);
   const supa = has(process.env.NEXT_PUBLIC_SUPABASE_URL) && has(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   const posthog = has(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+  const vapid = has(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
   return [
     { key: "admin.health.check.vercel", tone: "ok" },
     { key: "admin.health.check.dominio", tone: "ok" },   // DNS Hostinger → si esto renderiza, resuelve
@@ -53,6 +57,11 @@ export function healthChecks(h: { cron_jobs?: number; anthropic?: boolean } = {}
     { key: "admin.health.check.anthropic", tone: h.anthropic ? "ok" : "unset" },
     { key: "admin.health.check.cron", tone: (h.cron_jobs ?? 0) > 0 ? "ok" : "unset" },
     { key: "admin.health.check.posthog", tone: posthog ? "ok" : "unset" },
+    // secretos / config por entorno (C3): si falta algo, GRITA (no 403 mudo)
+    { key: "admin.health.check.cron_secret", tone: h.cron_secret_set ? "ok" : "unset" },
+    { key: "admin.health.check.functions_url", tone: h.functions_base_url_set ? "ok" : "unset" },
+    { key: "admin.health.check.vapid", tone: vapid ? "ok" : "unset" },
+    { key: "admin.health.check.cron_errors", tone: (h.cron_errors_24h ?? 0) === 0 ? "ok" : "warn" },
   ];
 }
 

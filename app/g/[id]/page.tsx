@@ -57,22 +57,6 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
   const streak = typeof st.data === "number" ? st.data : 0;
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.vinko.fun";
 
-  // pay_handle (cómo te pagan los del grupo). Puede no existir aún si 0048 no
-  // está aplicada: en ese caso, null y el usuario lo rellena cuando aparezca.
-  let payHandle: string | null = null;
-  {
-    const prof = await fetchMe(sb!); // SEC-01: pay_handle es privada → me()
-    payHandle = prof?.pay_handle ?? null;
-  }
-
-  // Gate del P2P con dinero (0054): apagado por defecto; solo se muestra si el
-  // admin lo enciende en remote_config.p2p.enabled.
-  let moneyEnabled = false;
-  {
-    const { data: cfg } = await sb!.from("remote_config").select("value").eq("key", "p2p").maybeSingle();
-    moneyEnabled = (cfg as { value?: { enabled?: boolean } } | null)?.value?.enabled === true;
-  }
-
   // FX-11: porras del grupo (RPC 0058, solo miembros). Pre-migración → lista vacía.
   let porras: GroupPorraRow[] = [];
   {
@@ -86,9 +70,7 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       rows={rows}
       streak={streak}
       cutoffIso={weekCutoff().toISOString()}
-      me={{ id: session!.id, handle: session!.handle ?? "", payHandle,
-        isAdult: !!session!.birth_year && new Date().getFullYear() - session!.birth_year >= 18 }}
-      moneyEnabled={moneyEnabled}
+      me={{ id: session!.id, handle: session!.handle ?? "" }}
       porras={porras}
       origin={origin}
     />

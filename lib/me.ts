@@ -22,8 +22,6 @@ export type Me = {
   role: string | null;
   interests: string[] | null;
   onboarded_at: string | null;
-  pay_handle: string | null;
-  club_active: boolean | null;
   safer_play: Record<string, unknown> | null;
   streak_days: number | null;
   streak_best: number | null;

@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { StakePicker } from "@/components/StakePicker";
 import { GuestConvert } from "@/components/GuestConvert";
+import { VoteOption } from "@/components/vote/VoteOption";
+import { ResultBar } from "@/components/vote/ResultBar";
+import { LockedResults } from "@/components/vote/LockedResults";
+import { ChevronRight } from "lucide-react";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 import { PushPrePrompt } from "@/components/PushPrePrompt";
@@ -23,17 +27,12 @@ import { PushPrePrompt } from "@/components/PushPrePrompt";
 // Pasada la hora de cierre → estado "Cerrada" (el juez resolverá). Resuelta →
 // no pinta nada: el ranking de la porra (SSR) toma el relevo.
 //
-// Toggle Puntos/Dinero: mismo teaser "muy pronto" del feed, sobre las MISMAS
-// opciones (sin tarjeta aparte). Visible SOLO para +18 registrado (regla de
-// oro 8: nunca a menores ni a invitados/visitantes sin sesión) y mientras el
-// dinero real no esté aprobado (moneyLive=false). No mueve dinero: es maqueta.
+// Solo-puntos: no hay modo dinero. El pick es siempre con Vinkos (o invitado,
+// gratis); ni € ni maqueta de dinero.
 type Opt = { id: string; label: string };
 
-const eur = (cents: number) =>
-  new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(cents / 100);
-
 export function PickPanel({
-  porraId, slug, options, status, isTemplate, closesAt, isAdult = false, moneyLive = false, moneyUi = false,
+  porraId, slug, options, status, isTemplate, closesAt,
 }: {
   porraId: string;
   slug: string;
@@ -41,9 +40,6 @@ export function PickPanel({
   status: string;
   isTemplate: boolean;
   closesAt: string;
-  isAdult?: boolean;   // +18 registrado: ve el toggle del modo dinero ("muy pronto")
-  moneyUi?: boolean;   // MON-01: flag de servidor; false (por defecto) = cero UI de dinero
-  moneyLive?: boolean; // el dinero real está aprobado → MoneyMount toma el relevo, sin maqueta
 }) {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -56,9 +52,6 @@ export function PickPanel({
   const [confirmId, setConfirmId] = useState<string | null>(null); // FX-10: opción tocada, pendiente de confirmar
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [money, setMoney] = useState(false);          // modo dinero (maqueta)
-  const [moneyPick, setMoneyPick] = useState<string | null>(null);
-  const [eurCents, setEurCents] = useState(1000);     // 10 € por defecto
 
   const isReal = !isTemplate && /^[0-9a-f-]{36}$/.test(porraId);
   const closed = status === "open" && Date.parse(closesAt) <= Date.now();
@@ -161,9 +154,6 @@ export function PickPanel({
 
   const total = Object.values(tallies).reduce((a, b) => a + b, 0);
   const guestMode = !loggedIn || isGuest;
-  // El toggle solo para +18 registrado (nunca invitado ni sin sesión) y sin
-  // dinero real aprobado. Si el dinero real está vivo, MoneyMount toma el relevo.
-  const showToggle = moneyUi && isAdult && loggedIn && !isGuest && !moneyLive;
 
   // Cuerpo de PUNTOS: termómetro (ya jugado/cerrado) o la propia selección.
   const pointsBody = (myPick || closed) ? (
@@ -172,21 +162,9 @@ export function PickPanel({
         <p className="mono text-[10px] uppercase tracking-[0.14em]" style={{ color: closed ? "var(--gold)" : "var(--muted)" }}>
           {closed ? t("resolve.closedTag") : t("pick.meter")}
         </p>
-        {options.map((o) => {
-          const n = tallies[o.id] ?? 0;
-          const pct = total > 0 ? Math.round((n / total) * 100) : 0;
-          return (
-            <div key={o.id} className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] p-3">
-              <div className="flex items-center justify-between text-sm font-bold text-[var(--cream)]">
-                <span>{o.label}{myPick === o.id ? ` · ${t("pick.yours")}` : ""}</span>
-                <span className="mono text-[var(--win)]">{pct}%</span>
-              </div>
-              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--ink)]">
-                <div className="h-full rounded-full bg-[var(--win)]" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })}
+        {options.map((o, i) => (
+          <ResultBar key={o.id} idx={i} label={o.label} n={tallies[o.id] ?? 0} total={total} mine={myPick === o.id} />
+        ))}
         <p className="text-center text-xs text-[var(--muted)]">
           {closed ? t("resolve.closedNote") : isGuest ? t("guest.locked") : t("pick.locked")}
         </p>
@@ -199,13 +177,14 @@ export function PickPanel({
         {guestMode && (
           <p className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--gold)]">{t("guest.free")}</p>
         )}
-        {options.map((o) => (
-          <button key={o.id} onClick={() => pick(o.id)} disabled={busy}
-            className="rounded-[14px] border bg-[var(--ink2)] px-4 py-3.5 text-left text-[15px] font-bold text-[var(--cream)] disabled:opacity-50 hover:border-[var(--win)]"
-            style={{ borderColor: confirmId === o.id ? "var(--win)" : "var(--line)" }}>
-            {o.label}{confirmId === o.id ? " ✓" : ""}
-          </button>
+        {options.map((o, i) => (
+          <VoteOption key={o.id} idx={i} label={o.label}
+            state={confirmId === o.id ? "chosen" : "idle"}
+            onClick={() => pick(o.id)} disabled={busy}
+            trailing={<ChevronRight size={18} className="text-[var(--muted2)]" aria-hidden />} />
         ))}
+        {/* Reparto oculto hasta votar: tapa la fuga de reparto antes del voto. */}
+        {total > 0 && <LockedResults total={total} />}
         {/* FX-10: confirmación con el importe ANTES de gastar nada */}
         {!guestMode && confirmId && (
           <div className="flex flex-col gap-2.5 rounded-[14px] border border-[var(--win)] bg-[var(--ink2)] p-3">
@@ -234,56 +213,9 @@ export function PickPanel({
     </>
   );
 
-  // Cuerpo de DINERO (maqueta "muy pronto"): las MISMAS opciones con entrada en
-  // €. No hace pick real ni toca puntos; el importe solo se muestra.
-  const moneyBody = (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-center gap-2 rounded-[12px] border border-[var(--gold)]/50 bg-[var(--ink2)] px-3 py-2.5">
-        <span className="text-[15px] font-bold text-[var(--gold)]">€</span>
-        <input type="number" inputMode="decimal" min={1} max={500} value={eurCents / 100}
-          onChange={(e) => setEurCents(Math.max(100, Math.min(50000, Math.round(Number(e.target.value) * 100))))}
-          aria-label={t("pick.modeMoney")}
-          className="w-full bg-transparent text-[16px] font-black text-[var(--cream)] outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-        <span className="mono shrink-0 text-[10px] uppercase tracking-wide text-[var(--muted)]">{t("pick.soon")}</span>
-      </div>
-      {options.map((o) => {
-        const chosen = moneyPick === o.id;
-        return (
-          <button key={o.id} type="button" onClick={() => setMoneyPick(o.id)}
-            className="flex items-center justify-between rounded-[14px] border-2 px-4 py-3.5 text-left text-[15px] font-bold text-[var(--cream)]"
-            style={{
-              borderColor: chosen ? "var(--gold)" : "var(--line)",
-              background: chosen ? "rgba(255,209,102,0.14)" : "var(--ink2)",
-            }}>
-            <span className="min-w-0 truncate">{o.label}</span>
-            {chosen
-              ? <span className="mono shrink-0 text-[var(--gold)]">✓</span>
-              : <span className="mono shrink-0 text-[13px] font-black text-[var(--gold)]">{eur(eurCents)}</span>}
-          </button>
-        );
-      })}
-      {moneyPick
-        ? <p className="text-center text-[13px] font-bold text-[var(--gold)]">{t("pick.moneyMock", { amount: eur(eurCents) })}</p>
-        : <p className="text-center text-[11px] leading-snug text-[var(--muted2)]">{t("teaser.money.note")}</p>}
-    </section>
-  );
-
   return (
     <>
-      {showToggle && (
-        <div className="flex w-max items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--ink2)] p-1">
-          <button type="button" onClick={() => { setMoney(false); setMoneyPick(null); }}
-            className={`rounded-full px-3 py-1 text-[12px] font-black ${!money ? "bg-[var(--win)] text-[var(--ink)]" : "text-[var(--muted)]"}`}>
-            🪙 {t("pick.modePoints")}
-          </button>
-          <button type="button" onClick={() => setMoney(true)}
-            className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-black ${money ? "bg-[var(--gold)] text-[var(--ink)]" : "text-[var(--muted)]"}`}>
-            💶 {t("pick.modeMoney")}
-            <span className="rounded-full bg-black/25 px-1 text-[8px] font-bold uppercase tracking-wide">{t("pick.soon")}</span>
-          </button>
-        </div>
-      )}
-      {showToggle && money ? moneyBody : pointsBody}
+      {pointsBody}
       {/* RT-05: el pre-aviso de push sale cuando aporta algo — justo tras elegir */}
       {myPick && loggedIn && !isGuest && <PushPrePrompt hasValue />}
     </>

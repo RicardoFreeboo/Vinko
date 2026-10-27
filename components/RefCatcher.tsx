@@ -16,6 +16,28 @@ import { supabaseBrowser } from "@/lib/supabase/client";
 const REF_RX = /^[a-z0-9_]{3,30}$/;
 const REF_MAX_AGE = 30 * 24 * 3600;
 
+// Atribución de marketing (primer toque): la PRIMERA vez que el navegador llega
+// con utm_* (o gclid/fbclid de campañas de pago) se guardan en localStorage y
+// NO se sobrescriben, para conservar la campaña que trajo al usuario. Se
+// adjuntan al evento sign_up. Solo llegan a PostHog si hay consentimiento:
+// capture() ya lo exige (F-10). Sin cookie: el alta se dispara en el cliente, así
+// que localStorage basta y evitamos una cookie de marketing extra.
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "gclid", "fbclid"] as const;
+
+function cleanUtm(v: string | null): string | null {
+  if (!v) return null;
+  const s = v.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 120); // sin control chars, tope 120
+  return s.length ? s : null;
+}
+
+function readStoredUtm(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem("vinko_utm");
+    if (raw) return JSON.parse(raw) as Record<string, string>;
+  } catch { /* sin storage o JSON corrupto */ }
+  return {};
+}
+
 export function RefCatcher() {
   const path = usePathname();
 
@@ -30,12 +52,27 @@ export function RefCatcher() {
       }
     } catch { /* jamás rompe la página */ }
 
+    // utm_* de primer toque: se guardan UNA sola vez (ver nota de arriba).
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      const incoming: Record<string, string> = {};
+      for (const k of UTM_KEYS) {
+        const c = cleanUtm(sp.get(k));
+        if (c) incoming[k] = c;
+      }
+      if (Object.keys(incoming).length > 0) {
+        try {
+          if (!localStorage.getItem("vinko_utm")) localStorage.setItem("vinko_utm", JSON.stringify(incoming));
+        } catch { /* sin storage */ }
+      }
+    } catch { /* jamás rompe la página */ }
+
     try {
       const m = document.cookie.match(/(?:^|;\s*)vinko_auth_evt=(sign_up|login)(?:;|$)/);
       if (m) {
         document.cookie = "vinko_auth_evt=; Max-Age=0; Path=/; SameSite=Lax";
-        // y quitar este cast.
-        capture(m[1] as EventName, { is_seed: false });
+        // En el alta adjuntamos la campaña de primer toque (atribución).
+        capture(m[1] as EventName, { is_seed: false, ...(m[1] === "sign_up" ? readStoredUtm() : {}) });
       }
     } catch { /* la analítica jamás rompe la UI */ }
   }, [path]);

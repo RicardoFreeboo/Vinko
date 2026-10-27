@@ -1,10 +1,9 @@
 // PASO 6 — configuración de anuncios. Flags del ALPHA FREEZE.
 // ADS_ENABLED=false por defecto → stub rewarded + display no-op (sin hueco gris).
-// LEGAL_LOCK=true → el botón rewarded queda oculto en público hasta que Ricardo
-// lo quite. Los puntos por anuncio NUNCA son compra de puntos (regla de oro 2):
+// Los puntos por anuncio NUNCA son compra de puntos (regla de oro 2):
 // crédito solo en servidor, +10 fijos, máx. 5/día, 0 si el anuncio no termina.
+// (LEGAL_LOCK era un flag muerto: nadie lo leía — eliminado, §12.)
 export const ADS_ENABLED = process.env.NEXT_PUBLIC_ADS_ENABLED === "true";
-export const LEGAL_LOCK = process.env.NEXT_PUBLIC_LEGAL_LOCK !== "false"; // default true
 
 export const REWARD_AMOUNT = 10;
 export const REWARD_CAP_PER_DAY = 5;

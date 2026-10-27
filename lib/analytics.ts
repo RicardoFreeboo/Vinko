@@ -23,7 +23,7 @@ export type EventName =
   // notificaciones
   | "push_prompt_shown" | "push_permission_granted" | "push_permission_denied"
   | "pwa_install_prompt_shown" | "pwa_installed"
-  | "push_opened" | "push_class_muted" | "push_permission_revoked"
+  | "push_opened" | "push_class_muted" | "push_permission_revoked" | "push_vapid_missing"
   | "inbox_opened" | "inbox_item_clicked";
 
 function hasConsent(): boolean {

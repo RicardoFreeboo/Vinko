@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { GroupShare } from "@/components/GroupShare";
-import { GroupLeaderboard, GroupJudge, type LeaderRow } from "@/components/GroupLeaderboard";
-import { GroupMoney } from "@/components/GroupMoney";
+import { GroupLeaderboard, type LeaderRow } from "@/components/GroupLeaderboard";
 import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { qrSvg } from "./qr";
@@ -27,13 +26,12 @@ export function weekCutoff(now: Date = new Date()): Date {
   return new Date(monday - 4 * 3600e3);
 }
 
-export function GroupView({ group, rows, streak, cutoffIso, me, moneyEnabled = false, porras = [], origin }: {
+export function GroupView({ group, rows, streak, cutoffIso, me, porras = [], origin }: {
   group: GroupInfo;
   rows: LeaderRow[];
   streak: number;
   cutoffIso: string;
-  me: { id: string; handle: string; payHandle?: string | null; isAdult?: boolean };
-  moneyEnabled?: boolean;
+  me: { id: string; handle: string };
   porras?: GroupPorraRow[];
   origin: string;
 }) {
@@ -64,13 +62,6 @@ export function GroupView({ group, rows, streak, cutoffIso, me, moneyEnabled = f
           {streak > 0 ? t("grupo.streakHint", { n: String(streak) }) : t("grupo.streakZero")}
         </p>
       </div>
-
-      {/* FX-11: el "juez de pagos" es pieza del P2P con dinero → oculto mientras
-          el flag esté apagado (no confunde con el juez de cada reto). */}
-      {moneyEnabled && (
-        <GroupJudge groupId={group.id} judgeId={group.judge_id} adminId={group.created_by} myId={me.id}
-          members={rows.map((r) => ({ user_id: r.user_id, handle: r.handle }))} />
-      )}
 
       {/* FX-11: porras del grupo + crear una para el grupo */}
       <section className="flex flex-col gap-2">
@@ -114,8 +105,6 @@ export function GroupView({ group, rows, streak, cutoffIso, me, moneyEnabled = f
         recapUrl={recapUrl}
         storyUrl={storyUrl}
       />
-
-      {moneyEnabled && <GroupMoney groupId={group.id} myId={me.id} myPayHandle={me.payHandle ?? null} canCreate={me.isAdult ?? false} />}
 
       {/* QR del enlace de invitación: grupos presenciales (boda, bar) */}
       <section className="flex flex-col items-center gap-2 rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] p-4">

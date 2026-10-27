@@ -29,37 +29,24 @@ begin
   insert into auth.users (email) values ('fran@test.dev') returning id into f;
   update profiles set points = 1000 where id in (a, b, c, d, e, f);
 
-  -- ── RT-01: create_porra transaccional de un reto con premio ───────────────
+  -- ── RT-01: create_porra transaccional (solo Vinkos; sin premio) ───────────
   perform test_as(a);
   v := create_porra('¿Encontrará la rubia a alguien que le complemente?',
-                    array['Sí', 'No'], now() + interval '1 hour',
-                    p_my_option_idx => 1, p_stake_kind => 'prize', p_stake_text => 'Una cena');
+                    array['Sí', 'No'], now() + interval '1 hour', p_my_option_idx => 1);
   v_porra := (v->>'id')::uuid; v_slug := v->>'slug';
   select id into v_si from porra_options where porra_id = v_porra and idx = 0;
   select id into v_no from porra_options where porra_id = v_porra and idx = 1;
 
-  if not exists (select 1 from porras where id = v_porra and stake_kind = 'prize'
-                   and stake_text = 'Una cena' and listed = false and source = 'user') then
-    raise exception 'RT-01: la porra no se creó con premio y listed=false';
+  if not exists (select 1 from porras where id = v_porra and listed = false and source = 'user') then
+    raise exception 'RT-01: la porra no se creó con listed=false';
   end if;
   select points into pts_a from profiles where id = a;
-  if pts_a <> 1000 then raise exception 'RT-01: un reto prize no debe gastar Vinkos (%).', pts_a; end if;
+  if pts_a <> 990 then raise exception 'RT-01: el creador paga la entrada de 10 Vinkos (%).', pts_a; end if;
   if not exists (select 1 from picks where porra_id = v_porra and user_id = a
-                   and option_id = v_no and points_spent = 0) then
-    raise exception 'RT-01: falta el pick del creador a coste 0';
+                   and option_id = v_no and points_spent = 10) then
+    raise exception 'RT-01: falta el pick del creador con entrada de 10';
   end if;
-  raise notice 'OK RT-01 create_porra: porra + opciones + pick del creador, atómico y a coste 0';
-
-  -- ── RT-01: veto de importes en el premio ──────────────────────────────────
-  begin
-    perform create_porra('¿Quién gana mañana la partida?', array['Yo', 'Tú'],
-                         now() + interval '1 hour', p_stake_kind => 'prize', p_stake_text => '50 €');
-    raise exception 'RT-01: un premio con importe debía rechazarse';
-  exception when others then
-    err := sqlerrm;
-    if err not like '%VINKO_STAKE_MONEY%' then raise exception 'RT-01: error inesperado %', err; end if;
-  end;
-  raise notice 'OK RT-01 stake_text_guard: «50 €» → VINKO_STAKE_MONEY';
+  raise notice 'OK RT-01 create_porra: porra + opciones + pick del creador (entrada 10), atómico';
 
   -- ── RT-05: pick de invitada CON NOMBRE y aviso inmediato al creador ───────
   insert into auth.users (email, is_anonymous) values (null, true) returning id into g;
@@ -69,12 +56,12 @@ begin
     raise exception 'RT-05: el nombre de la invitada no se guardó';
   end if;
   select count(*) into n from notifications
-   where user_id = a and title like 'Ana acepta tu reto%' and body like 'Os jugáis: Una cena%';
-  if n <> 1 then raise exception 'RT-05: el creador no recibió el aviso con nombre y premio'; end if;
+   where user_id = a and title like 'Ana acepta tu reto%' and body like 'En:%';
+  if n <> 1 then raise exception 'RT-05: el creador no recibió el aviso con nombre'; end if;
   if not exists (select 1 from push_queue where user_id = a and title like 'Ana acepta tu reto%') then
     raise exception 'RT-05: el aviso no se encoló a push (directo, sin tope)';
   end if;
-  raise notice 'OK RT-05 make_guest_pick: aviso «Ana acepta tu reto: va con Sí · Os jugáis: Una cena»';
+  raise notice 'OK RT-05 make_guest_pick: aviso «Ana acepta tu reto: va con Sí»';
 
   -- ── RT-06: invitada → cuenta real sin duplicados ──────────────────────────
   v_tok := create_merge_token();
@@ -119,22 +106,10 @@ begin
   end if;
   raise notice 'OK RT-07 propuesta/objeción/confirmación: sin acuerdo en 1v1 y liquidación al confirmar';
 
-  -- ── RT-08: un reto prize no da Puntería ni mueve Vinkos ───────────────────
-  select points into pts_a from profiles where id = a;
-  select points into pts_b from profiles where id = b;
-  if pts_a <> 1000 or pts_b <> 1000 then
-    raise exception 'RT-08: un reto prize movió Vinkos (a=%, b=%)', pts_a, pts_b;
-  end if;
-  if exists (select 1 from pick_scores where ref_id = v_porra) then
-    raise exception 'RT-08: un reto prize concedió Puntería';
-  end if;
-  select count(*) into n from notifications where user_id = a and title like '🏆 Ganaste el reto%';
-  if n < 1 then raise exception 'RT-05: la ganadora no recibió el aviso del resultado'; end if;
-  select count(*) into n from notifications where user_id = b and title like 'Perdiste el reto%' and body like 'Pagas: Una cena%';
-  if n < 1 then raise exception 'RT-05: el perdedor no recibió quién paga qué'; end if;
-  raise notice 'OK RT-08 prize: 0 Vinkos movidos, 0 Puntería, avisos «quién paga la cena»';
-
   -- ── RT-08: Vinkos 1v1 (juez juega) → reparto SÍ, Puntería NO ──────────────
+  -- v_porra ya se liquidó en RT-07 (solo Vinkos); reseteamos saldos para medir
+  -- el reparto de ESTA porra de forma aislada.
+  update profiles set points = 1000 where id in (a, b, c, d, e, f);
   perform test_as(a);
   v2 := create_porra('¿Quién friega este mes el piso compartido?', array['Ana', 'Bruno'],
                      now() + interval '1 hour', p_my_option_idx => 0);
@@ -209,7 +184,7 @@ begin
   update profiles set points = 1000 where id = a;
   perform test_as(a);
   v := create_porra('¿Llueve en la boda del sábado por la tarde?', array['Sí', 'No'],
-                    now() + interval '1 hour', p_my_option_idx => 0, p_stake_kind => 'prize', p_stake_text => 'Un café');
+                    now() + interval '1 hour', p_my_option_idx => 0);
   v_porra := (v->>'id')::uuid;
   select id into v_si from porra_options where porra_id = v_porra and idx = 0;
   insert into auth.users (email, is_anonymous) values (null, true) returning id into g;

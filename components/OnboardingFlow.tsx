@@ -223,7 +223,7 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
     setErr("");
     const y = parseInt(year, 10);
     if (!y || y < 1900 || y > thisYear) { setErr(t("age.bad")); return; }
-    if (thisYear - y < 14) { setErr(t("age.under14")); return; } // edad mínima de registro
+    if (thisYear - y < 18) { setErr(t("age.under14")); return; } // edad mínima de registro (R3: +18)
     if (mock) { onDone(); return; }
     const sb = supabaseBrowser();
     if (!sb) { setErr(t("login.notready")); return; }
