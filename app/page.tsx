@@ -252,7 +252,6 @@ export default async function Landing() {
         <nav className="flex flex-wrap gap-x-5 gap-y-2 text-[12px] font-bold">
           <Link href="/privacidad" className="text-[var(--win)]">{t("legal.privacy.title")}</Link>
           <Link href="/terminos" className="text-[var(--win)]">{t("legal.terms.title")}</Link>
-          {money && <Link href="/juego-seguro" className="text-[var(--win)]">{t("landing.safe")}</Link>}
         </nav>
         <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted2)]">{t("og.footer")}</p>
       </footer>

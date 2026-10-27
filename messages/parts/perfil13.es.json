@@ -11,5 +11,8 @@
   "perfil13.visionarioBadge": "VISIONARIO",
   "perfil13.punteriaGain": "+{n} PUNTERÍA",
   "perfil13.hitRate": "Puntería",
-  "perfil13.noReceipts": "Cuando aciertes algo que pocos vieron venir, tu recibo aparece aquí."
+  "perfil13.noReceipts": "Cuando aciertes algo que pocos vieron venir, tu recibo aparece aquí.",
+  "perfil13.receiptsOf": "Mejores recibos",
+  "perfil13.shield1": "1 escudo",
+  "perfil13.shields": "{n} escudos"
 }

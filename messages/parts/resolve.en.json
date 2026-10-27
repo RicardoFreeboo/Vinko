@@ -33,7 +33,7 @@
   "resolve.winners": "{n} got it right",
   "resolve.winner": "1 got it right",
   "resolve.stake": "put in",
-  "resolve.payout": "gets",
+  "resolve.payout": "won",
   "resolve.refund": "refunded",
   "resolve.won": "Got it",
   "resolve.winningOpt": "Winner",

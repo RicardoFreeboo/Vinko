@@ -11,5 +11,8 @@
   "perfil13.visionarioBadge": "VISIONARY",
   "perfil13.punteriaGain": "+{n} PUNTERÍA",
   "perfil13.hitRate": "Puntería",
-  "perfil13.noReceipts": "When you call something few saw coming, your receipt shows up here."
+  "perfil13.noReceipts": "When you call something few saw coming, your receipt shows up here.",
+  "perfil13.receiptsOf": "Best receipts",
+  "perfil13.shield1": "1 shield",
+  "perfil13.shields": "{n} shields"
 }

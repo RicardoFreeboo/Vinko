@@ -73,8 +73,9 @@ export function VinkosStreak({
       <WeekStreak streakDays={streakDays} streakBest={streakBest} shields={shields}
         streakLast={streakLast} prizePts={prizePts} today={today} />
       {!bonusDone ? (
-        <button onClick={claimBonus}
-          className="rounded-[14px] bg-[var(--win)] px-4 py-3.5 text-[15px] font-black text-[var(--ink)]">
+        <button type="button" onClick={claimBonus}
+          className="min-h-14 rounded-full bg-[var(--win)] px-5 py-3 text-[16px] font-black text-[var(--ink)]"
+          style={{ boxShadow: "0 5px 0 var(--windeep), 0 10px 26px -8px rgba(31,224,122,0.45)" }}>
           {bonusPts
             ? t("vinkos.bonusCta", { pts: String(bonusPts), n: String(bonusStep), total: String(bonusTotal) })
             : t("hoy.bonusCta", { n: String(bonusStep) })}
