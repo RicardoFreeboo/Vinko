@@ -20,10 +20,10 @@ export type GroupInfo = {
   id: string; name: string; invite_code: string; created_by: string; judge_id: string | null;
 };
 
-// FX-11: fila de group_porras (RPC 0058)
+// FX-11: fila de group_porras (RPC 0058; sin premio desde 0061)
 export type GroupPorraRow = {
   id: string; slug: string; title: string; status: string; closes_at: string;
-  stake_kind: string; stake_text: string | null; creator: string | null; picks: number;
+  creator: string | null; picks: number;
 };
 
 // Quien más puso en la opción perdedora de la última resuelta (porra_ranking).
