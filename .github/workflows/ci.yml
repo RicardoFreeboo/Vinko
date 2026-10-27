@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   check:
-    name: Léxico · i18n · unit · tsc · build
+    name: Gate completo (predeploy + SQL)
     if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
     steps:
@@ -31,26 +31,21 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Léxico prohibido (copy pública + migraciones ≥ 0030)
-        run: node scripts/lexicon-check.mjs
-
-      # Falla el job si el script existe y falla; solo avisa si aún no existe.
-      - name: Paridad i18n es/en
+      # tests/sql/run.sh levanta un Postgres efímero (initdb/pg_ctl). En los
+      # runners de GitHub ya viene postgresql-16; si faltara, se instala.
+      - name: Asegurar Postgres (para tests/sql)
         run: |
-          if [ -f scripts/i18n-parity.mjs ]; then
-            node scripts/i18n-parity.mjs
-          else
-            echo "::warning::scripts/i18n-parity.mjs no existe todavía: paso omitido"
+          if ! ls -d /usr/lib/postgresql/*/bin >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y postgresql
           fi
+          ls -d /usr/lib/postgresql/*/bin
 
-      - name: Tests unitarios
-        run: node tests/unit/run.mjs
-
-      - name: TypeScript (tsc --noEmit)
-        run: npx tsc --noEmit
-
-      - name: Build de Next
-        run: npm run build
+      # Gate COMPLETO, reutilizando scripts/predeploy.mjs:
+      #   léxico → términos prohibidos → i18n → unit → invariante de esquema →
+      #   SQL (migraciones desde cero + tests) → ESLint → tsc → build de Next.
+      # Todo bloquea el merge: si un paso falla, el job falla.
+      - name: Predeploy (gate completo)
+        run: node scripts/predeploy.mjs
         env:
           NEXT_PUBLIC_SUPABASE_URL: ""
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ""

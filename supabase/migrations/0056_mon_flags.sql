@@ -10,8 +10,12 @@
 insert into public.remote_config (key, value) values ('money_ui', '{"enabled": false}'::jsonb)
   on conflict (key) do nothing;
 
-insert into public.remote_config (key, value) values ('club', '{"enabled": false}'::jsonb)
+-- Se aplica UNA SOLA VEZ (marca mon01_applied). El workflow re-ejecuta las
+-- migraciones ≥0055 en cada deploy: sin la marca, apagaría el Club en cada push
+-- aunque Ricardo lo hubiera encendido desde /admin.
+insert into public.remote_config (key, value) values ('club', '{"enabled": false, "mon01_applied": true}'::jsonb)
   on conflict (key) do update
-    set value = coalesce(public.remote_config.value, '{}'::jsonb) || '{"enabled": false}'::jsonb;
+    set value = coalesce(public.remote_config.value, '{}'::jsonb) || '{"enabled": false, "mon01_applied": true}'::jsonb
+    where public.remote_config.value->>'mon01_applied' is null;
 
 notify pgrst, 'reload schema';

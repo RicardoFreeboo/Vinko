@@ -1,5 +1,7 @@
-# Config mínima para que la CLI de Supabase pueda desplegar las Edge Functions
-# desde GitHub Actions (.github/workflows/supabase-deploy.yml).
+# Config mínima para la CLI de Supabase. project_id es solo el proyecto por
+# defecto para `supabase link`/dev local; los DESPLIEGUES por entorno NO lo usan:
+# apuntan al ref de la variable SUPABASE_PROJECT_REF (ver supabase-deploy.yml y
+# RUNBOOK-INFRA.md). Para staging, enlaza con `supabase link --project-ref <ref>`.
 project_id = "uarnpxjdccbidgzhhavc"
 
 # push-dispatch la invoca pg_cron con el secreto x-cron-secret (no hay JWT de
@@ -21,4 +23,18 @@ verify_jwt = true
 # (STRIPE_WEBHOOK_SECRET) sustituye al JWT. (ads-checkout y ads-suggest sí llevan
 # el JWT del anunciante, así que usan el verify_jwt por defecto.)
 [functions.ads-stripe-webhook]
+verify_jwt = false
+
+# rewards-claim se invoca con la sesión del usuario (crédito de recompensas) → JWT.
+[functions.rewards-claim]
+verify_jwt = true
+
+# trend-generate la invoca el cron (x-cron-secret) o una sesión admin que valida
+# ella misma; sin JWT de usuario → SIN verificación de JWT en la pasarela.
+[functions.trend-generate]
+verify_jwt = false
+
+# voice-porra la llama /api/voice-porra (servidor) con el x-cron-secret, sin JWT
+# de usuario → SIN verificación de JWT.
+[functions.voice-porra]
 verify_jwt = false

@@ -7,6 +7,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 // zonas con sesión/consola (mismas rutas que app/robots.ts). /dossier sirve el
 // investment dossier (HTML estático en public/dossier), reescrito a URL limpia.
 const nextConfig: NextConfig = {
+  // ESLint es un paso propio del gate (npm run lint / scripts/predeploy.mjs), con
+  // su línea base de supresiones (eslint-suppressions.json). `next build` no debe
+  // lintar en paralelo: ignora esa base y rompería el build con los avisos
+  // preexistentes. El candado de lint vive en CI, no en el build.
+  eslint: { ignoreDuringBuilds: true },
   async headers() {
     return ["/admin", "/api", "/ajustes", "/buzon", "/saldo", "/secret", "/auth", "/s", "/dossier", "/demo"].map((p) => ({
       source: `${p}/:path*`,
