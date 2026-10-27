@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import type { LeaderRow } from "@/components/GroupLeaderboard";
-import { GroupView, weekCutoff, type GroupInfo, type GroupPorraRow } from "./group-view";
+import { fetchMe } from "@/lib/me";
+import { GroupView, weekCutoff, type GroupInfo, type GroupPorraRow, type Shame } from "./group-view";
 import { t } from "@/lib/i18n";
 
 export const dynamic = "force-dynamic";
@@ -63,6 +64,29 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
     if (!error && Array.isArray(data)) porras = data as GroupPorraRow[];
   }
 
+  // VOTAR vs VER: tus picks en las abiertas (RLS picks_read_own) · zona del perfil.
+  const openIds = porras.filter((p) => p.status === "open").map((p) => p.id);
+  const lastDone = porras.find((p) => p.status === "resolved");
+  const [mine, me, ranking] = await Promise.all([
+    openIds.length ? sb!.from("picks").select("porra_id").eq("user_id", session!.id).in("porra_id", openIds) : Promise.resolve({ data: [] }),
+    fetchMe(sb!),
+    lastDone ? sb!.rpc("porra_ranking", { p_porra: lastDone.id }) : Promise.resolve({ data: [] }),
+  ]);
+  const voted = ((mine.data ?? []) as { porra_id: string }[]).map((r) => r.porra_id);
+
+  // Recibo de vergüenza (VINKO_PANTALLAS 11): en la última resuelta, quien más
+  // puso en una opción perdedora. Solo si alguien acertó (si no, fue devolución).
+  let shame: Shame | null = null;
+  if (lastDone) {
+    type RankRow = { handle: string; avatar_url: string | null; option_label: string; stake: number; won: boolean };
+    const rr = (Array.isArray(ranking.data) ? ranking.data : []) as RankRow[];
+    const winner = rr.find((r) => r.won);
+    const loser = rr.filter((r) => !r.won).sort((a, b) => b.stake - a.stake)[0];
+    if (winner && loser) {
+      shame = { who: loser.handle, avatar_url: loser.avatar_url, option: loser.option_label, winner: winner.option_label, title: lastDone.title, slug: lastDone.slug };
+    }
+  }
+
   return (
     <GroupView
       group={group}
@@ -72,6 +96,9 @@ export default async function GroupPage({ params }: { params: Promise<{ id: stri
       me={{ id: session!.id, handle: session!.handle ?? "" }}
       porras={porras}
       origin={origin}
+      tz={me?.tz ?? "America/Bogota"}
+      voted={voted}
+      shame={shame}
     />
   );
 }
