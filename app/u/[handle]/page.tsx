@@ -57,7 +57,7 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
     sb.rpc("profile_created", { p_user: p.id }),
     sb.rpc("profile_played", { p_user: p.id }),
     sb.rpc("profile_stats", { p_user: p.id }),
-    sb.rpc("profile_receipts", { p_user: p.id }), // 0072: Visionario ×N + mejores recibos
+    sb.rpc("profile_receipts", { p_user: p.id }), // 0073: Visionario ×N + mejores recibos
     isMe ? fetchMe(sb) : Promise.resolve(null),   // escudos: columna privada, solo los tuyos
   ]);
   const s = (stats ?? {}) as { created?: number; played?: number; hits?: number };
