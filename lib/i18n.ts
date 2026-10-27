@@ -2,15 +2,17 @@
 // UI del alfa en es. Cero strings hardcoded en JSX. PT-BR no se activa.
 import es from "@/messages/es.json";
 import en from "@/messages/en.json";
+import { withNoun } from "@/lib/noun";
 
 const dicts = { es, en } as const;
 export type Locale = keyof typeof dicts;
 
 const LOCALE: Locale = "es"; // UI del alfa en español
 
+// {noun}/{nouns}/{Noun}/{Nouns} = la palabra visible de «porra» (lib/noun.ts).
 export function t(key: string, vars?: Record<string, string>): string {
   const d = dicts[LOCALE] as Record<string, string>;
-  const base = d[key] ?? (dicts.es as Record<string, string>)[key] ?? key;
+  const base = withNoun(d[key] ?? (dicts.es as Record<string, string>)[key] ?? key, LOCALE);
   if (!vars) return base;
   return Object.entries(vars).reduce(
     (s, [k, v]) => s.replaceAll(`{${k}}`, v),
