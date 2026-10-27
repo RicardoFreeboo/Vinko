@@ -62,7 +62,9 @@ const SELECT = "id, slug, title, source, closes_at, featured_until, media_url, m
 // Creador vía la FK por defecto de `porras.created_by → profiles.id`.
 const SELECT_CREATOR = ", creator:profiles!porras_created_by_fkey ( handle, avatar_url )";
 
-export async function getFeed(limit = 30): Promise<FeedPorra[]> {
+// `market` (Descubrir 05, pestaña de tu país): solo las de ese mercado (0077
+// lo pone al crear). null = Global, todas.
+export async function getFeed(limit = 30, market: string | null = null): Promise<FeedPorra[]> {
   const sb = await supabaseServer();
   if (!sb) {
     // sin backend: al menos las editoriales locales (con vídeo)
@@ -83,6 +85,7 @@ export async function getFeed(limit = 30): Promise<FeedPorra[]> {
       .eq("is_template", false)
       .gt("closes_at", new Date().toISOString());
     if (conListed) q = q.eq("listed", true);
+    if (market) q = q.eq("market", market);
     return q.order("created_at", { ascending: false }).order("id", { ascending: true }).limit(POOL);
   };
   let { data, error } = await leer(true, true);

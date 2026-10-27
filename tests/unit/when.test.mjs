@@ -13,6 +13,12 @@ await test("whenLabel: hoy, mañana, día de la semana y fecha", () => {
   assert.equal(whenLabel("2026-11-12T21:00:00-05:00", TZ, now), "12 nov");
 });
 
+await test("whenLabel: sin espacios duros (Node y el navegador deben pintar lo mismo al hidratar)", () => {
+  for (const iso of ["2026-10-27T19:00:00-05:00", "2026-11-01T21:00:00-05:00", "2026-11-12T21:00:00-05:00"]) {
+    assert.doesNotMatch(whenLabel(iso, TZ, now), /[\u00a0\u202f]/);
+  }
+});
+
 await test("whenLabel: el día lo decide la zona, no UTC (23:30 en Bogotá ya es mañana en UTC)", () => {
   assert.match(whenLabel("2026-10-27T23:30:00-05:00", TZ, now), /^Hoy /);
 });

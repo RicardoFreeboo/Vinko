@@ -10,11 +10,14 @@ function ymd(d: Date, tz?: string): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+// Node escribe «p. m.» con espacio duro (U+00A0/U+202F) y los navegadores con
+// uno normal: sin igualarlos, un componente de cliente no hidrata (Descubrir 05).
+const plain = (s: string) => s.replace(/[\u00a0\u202f]/g, " ");
 
 export function whenLabel(iso: string, tz?: string, now: Date = new Date()): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  const time = new Intl.DateTimeFormat("es-CO", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d);
+  const time = plain(new Intl.DateTimeFormat("es-CO", { timeZone: tz, hour: "numeric", minute: "2-digit" }).format(d));
   const days = Math.round((Date.parse(ymd(d, tz)) - Date.parse(ymd(now, tz))) / 86400000);
   if (days === 0) return t("when.today", { time });
   if (days === 1) return t("when.tomorrow", { time });
@@ -22,7 +25,7 @@ export function whenLabel(iso: string, tz?: string, now: Date = new Date()): str
     const wd = new Intl.DateTimeFormat("es-CO", { timeZone: tz, weekday: "short" }).format(d).replace(/\.$/, "");
     return `${cap(wd)} ${time}`;
   }
-  return new Intl.DateTimeFormat("es-CO", { timeZone: tz, day: "numeric", month: "short" }).format(d)
+  return plain(new Intl.DateTimeFormat("es-CO", { timeZone: tz, day: "numeric", month: "short" }).format(d))
     .replace(/\./g, "").replace(/\sde\s/, " "); // «12 de nov.» → «12 nov»
 }
 
