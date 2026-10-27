@@ -1474,5 +1474,13 @@
   "crear.tpl.quien": "Who…?",
   "crear.tpl.quien.opts": "Yes, miracle|No way",
   "crear.tpl.quien.crit": "The judge confirms it with what really happens. Anyone who disagrees can challenge it.",
-  "crear.tpl.quien.ph": "Will Pipe be on time for Saturday's barbecue?"
+  "crear.tpl.quien.ph": "Will Pipe be on time for Saturday's barbecue?",
+  "onb.country": "Where do you play from?",
+  "onb.countryHint": "It helps us personalize your content. You can change it later.",
+  "onb.countryPick": "Select your country",
+  "onb.countryOther": "Other country",
+  "onb.countryOtherPh": "2-letter code (e.g. NL)",
+  "ajustes.countryPick": "Not set",
+  "ajustes.countryOther": "Other country",
+  "ajustes.countryOtherPh": "2-letter code"
 }

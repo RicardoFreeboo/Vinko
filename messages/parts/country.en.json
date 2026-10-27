@@ -1,0 +1,12 @@
+{
+  "onb.country": "Where do you play from?",
+  "onb.countryHint": "It helps us personalize your content. You can change it later.",
+  "onb.countryPick": "Select your country",
+  "onb.countryOther": "Other country",
+  "onb.countryOtherPh": "2-letter code (e.g. NL)",
+  "ajustes.country": "Country",
+  "ajustes.countryHint": "We personalize your content by country. You can change it whenever you like.",
+  "ajustes.countryPick": "Not set",
+  "ajustes.countryOther": "Other country",
+  "ajustes.countryOtherPh": "2-letter code"
+}

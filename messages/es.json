@@ -1474,5 +1474,13 @@
   "crear.tpl.quien": "¿Quién…?",
   "crear.tpl.quien.opts": "Sí, milagro|Ni de broma",
   "crear.tpl.quien.crit": "Lo confirma el juez con lo que pase de verdad. Si alguien no está de acuerdo, puede impugnarlo.",
-  "crear.tpl.quien.ph": "¿Pipe llega puntual al asado del sábado?"
+  "crear.tpl.quien.ph": "¿Pipe llega puntual al asado del sábado?",
+  "onb.country": "¿Desde qué país juegas?",
+  "onb.countryHint": "Nos ayuda a personalizar tu contenido. Puedes cambiarlo luego.",
+  "onb.countryPick": "Selecciona tu país",
+  "onb.countryOther": "Otro país",
+  "onb.countryOtherPh": "Código de 2 letras (p. ej. NL)",
+  "ajustes.countryPick": "Sin especificar",
+  "ajustes.countryOther": "Otro país",
+  "ajustes.countryOtherPh": "Código de 2 letras"
 }
