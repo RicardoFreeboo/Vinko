@@ -19,6 +19,12 @@ verify_jwt = false
 [functions.account-purge]
 verify_jwt = true
 
+# ads-stripe-webhook la llama Stripe (sin JWT): la firma de Stripe
+# (STRIPE_WEBHOOK_SECRET) sustituye al JWT. (ads-checkout y ads-suggest sí llevan
+# el JWT del anunciante, así que usan el verify_jwt por defecto.)
+[functions.ads-stripe-webhook]
+verify_jwt = false
+
 # rewards-claim se invoca con la sesión del usuario (crédito de recompensas) → JWT.
 [functions.rewards-claim]
 verify_jwt = true

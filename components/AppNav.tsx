@@ -1,55 +1,25 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { Users, Compass, Plus, Trophy, CircleUser, type LucideIcon } from "lucide-react";
 import { ensurePushSubscription, registerSW } from "@/lib/push";
-import { supabaseBrowser } from "@/lib/supabase/client";
-import { VinkoCoin } from "@/components/VinkoCoin";
 import { t } from "@/lib/i18n";
 
-// Marca la ENTRADA del día para la racha (cuenta abrir la app, no solo picar).
-// IMPORTANTE: el día NO se marca como hecho hasta que el servidor confirma, y
-// solo se cuenta con sesión ya cargada. Si no, una primera llamada que falla o
-// llega antes de que la sesión esté lista dejaría la racha sin contar TODO el
-// día (el servidor deduplica, pero nunca llegaría a contar). Al confirmar,
-// refrescamos para que la racha (server component) se vea actualizada ya.
-async function tickDailyOpen(refresh: () => void) {
-  let today: string;
-  try {
-    today = new Date().toISOString().slice(0, 10);
-    if (localStorage.getItem("vinko_open") === today) return;
-  } catch {
-    today = new Date().toISOString().slice(0, 10);
-  }
-  const sb = supabaseBrowser();
-  if (!sb) return;
-  try {
-    // Sin sesión aún: no contamos ni marcamos; se reintenta en la próxima
-    // navegación, cuando la sesión ya esté disponible.
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
-    const { error } = await sb.rpc("daily_open");
-    if (error) return; // no marcar hecho: que reintente
-    try { localStorage.setItem("vinko_open", today); } catch { /* noop */ }
-    refresh();
-  } catch { /* red caída: se reintenta al navegar */ }
-}
-
-// Navegación inferior de la app logueada (nunca en /p — la landing pública va
-// limpia). Las notificaciones ya NO viven aquí: son la campana de la esquina
-// (header del Feed). Orden: Feed · Perfil · Crear · Grupos · Liga · Vinkos.
-const TABS: ReadonlyArray<{ href: string; key: string; icon: React.ReactNode; primary: boolean }> = [
-  { href: "/feed", key: "nav.feed", icon: "▦", primary: false },
-  { href: "/perfil", key: "nav.perfil", icon: "◉", primary: false },
-  { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
-  { href: "/grupos", key: "nav.grupos", icon: "⌂", primary: false },
-  { href: "/liga", key: "nav.liga", icon: "▲", primary: false },
-  { href: "/cartera", key: "nav.cartera", icon: <VinkoCoin size={16} />, primary: false },
+// Barra inferior de la app logueada (nunca en /p — la landing pública va limpia).
+// Diseño del soft launch (VINKO_PANTALLAS §2): 5 pestañas con iconos Lucide —
+// Grupos · Descubrir · Crear (botón central elevado) · Liga · Perfil. Activa en
+// verde, etiquetas en mayúsculas. Oculta en escritorio (ahí manda DesktopShell).
+const TABS: ReadonlyArray<{ href: string; key: string; Icon: LucideIcon; primary: boolean }> = [
+  { href: "/grupos", key: "nav.grupos", Icon: Users, primary: false },
+  { href: "/feed", key: "nav.descubrir", Icon: Compass, primary: false },
+  { href: "/nueva", key: "nav.crear", Icon: Plus, primary: true },
+  { href: "/liga", key: "nav.liga", Icon: Trophy, primary: false },
+  { href: "/perfil", key: "nav.perfil", Icon: CircleUser, primary: false },
 ];
 
 export function AppNav() {
   const path = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     // Registrar el SW SIEMPRE (aunque no haya permiso de push): sin esto Chrome
@@ -57,24 +27,23 @@ export function AppNav() {
     void registerSW();
     // Revalidar la suscripción push en CADA apertura (iOS la cancela solo, §5.1)
     void ensurePushSubscription();
-    // Racha: marcar la entrada del día (una vez/día, solo si el servidor la cuenta).
-    void tickDailyOpen(() => router.refresh());
-  }, [path, router]);
+  }, [path]);
 
   return (
     <nav
       aria-label={t("nav.label")}
-      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-around border-t border-[var(--line)] bg-[var(--ink)]/95 backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-around border-t border-[var(--line)] bg-[var(--ink)]/95 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 backdrop-blur lg:hidden"
     >
       {TABS.map((tab) => {
         const active = path === tab.href || path?.startsWith(tab.href + "/");
+        const Icon = tab.Icon;
         if (tab.primary) {
-          // CREAR: botón central elevado, siempre visible
+          // CREAR: botón central elevado (FAB redondo verde con brillo).
           return (
             <Link key={tab.href} href={tab.href} aria-label={t(tab.key)}
-              className="relative -mt-5 flex flex-1 flex-col items-center gap-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--win)]">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-[var(--win)] text-2xl font-black leading-none text-[var(--ink)] shadow-[0_0_20px_rgba(31,224,122,0.45)]">
-                {tab.icon}
+              className="relative flex flex-1 flex-col items-center justify-end gap-1 text-[10.5px] font-extrabold uppercase tracking-[0.04em] text-[var(--cream)]">
+              <span className="absolute -top-4 grid h-[54px] w-[54px] place-items-center rounded-full bg-[var(--win)] text-[var(--ink)] shadow-[0_0_20px_rgba(31,224,122,0.45),0_0_0_5px_var(--ink)]">
+                <Icon size={26} strokeWidth={2.6} aria-hidden />
               </span>
               {t(tab.key)}
             </Link>
@@ -84,11 +53,11 @@ export function AppNav() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-bold uppercase tracking-wide ${
-              active ? "text-[var(--win)]" : "text-[var(--muted)]"
+            className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.04em] ${
+              active ? "text-[var(--win)]" : "text-[var(--muted2)]"
             }`}
           >
-            <span aria-hidden className="text-base leading-none">{tab.icon}</span>
+            <Icon size={23} strokeWidth={active ? 2.5 : 2} aria-hidden />
             {t(tab.key)}
           </Link>
         );

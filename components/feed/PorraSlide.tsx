@@ -6,6 +6,7 @@ import { PorraCover } from "@/components/PorraCover";
 import { StakePicker } from "@/components/StakePicker";
 import { ShareWhatsApp } from "@/components/ShareWhatsApp";
 import { VinkoCoin } from "@/components/VinkoCoin";
+import { optionLetter, optionAccent } from "@/components/vote/VoteOption";
 import { VMark } from "@/components/Logo";
 import { Avatar } from "./Avatar";
 import { thumbOf } from "@/lib/thumb";
@@ -18,9 +19,8 @@ import { t } from "@/lib/i18n";
 // carril derecho (creador · me gusta · comentarios · compartir) y la pregunta
 // con sus opciones encima, abajo, donde se hace el pick sin salir del feed.
 // Hueco inferior = altura del AppNav (+ botón Crear elevado) + safe-area.
+// Solo-puntos: el pick es siempre con Vinkos; ni € ni maqueta de dinero.
 const PB = "pb-[calc(86px+env(safe-area-inset-bottom))]";
-
-const eur = (cents: number) => new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" }).format(cents / 100);
 
 function fmtFecha(iso: string): string {
   return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" }).format(new Date(iso));
@@ -50,7 +50,7 @@ function RailBtn({ icon, label, onClick, aria, on = false }: {
   );
 }
 
-export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onStake, social, loggedIn, now, onPick, onLike, onComments, isAdmin = false, isAdult = false, moneyUi = false }: {
+export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onStake, social, loggedIn, now, onPick, onLike, onComments }: {
   p: FeedPorra;
   index: number;        // posición del slide en el feed (data-k)
   first: boolean;       // primera porra: arranca desde el HTML (eager)
@@ -65,21 +65,12 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
   onPick: (p: FeedPorra, optionId: string) => Promise<string | null>;
   onLike: (p: FeedPorra) => void;
   onComments: (p: FeedPorra) => void;
-  isAdmin?: boolean;    // (compat) antes gateaba la maqueta de dinero
-  isAdult?: boolean;    // +18 registrado: ve el teaser del modo dinero ("muy pronto")
-  moneyUi?: boolean;    // MON-01: flag de servidor; false = sin teaser
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  // Modo dinero: maqueta solo-admin. No hace pick real; muestra el pick en euros
-  // con etiqueta «Próximamente». Se enciende de verdad con partner/licencia.
-  const [money, setMoney] = useState(false);
-  const [eurCents, setEurCents] = useState(500);
-  const [moneyPick, setMoneyPick] = useState<string | null>(null);
 
   async function tap(optionId: string) {
     if (busy) return;
-    if (money) { setMoneyPick(optionId); return; } // maqueta, sin pick real
     if (pick) return;
     setBusy(true); setErr(null);
     const e = await onPick(p, optionId);
@@ -152,64 +143,42 @@ export function PorraSlide({ p, index, first, isCurrent, near, pick, stake, onSt
           </div>
         </div>
 
-        {/* Toggle Puntos/Dinero — teaser "muy pronto" del modo dinero. Visible para
-            todo usuario registrado y +18 (regla de oro 8: NUNCA a menores ni a
-            visitantes sin sesión). No mueve dinero real: se enciende con licencia. */}
-        {moneyUi && isAdult && loggedIn && (
-          <div className="flex w-max items-center gap-1 rounded-full border border-white/20 bg-black/45 p-1 backdrop-blur">
-            <button type="button" onClick={() => { setMoney(false); setMoneyPick(null); }}
-              className={`rounded-full px-3 py-1 text-[12px] font-black ${!money ? "bg-[var(--win)] text-[var(--ink)]" : "text-white/70"}`}>🪙 {t("pick.modePoints")}</button>
-            <button type="button" onClick={() => setMoney(true)}
-              className={`flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-black ${money ? "bg-[var(--gold)] text-[var(--ink)]" : "text-white/70"}`}>
-              💶 {t("pick.modeMoney")}
-              <span className="rounded-full bg-black/25 px-1 text-[8px] font-bold uppercase tracking-wide">{t("pick.soon")}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Dinero (maqueta): entrada en € aunque la porra ya esté jugada en puntos */}
-        {loggedIn && money && (
-          <div className="flex items-center gap-2 rounded-[10px] border border-[var(--gold)]/50 bg-black/50 px-3 py-2 backdrop-blur">
-            <span className="text-[14px] font-bold text-[var(--gold)]">€</span>
-            <input type="number" inputMode="decimal" min={1} max={500} value={eurCents / 100}
-              onChange={(e) => setEurCents(Math.max(100, Math.min(50000, Math.round(Number(e.target.value) * 100))))}
-              aria-label={t("pick.modeMoney")}
-              className="w-full bg-transparent text-[15px] font-black text-white outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
-            <span className="mono text-[10px] text-white/60">{t("pick.soon")}</span>
-          </div>
-        )}
-        {loggedIn && !money && !pick && <StakePicker value={stake} onChange={onStake} />}
+        {loggedIn && !pick && <StakePicker value={stake} onChange={onStake} />}
         {!loggedIn && !pick && <p className="text-[12px] font-bold text-white/80">{t("feed.loginToPlay")}</p>}
 
         <div className="flex flex-col gap-2">
           {p.options.map((o) => {
-            const chosen = money ? moneyPick === o.id : pick === o.id;
-            const n = !money && pick ? (pct ? pct[o.idx] ?? 0 : null) : null;
+            const chosen = pick === o.id;
+            const n = pick ? (pct ? pct[o.idx] ?? 0 : null) : null;
             return (
-              <button key={o.id} onClick={() => tap(o.id)} disabled={busy || (!money && !!pick)}
+              <button key={o.id} onClick={() => tap(o.id)} disabled={busy || !!pick}
                 className="relative flex items-center justify-between overflow-hidden rounded-[14px] border-2 px-4 py-3.5 text-left text-[16px] font-bold text-white transition-colors disabled:opacity-100"
                 style={{
-                  borderColor: chosen ? (money ? "var(--gold)" : "var(--win)") : "rgba(255,255,255,0.35)",
-                  background: chosen ? (money ? "rgba(255,209,102,0.18)" : "rgba(31,224,122,0.22)") : "rgba(0,0,0,0.45)",
+                  borderColor: chosen ? "var(--win)" : "rgba(255,255,255,0.35)",
+                  background: chosen ? "rgba(31,224,122,0.22)" : "rgba(0,0,0,0.45)",
                 }}>
-                {/* barra de % tras el pick (solo en puntos) */}
+                {/* barra de % tras el pick */}
                 {n !== null && (
                   <span aria-hidden className="absolute inset-y-0 left-0 transition-[width] duration-500"
                     style={{ width: `${n}%`, background: chosen ? "rgba(31,224,122,0.28)" : "rgba(255,255,255,0.14)" }} />
                 )}
-                <span className="relative">{o.label}</span>
+                <span className="relative flex items-center gap-2.5">
+                  <span className="grid h-7 w-7 flex-none place-items-center rounded-full border-2 font-black"
+                    style={{ borderColor: optionAccent(o.idx), color: optionAccent(o.idx), fontFamily: "var(--mono)", fontSize: 12.5 }}>
+                    {optionLetter(o.idx)}
+                  </span>
+                  {o.label}
+                </span>
                 <span className="relative flex items-center gap-1.5">
                   {n !== null && <span className="mono text-[13px] font-black">{n}%</span>}
-                  {chosen ? <span className={money ? "text-[var(--gold)]" : "text-[var(--win)]"}>✓</span>
-                    : money ? <span className="mono text-[13px] font-black text-[var(--gold)]">{eur(eurCents)}</span>
+                  {chosen ? <span className="text-[var(--win)]">✓</span>
                     : !pick && <span className="mono flex items-center gap-1 text-[13px] text-[var(--gold)]"><VinkoCoin size={15} />{stake}</span>}
                 </span>
               </button>
             );
           })}
         </div>
-        {money && moneyPick && <p className="text-center text-[13px] font-bold text-[var(--gold)] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)]">{t("pick.moneyMock", { amount: eur(eurCents) })}</p>}
-        {!money && pick && !err && <p className="text-center text-[13px] font-bold text-[var(--win)] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)]">{t("stories.done")}</p>}
+        {pick && !err && <p className="text-center text-[13px] font-bold text-[var(--win)] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)]">{t("stories.done")}</p>}
         {err && <p className="text-center text-[13px] font-bold text-[var(--red)] [text-shadow:0_1px_6px_rgba(0,0,0,0.9)]">{err}</p>}
       </div>
     </section>

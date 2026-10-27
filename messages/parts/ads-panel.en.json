@@ -1,0 +1,22 @@
+{
+  "ads.panel.title": "Your campaigns",
+  "ads.panel.login": "Sign in to see your campaigns.",
+  "ads.panel.loginCta": "Sign in",
+  "ads.panel.empty": "No campaigns yet.",
+  "ads.panel.emptySub": "Create your first sponsored prediction and start listening to your audience.",
+  "ads.panel.create": "Create campaign",
+  "ads.panel.new": "New",
+  "ads.panel.status.draft": "Draft",
+  "ads.panel.status.in_review": "In review",
+  "ads.panel.status.active": "Active",
+  "ads.panel.status.paused": "Paused",
+  "ads.panel.status.ended": "Ended",
+  "ads.panel.status.rejected": "Rejected",
+  "ads.panel.votes": "Votes",
+  "ads.panel.cpv": "Cost per vote",
+  "ads.panel.spent": "Spent",
+  "ads.panel.spentOf": "of {total} USD",
+  "ads.panel.opinion": "What your audience thinks",
+  "ads.panel.opinionSoon": "Shows once the prediction is active and has at least {n} votes. Aggregated only, groups of {n} or more.",
+  "ads.panel.draftNote": "Draft: it activates once you connect payment."
+}
