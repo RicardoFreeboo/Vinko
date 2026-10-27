@@ -32,7 +32,7 @@ export const TEMPLATES: Porra[] = [
   T("expulsion-jueves", "¿Se salva Raquel de la expulsión del jueves?", "2026-10-01T22:00:00+02:00", ["Se salva", "Expulsada"]),
   T("goles-espana-martes", "¿Cuántos goles marca España el martes?", "2026-10-13T20:45:00+02:00", ["0 o 1", "2 o 3", "4 o más"]),
   T("maraton-luis", "¿Baja Luis de las 4 horas en el maratón?", "2026-10-18T09:00:00+02:00", ["Sí, baja", "No llega"]),
-  T("quien-paga-canas", "¿Quién paga las cañas este viernes?", "2026-10-02T21:00:00+02:00", ["Jorge", "Marta", "Rober", "Lucía"]),
+  T("quien-paga-canas", "¿Quién llega el último el viernes?", "2026-10-02T21:00:00+02:00", ["Jorge", "Marta", "Rober", "Lucía"]), // 0076
   T("fichaje-antes-de", "¿Cuándo anuncia el equipo su próximo fichaje?", "2026-10-31T23:59:00+01:00", ["Esta semana", "Este mes", "Más tarde"]),
   T("carnet-chema", "¿Aprueba Chema el carnet a la primera?", "2026-10-07T13:00:00+02:00", ["A la primera", "Repite"]),
   T("velada-sabado", "¿Quién gana el combate principal del sábado?", "2026-10-10T23:00:00+02:00", ["El favorito", "La sorpresa"]),
