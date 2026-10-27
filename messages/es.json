@@ -1816,5 +1816,20 @@
   "ads.panel.spentOf": "de {total} USD",
   "ads.panel.opinion": "Qué opina tu público",
   "ads.panel.opinionSoon": "Aparece cuando la predicción está activa y hay al menos {n} votos. Solo datos agregados, grupos de {n} o más.",
-  "ads.panel.draftNote": "En borrador: se activa cuando conectes el pago."
+  "ads.panel.draftNote": "En borrador: se activa cuando conectes el pago.",
+  "landing.co.metaTitle": "Vinko · pronósticos entre amigos",
+  "landing.co.metaDesc": "Crea una predicción, mándala al grupo y mira quién acierta. Solo con puntos, solo mayores de 18.",
+  "landing.co.enter": "Entrar",
+  "landing.co.eyebrow": "Pronósticos entre amigos · solo con puntos",
+  "landing.co.h1a": "Dilo antes.",
+  "landing.co.h1b": "Restriégalo después.",
+  "landing.co.sub": "Crea una predicción en 30 segundos, mándala al grupo y que cada uno diga quién gana. Cuando aciertes, tendrás el recibo.",
+  "landing.co.create": "Crea una predicción para tu grupo",
+  "landing.co.see": "Ver las de hoy",
+  "landing.co.exTag": "Fútbol colombiano",
+  "landing.co.exWhen": "dom",
+  "landing.co.exQ": "¿Nacional o Millonarios: quién gana el clásico?",
+  "landing.co.exA": "Nacional",
+  "landing.co.exB": "Millonarios",
+  "landing.co.foot": "Solo con puntos · Solo mayores de 18"
 }
