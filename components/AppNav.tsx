@@ -35,7 +35,7 @@ export function AppNav({ active }: { active?: string } = {}) {
   return (
     <nav
       aria-label={t("nav.label")}
-      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-around border-t border-[var(--line)] bg-[var(--ink)]/95 pb-[max(env(safe-area-inset-bottom),12px)] pt-2 backdrop-blur lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-[430px] items-stretch justify-around border-t border-[var(--line)] bg-[var(--ink)]/95 pb-[max(env(safe-area-inset-bottom),8px)] backdrop-blur lg:hidden"
     >
       {TABS.map((tab) => {
         const on = active
@@ -46,7 +46,7 @@ export function AppNav({ active }: { active?: string } = {}) {
           // CREAR: botón central elevado (FAB redondo verde con brillo).
           return (
             <Link key={tab.href} href={tab.href} aria-label={t(tab.key)}
-              className="relative flex flex-1 flex-col items-center justify-end gap-1 text-[10.5px] font-extrabold uppercase tracking-[0.04em] text-[var(--cream)]">
+              className="relative flex h-16 flex-1 flex-col items-center justify-end gap-1 pb-[7px] text-[10.5px] font-extrabold uppercase tracking-[0.04em] text-[var(--cream)]">
               <span className="absolute -top-4 grid h-[54px] w-[54px] place-items-center rounded-full bg-[var(--win)] text-[var(--ink)] shadow-[0_0_20px_rgba(31,224,122,0.45),0_0_0_5px_var(--ink)]">
                 <Icon size={26} strokeWidth={2.6} aria-hidden />
               </span>
@@ -59,7 +59,7 @@ export function AppNav({ active }: { active?: string } = {}) {
             key={tab.href}
             href={tab.href}
             aria-current={on ? "page" : undefined}
-            className={`flex flex-1 flex-col items-center justify-center gap-1 py-1 text-[10.5px] font-extrabold uppercase tracking-[0.04em] ${
+            className={`flex h-16 flex-1 flex-col items-center justify-center gap-1 text-[10.5px] font-extrabold uppercase tracking-[0.04em] ${
               on ? "text-[var(--win)]" : "text-[var(--muted2)]"
             }`}
           >
