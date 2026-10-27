@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { Flame, ChevronRight } from "lucide-react";
 import { supabaseServer } from "@/lib/supabase/server";
 import { getMemberSession } from "@/lib/session";
 import { editorialBySlug } from "@/lib/editorial";
-import { Logo, VMark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { VinkoCoin } from "@/components/VinkoCoin";
 import { AppNav } from "@/components/AppNav";
 import { ProfileGrid, type Row as GridRow } from "@/components/ProfileGrid";
@@ -17,6 +19,7 @@ export async function generateMetadata({ params }: { params: Promise<{ handle: s
 }
 
 type Row = { id: string; slug: string; title: string; source: string; status: string; media_url: string | null; media_kind: string | null };
+type Receipt = { title: string; pct: number | null; visionario: boolean; punteria: number };
 
 function videoOf(r: Row): string | null {
   return editorialBySlug(r.slug)?.video ?? (r.media_kind === "video" ? r.media_url : null);
@@ -30,38 +33,37 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
   const COLS = "id, handle, avatar_url, points, xp, marcador_total, division, streak_days, streak_best";
   type ProfileRow = { id: string; handle: string; avatar_url: string | null; points: number; xp: number; marcador_total: number;
     division: string; streak_days: number; streak_best: number; is_anonymous?: boolean; deleted_at?: string | null };
-  // SEC-01 (0055): is_anonymous/deleted_at ya no se pueden leer, así que el
-  // filtro de abajo dejó de funcionar. profile_public (0059) decide en el
-  // servidor: null = no existe, invitado o cuenta borrada. Mientras 0059 no esté
-  // aplicada (la RPC no existe), se cae al select de antes.
+  // SEC-01 (0055)/profile_public (0059): el servidor decide qué perfil es público.
   let p: ProfileRow | null = null;
   const pub = await sb.rpc("profile_public", { p_handle: handle });
   if (!pub.error) {
     p = (pub.data as ProfileRow | null) ?? null;
   } else if (pub.error.code === "PGRST202" || pub.error.code === "42883") {
     let q = await sb.from("profiles").select(`${COLS}, is_anonymous, deleted_at`).eq("handle", handle).maybeSingle();
-    if (q.error) q = await sb.from("profiles").select(COLS).eq("handle", handle).maybeSingle(); // 0037/0040 aún sin aplicar
+    if (q.error) q = await sb.from("profiles").select(COLS).eq("handle", handle).maybeSingle();
     p = q.data as ProfileRow | null;
   }
-  // Invitados (0040) y cuentas borradas (0037) no son personas reales: 404.
   if (!p || p.is_anonymous || p.deleted_at) notFound();
 
   const session = await getMemberSession();
   const isMe = session?.id === p.id;
 
-  const [{ data: created }, { data: played }, { data: stats }, judgeRes] = await Promise.all([
+  const [{ data: created }, { data: played }, { data: stats }, recRes] = await Promise.all([
     sb.rpc("profile_created", { p_user: p.id }),
     sb.rpc("profile_played", { p_user: p.id }),
     sb.rpc("profile_stats", { p_user: p.id }),
-    sb.rpc("judge_stats", { p_user: p.id }), // 0042: reputación como juez
+    sb.rpc("profile_receipts", { p_user: p.id }), // 0072: Visionario ×N + mejores recibos
   ]);
   const s = (stats ?? {}) as { created?: number; played?: number; hits?: number };
-  const j = (!judgeRes.error && judgeRes.data ? judgeRes.data : null) as
-    { resolved?: number; disputed?: number; median_sla_minutes?: number | null } | null;
+  const rec = (!recRes.error && recRes.data ? recRes.data : {}) as { visionario?: number; receipts?: Receipt[] };
+  const receipts = (rec.receipts ?? []) as Receipt[];
+  const visionarioN = rec.visionario ?? 0;
+  const playedN = s.played ?? 0;
+  const hitRate = playedN > 0 ? Math.round(((s.hits ?? 0) / playedN) * 100) : 0;
   const DIV: Record<string, string> = { bronce: "Bronce", plata: "Plata", oro: "Oro", diamante: "Diamante", leyenda: "Leyenda" };
 
   return (
-    <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-5 px-5 pb-28 pt-6">
+    <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-4 px-5 pb-28 pt-6">
       <header className="flex items-center justify-between">
         <Logo mark={26} word={18} />
         {isMe && (
@@ -72,49 +74,65 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
         )}
       </header>
 
-      {/* cabecera del perfil */}
-      <section className="flex items-center gap-4">
+      {/* cabecera del perfil (centrada, pantalla 13) */}
+      <section className="flex flex-col items-center gap-2 text-center">
         {p.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={p.avatar_url} alt="" className="h-20 w-20 rounded-full object-cover" />
+          <img src={p.avatar_url} alt="" className="h-[88px] w-[88px] rounded-full object-cover" />
         ) : (
-          <div className="grid h-20 w-20 place-items-center rounded-full bg-[var(--ink3)] text-3xl font-black text-[var(--win)]">
+          <div className="grid h-[88px] w-[88px] place-items-center rounded-full bg-[var(--ink3)] text-4xl font-black text-[var(--win)]">
             {p.handle?.slice(0, 2).toUpperCase()}
           </div>
         )}
-        <div>
-          <div className="text-2xl font-black text-[var(--cream)]">@{p.handle}</div>
-          {/* FX-14: la división enlaza a la temporada (si no, nadie la encuentra) */}
-          <Link href="/temporada" className="mono mt-1 block text-xs text-[var(--gold)] underline-offset-2 hover:underline">
-            {DIV[p.division] ?? p.division} · 🔥 {p.streak_days} <span aria-hidden>→</span>
-          </Link>
-        </div>
+        <div className="mt-1 text-[1.6rem] font-black leading-none text-[var(--cream)]">@{p.handle}</div>
+        <Link href="/temporada" className="mono text-xs text-[var(--gold)] underline-offset-2 hover:underline">
+          {DIV[p.division] ?? p.division} · 🔥 {p.streak_days} <span aria-hidden>→</span>
+        </Link>
       </section>
 
-      {/* estadísticas */}
-      <div className="grid grid-cols-3 gap-2">
-        <St icon={<VinkoCoin size={14} />} v={p.points} l={t("saldo.coins")} c="var(--gold)" />
-        <St icon="▲" v={p.xp} l={t("saldo.level")} c="var(--win)" />
-        <St icon="🎯" v={p.marcador_total} l={t("saldo.skill")} c="var(--cream)" />
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        <St v={s.created ?? 0} l={t("u.created")} c="var(--cream)" />
-        <St v={s.played ?? 0} l={t("u.played")} c="var(--cream)" />
-        <St v={s.hits ?? 0} l={t("u.hits")} c="var(--win)" />
+      {/* tres tarjetas: Puntería · Racha · Visionario (pantalla 13) */}
+      <div className="grid grid-cols-3 gap-2.5">
+        <Card label={t("perfil13.hitRate")} value={`${hitRate}%`} />
+        <Card
+          label={t("perfil13.racha")}
+          value={<span className="flex items-center justify-center gap-1 text-[var(--gold)]"><Flame size={22} strokeWidth={2.4} /> {p.streak_days}</span>}
+          sub={t("perfil13.rachaBest", { n: String(p.streak_best) })}
+        />
+        <Card label={t("perfil13.visionario")} value={`×${visionarioN}`} sub={t("perfil13.visionarioSub")} />
       </div>
 
-      {/* Reputación como juez (judge_stats): solo si ya ha resuelto alguna porra */}
-      {j && (j.resolved ?? 0) > 0 && (
-        <p className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-3 py-2 text-center text-[12px] text-[var(--muted)]">
-          ⚖️ <span className="font-bold text-[var(--cream)]">{t("u.judgeLine", { n: String(j.resolved ?? 0), d: String(j.disputed ?? 0) })}</span>
-          {typeof j.median_sla_minutes === "number" && <> · {t("u.judgeSla", { m: String(j.median_sla_minutes) })}</>}
+      {/* saldo de Vinkos */}
+      <Link
+        href={isMe ? "/saldo" : `/u/${p.handle}`}
+        className="flex items-center gap-2.5 rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] px-3.5 py-3"
+      >
+        <VinkoCoin size={22} />
+        <b className="mono text-[17px] text-[var(--cream)]">{p.points.toLocaleString("es-CO")}</b>
+        <span className="text-[14px] text-[var(--muted)]">{t("perfil13.vinkos")}</span>
+        <span className="flex-1" />
+        {isMe && <ChevronRight size={18} className="text-[var(--muted2)]" />}
+      </Link>
+
+      {/* mis mejores recibos */}
+      {receipts.length > 0 ? (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h3 className="eyebrow text-[var(--muted)]">{t("perfil13.receipts")}</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
+            {receipts.map((r, i) => <Ticket key={i} r={r} />)}
+          </div>
+        </section>
+      ) : isMe ? (
+        <p className="rounded-[12px] border border-dashed border-[var(--line)] bg-[var(--ink2)] px-3 py-3 text-center text-[12.5px] text-[var(--muted)]">
+          {t("perfil13.noReceipts")}
         </p>
-      )}
+      ) : null}
 
-      {/* Rejilla estilo Instagram: pestañas creadas / jugadas, 3 columnas 1:1 */}
+      {/* rejilla de porras (creadas / jugadas) — se mantiene */}
       <ProfileGrid
-        created={((created ?? []) as GridRow[]).map((r) => ({ ...r, video: videoOf(r as Row) }))}
-        played={((played ?? []) as GridRow[]).map((r) => ({ ...r, video: videoOf(r as Row) }))}
+        created={((created ?? []) as GridRow[]).map((r) => ({ ...r, video: videoOf(r as unknown as Row) }))}
+        played={((played ?? []) as GridRow[]).map((r) => ({ ...r, video: videoOf(r as unknown as Row) }))}
       />
 
       <AppNav />
@@ -122,11 +140,33 @@ export default async function UserProfile({ params }: { params: Promise<{ handle
   );
 }
 
-function St({ icon, v, l, c }: { icon?: React.ReactNode; v: number; l: string; c: string }) {
+function Card({ label, value, sub }: { label: string; value: ReactNode; sub?: string }) {
   return (
-    <div className="rounded-[12px] border border-[var(--line)] bg-[var(--ink2)] px-2 py-2.5 text-center">
-      <div className="mono flex items-center justify-center gap-1 text-[15px] font-black leading-none" style={{ color: c }}>{icon} {v}</div>
-      <div className="mt-1 text-[9px] uppercase tracking-wide text-[var(--muted)]">{l}</div>
+    <div className="rounded-[14px] border border-[var(--line)] bg-[var(--ink2)] p-3 text-center">
+      <div className="eyebrow text-[10px] text-[var(--muted)]">{label}</div>
+      <div className="mt-2 text-[26px] font-black leading-none text-[var(--cream)]">{value}</div>
+      {sub && <div className="mt-1 text-[12px] text-[var(--muted)]">{sub}</div>}
+    </div>
+  );
+}
+
+// Recibo crema (ticket), estilo pantalla 13 / componente Receipt.
+function Ticket({ r }: { r: Receipt }) {
+  return (
+    <div className="rounded-[12px] p-3" style={{ background: "var(--cream)", color: "var(--ink)" }}>
+      <div className="mono text-[10px] font-bold uppercase tracking-[0.06em] opacity-65">
+        {t("perfil13.lodije")} · {t("perfil13.loVio", { pct: String(r.pct ?? 0) })}
+      </div>
+      <div className="mt-1.5 min-h-[42px] text-[14px] font-bold leading-tight">{r.title}</div>
+      {r.visionario ? (
+        <span className="mt-1.5 inline-block rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide" style={{ background: "var(--gold)", color: "var(--ink)" }}>
+          {t("perfil13.visionarioBadge")}
+        </span>
+      ) : (
+        <div className="mono mt-2 text-[11px] font-bold" style={{ color: "#0a8f4d" }}>
+          {t("perfil13.punteriaGain", { n: String(r.punteria) })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1835,5 +1835,18 @@
   "landing.co.exQ": "Nacional or Millonarios: who wins the derby?",
   "landing.co.exA": "Nacional",
   "landing.co.exB": "Millonarios",
-  "landing.co.foot": "Points only · 18+ only"
+  "landing.co.foot": "Points only · 18+ only",
+  "perfil13.racha": "Streak",
+  "perfil13.rachaBest": "best {n}",
+  "perfil13.visionario": "Visionary",
+  "perfil13.visionarioSub": "rare calls",
+  "perfil13.vinkos": "Vinkos for your predictions",
+  "perfil13.receipts": "My best receipts",
+  "perfil13.seeAll": "See all",
+  "perfil13.lodije": "CALLED IT",
+  "perfil13.loVio": "{pct}% saw it",
+  "perfil13.visionarioBadge": "VISIONARY",
+  "perfil13.punteriaGain": "+{n} PUNTERÍA",
+  "perfil13.hitRate": "Puntería",
+  "perfil13.noReceipts": "When you call something few saw coming, your receipt shows up here."
 }
