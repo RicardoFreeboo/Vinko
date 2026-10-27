@@ -88,7 +88,7 @@ export function CatalogoAdmin({ initial }: { initial: Entidad[] }) {
   }
 
   function startEdit(e: Entidad) {
-    setEditing((m) => ({ ...m, [e.id]: { palabras: (e.palabras_clave ?? []).join(", "), handles: (e.handles ?? []).join(", "), pais: e.pais ?? "ES" } }));
+    setEditing((m) => ({ ...m, [e.id]: { palabras: (e.palabras_clave ?? []).join(", "), handles: (e.handles ?? []).join(", "), pais: e.pais ?? "CO" } }));
   }
   function cancelEdit(id: string) {
     setEditing((m) => { const c = { ...m }; delete c[id]; return c; });
@@ -103,7 +103,7 @@ export function CatalogoAdmin({ initial }: { initial: Entidad[] }) {
     if (!sb) { setMsg({ kind: "err", text: t("admin.catalogo.needBackend") }); return; }
     setBusy(e.id); setMsg(null);
     const { data, error } = await sb.from("tracked_entities")
-      .update({ palabras_clave: palabras, handles: lista(d.handles), pais: (d.pais.trim().toUpperCase() || "ES").slice(0, 2) })
+      .update({ palabras_clave: palabras, handles: lista(d.handles), pais: (d.pais.trim().toUpperCase() || "CO").slice(0, 2) })
       .eq("id", e.id).select().single();
     setBusy(null);
     if (error || !data) { fallo(error); return; }
@@ -125,7 +125,7 @@ export function CatalogoAdmin({ initial }: { initial: Entidad[] }) {
     if (!sb) { setMsg({ kind: "err", text: t("admin.catalogo.needBackend") }); return; }
     setBusy("nueva"); setMsg(null);
     const { data, error } = await sb.from("tracked_entities")
-      .insert({ nombre, categoria, palabras_clave: palabras, handles: lista(nuevo.handles), pais: "ES", activo: true })
+      .insert({ nombre, categoria, palabras_clave: palabras, handles: lista(nuevo.handles), pais: "CO", activo: true })
       .select().single();
     setBusy(null);
     if (error || !data) { fallo(error); return; }
