@@ -26,6 +26,7 @@ const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "ut
 
 function cleanUtm(v: string | null): string | null {
   if (!v) return null;
+  // eslint-disable-next-line no-control-regex -- quitar caracteres de control es justo lo que se busca
   const s = v.replace(/[\u0000-\u001f]/g, "").trim().slice(0, 120); // sin control chars, tope 120
   return s.length ? s : null;
 }

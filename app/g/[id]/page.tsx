@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { fetchMe } from "@/lib/me";
 import type { Metadata } from "next";
 import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";

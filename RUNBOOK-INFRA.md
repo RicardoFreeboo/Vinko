@@ -39,7 +39,7 @@ hardcodeada), así que una BD de staging jamás llama a las funciones de prod.
 | `VAPID_PRIVATE_KEY`              | Edge (Supabase secrets)     | **Sí** (push)        | `npm run check-vapid` |
 | `SUPABASE_ACCESS_TOKEN`          | GitHub Actions (secret)     | **Sí** (deploy)      | Token personal |
 | `SUPABASE_PROJECT_REF`           | GitHub Actions (variable)   | **Sí** (deploy)      | Ref del proyecto destino |
-| `MIGRATIONS_FROM`                | GitHub Actions (variable)   | No (default 55)      | `1` en proyecto nuevo |
+| `MIGRATIONS_FROM`                | GitHub Actions (variable)   | No (default 72)      | `1` en proyecto nuevo |
 | `SUPABASE_DB_URL`                | GitHub Actions (secret)     | No                   | Si está, migra por psql |
 | `internal.config.functions_base_url` | BD (tabla)             | **Sí** (crons)       | La siembra el workflow por entorno |
 | `NEXT_PUBLIC_POSTHOG_KEY` / `_HOST` | Vercel                   | Opcional             | Analítica |
@@ -107,7 +107,9 @@ npm run dev
 ### Nota sobre el historial de migraciones (prod)
 
 Prod aplicó `0001–0059` por fuera del historial de la CLI; por eso el workflow usa
-un **umbral idempotente** (`MIGRATIONS_FROM=55`) en vez de `supabase db push`.
+un **umbral idempotente** (`MIGRATIONS_FROM`) en vez de `supabase db push`. Era 55;
+desde el 27-oct es **72**: prod ya tiene hasta la 0071 y, tras borrar `0060` las
+tablas de dinero, `0059`/`0064`/`0067` ya no se pueden re-aplicar.
 Para adoptar el historial versionado de la CLI (recomendado a futuro):
 
 ```bash

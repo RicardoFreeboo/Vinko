@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchMe } from "@/lib/me";
 import { cookies } from "next/headers";
 import { supabaseServer } from "@/lib/supabase/server";
+import { ipCity, ipCountry } from "@/lib/geo";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 // Vuelta de Google / enlace mágico. Soporta los dos formatos de enlace:
@@ -76,6 +77,11 @@ export async function GET(req: Request) {
     // Nunca bloquea el login.
     if (!user.is_anonymous) {
       try { await sb.rpc("convert_guest"); } catch { /* nunca bloquea el login */ }
+      // Vinko Ads (0063): ciudad aproximada y país por las cabeceras de Vercel.
+      // La IP nunca se guarda. En `next dev` no hay cabeceras → no hace nada.
+      try {
+        await sb.rpc("ads_touch_location", { p_city: await ipCity(), p_country: await ipCountry() });
+      } catch { /* nunca bloquea el login */ }
       // RT-06: si venía de un pick invitado (cookie vinko_merge, la deja
       // GuestConvert antes de ir a Google), merge_guest pasa sus picks a ESTA
       // cuenta — exista ya o sea nueva — copia el nombre y borra el perfil

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getMemberSession } from "@/lib/session";
 import { supabaseServer } from "@/lib/supabase/server";
 import { AjustesClient } from "@/components/AjustesClient";
+import { AdsPreferences } from "@/components/ads/AdsPreferences";
 import { AppNav } from "@/components/AppNav";
 import { Logo } from "@/components/Logo";
 import { t } from "@/lib/i18n";
@@ -28,6 +29,10 @@ export default async function Ajustes() {
   const lang: "es" | "en" = me?.lang === "en" ? "en" : "es";
   // Mismo criterio que el layout: analítica solo si vinko_consent === "1".
   const consent = (await cookies()).get("vinko_consent")?.value === "1";
+  // Vinko Ads (0063): preferencias de anuncios. Sin la migración, la sección no sale.
+  const adsPrefs = sb
+    ? await sb.rpc("ads_get_preferences").then(({ data, error }) => (error || !data ? null : data), () => null)
+    : null;
 
   return (
     <main className="amb mx-auto flex min-h-dvh w-full max-w-[430px] flex-col gap-4 px-4 pb-28 pt-5">
@@ -44,6 +49,9 @@ export default async function Ajustes() {
         consent={consent}
         country={session.country}
       />
+      {adsPrefs && (
+        <AdsPreferences personalized={adsPrefs.personalized !== false} />
+      )}
       <AppNav />
     </main>
   );

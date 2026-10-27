@@ -32,3 +32,16 @@ export async function ipRegion(): Promise<string | null> {
     return null;
   }
 }
+
+// Ciudad aproximada por IP (Vinko Ads, spec §14). Vercel la manda codificada
+// ("Bogot%C3%A1"). Solo el nombre: la IP nunca sale de Vercel.
+export async function ipCity(): Promise<string | null> {
+  try {
+    const raw = (await headers()).get("x-vercel-ip-city");
+    if (!raw) return null;
+    const v = decodeURIComponent(raw).trim();
+    return v ? v.slice(0, 80) : null;
+  } catch {
+    return null;
+  }
+}
