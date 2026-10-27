@@ -2,112 +2,17 @@
   "app/api/admin/kpi-chat/route.ts": {
     "cuota": 1
   },
-  "app/api/afiliado/route.ts": {
-    "affiliate": 3,
-    "afiliad": 1
-  },
-  "app/api/club/checkout/route.ts": {
-    "cuota": 1,
-    "paypal": 1
-  },
-  "app/api/money/kyc/route.ts": {
-    "kyc": 7
-  },
-  "app/api/money/mock/[action]/route.ts": {
-    "kyc": 4
-  },
-  "app/api/money/withdraw/route.ts": {
-    "withdraw": 3
-  },
-  "app/cartera/actions.ts": {
-    "wallet": 4,
-    "withdraw": 3,
-    "kyc": 4
-  },
-  "app/cartera/page.tsx": {
-    "wallet": 10
-  },
-  "app/money/mock/kyc/page.tsx": {
-    "kyc": 6
-  },
   "app/p/[slug]/page.tsx": {
-    "affiliate": 3,
     "retirada": 1
-  },
-  "app/showcase/page.tsx": {
-    "wallet": 12,
-    "affiliate": 3,
-    "kyc": 5,
-    "payout": 1,
-    "withdraw": 1
-  },
-  "app/verificar/page.tsx": {
-    "kyc": 11
-  },
-  "components/AffiliateCta.tsx": {
-    "afiliad": 2,
-    "affiliate": 5
-  },
-  "components/AffiliateSlot.tsx": {
-    "affiliate": 7
-  },
-  "components/ClubCard.tsx": {
-    "paypal": 1
-  },
-  "components/DemoWallet.tsx": {
-    "bizum": 2,
-    "paypal": 2,
-    "wallet": 15,
-    "withdraw": 7,
-    "retirada": 1
-  },
-  "components/EuroWallet.tsx": {
-    "wallet": 12,
-    "withdraw": 9,
-    "bizum": 3,
-    "kyc": 1
-  },
-  "components/Fase3Journey.tsx": {
-    "kyc": 3,
-    "bizum": 2
-  },
-  "components/GroupMoney.tsx": {
-    "bizum": 3,
-    "paypal": 2
-  },
-  "components/KycLevels.tsx": {
-    "kyc": 24
-  },
-  "components/PorraRanking.tsx": {
-    "payout": 5
-  },
-  "components/admin/LicensePlan.tsx": {
-    "retirada": 3,
-    "bizum": 1,
-    "kyc": 1
   },
   "components/admin/MetricasSections.tsx": {
     "payout": 1
   },
-  "components/admin/MoneyAdmin.tsx": {
-    "affiliate": 1
-  },
-  "components/admin/MoneyConfigAdmin.tsx": {
-    "affiliate": 18,
-    "withdraw": 8
-  },
-  "components/admin/PartnerBrief.tsx": {
-    "cuota": 2,
-    "retirada": 1,
-    "kyc": 1
-  },
   "components/admin/TemasLive.tsx": {
     "cuota": 1
   },
-  "components/money/MoneyCta.tsx": {
-    "kyc": 10,
-    "withdraw": 6,
-    "payout": 1
+  "components/PorraRanking.tsx": {
+    "payout": 5
   },
   "lib/admin.ts": {
     "retirada": 1,
@@ -117,66 +22,14 @@
     "cuota": 2,
     "odds": 1
   },
-  "lib/errors.ts": {
-    "kyc": 4
-  },
-  "lib/money/config.ts": {
-    "affiliate": 1
-  },
-  "lib/money/eligibility.ts": {
-    "kyc": 22
-  },
-  "lib/money/server.ts": {
-    "kyc": 14,
-    "withdraw": 4
-  },
-  "lib/money/wallet.ts": {
-    "wallet": 4,
-    "kyc": 7,
-    "retirada": 1,
-    "withdraw": 2
-  },
-  "lib/p2p.ts": {
-    "bizum": 7,
-    "paypal": 14
-  },
   "lib/reto-core.mjs": {
     "wallet": 1,
     "cuota": 1
   },
-  "packages/money-provider/src/http.ts": {
-    "escrow": 12,
-    "kyc": 16,
-    "wallet": 3,
-    "withdraw": 4
-  },
-  "packages/money-provider/src/mock.ts": {
-    "escrow": 13,
-    "kyc": 25,
-    "wallet": 20,
-    "withdraw": 5,
-    "retirada": 1,
-    "payout": 2
-  },
-  "packages/money-provider/src/signing.ts": {
-    "wallet": 3,
-    "escrow": 1
-  },
-  "packages/money-provider/src/types.ts": {
-    "affiliate": 1,
-    "kyc": 12,
-    "wallet": 27,
-    "escrow": 21,
-    "withdraw": 12,
-    "payout": 3,
-    "bizum": 1
-  },
-  "supabase/functions/money-webhook/index.ts": {
-    "kyc": 1,
-    "wallet": 15,
-    "escrow": 5,
-    "withdraw": 4,
-    "payout": 1
+  "supabase/functions/ads-suggest/index.ts": {
+    "odds": 2,
+    "cuota": 2,
+    "wallet": 1
   },
   "supabase/functions/trend-generate/filtros.ts": {
     "cuota": 4,
@@ -272,5 +125,15 @@
   },
   "supabase/migrations/0059_fix_latentes.sql": {
     "affiliate": 15
+  },
+  "supabase/migrations/0060_solo_puntos_drop_money.sql": {
+    "wallet": 2,
+    "kyc": 1,
+    "payout": 1,
+    "affiliate": 5,
+    "withdraw": 1
+  },
+  "supabase/migrations/0061_solo_puntos_reto_sin_premio.sql": {
+    "payout": 5
   }
 }
