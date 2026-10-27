@@ -1496,5 +1496,12 @@
   "descubrir.cat.tele": "Cine y TV",
   "descubrir.cat.tiempo": "Tiempo",
   "descubrir.cat.economia": "Economía",
-  "descubrir.cat.actualidad": "Actualidad"
+  "descubrir.cat.actualidad": "Actualidad",
+  "receipt09.no": "Recibo n.º {n}",
+  "receipt09.said": "Dije",
+  "receipt09.only": "cuando solo el",
+  "receipt09.thought": "lo pensaba.",
+  "receipt09.cta": "¿Y tú qué dices? Vota la próxima",
+  "result.shareReceipt": "Compartir recibo",
+  "result.shareReceiptBusy": "Preparando tu recibo…"
 }
