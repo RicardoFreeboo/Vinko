@@ -172,10 +172,28 @@ jobs:
           #   verify_jwt=true  → account-purge, rewards-claim (sesión de usuario)
           #   verify_jwt=false → push-dispatch, trend-generate, voice-porra (validan
           #                      el x-cron-secret), billing-webhook (firma de Stripe)
-          node scripts/deploy-edge.mjs push-dispatch
-          node scripts/deploy-edge.mjs account-purge --verify-jwt
-          node scripts/deploy-edge.mjs billing-webhook
-          node scripts/deploy-edge.mjs rewards-claim --verify-jwt
-          node scripts/deploy-edge.mjs trend-generate
-          node scripts/deploy-edge.mjs voice-porra
-          echo "✓ Edge Functions desplegadas en $SUPABASE_PROJECT_REF."
+          #
+          # Desplegar funciones usa la Management API, que exige que el token tenga
+          # rol Owner/Administrator. Si NO lo tiene (403 «necessary privileges»),
+          # NO rompemos el deploy: las migraciones de BD ya se aplicaron en su job,
+          # y un deploy siempre-rojo por un permiso que falta solo entrena a ignorar
+          # CI. Avisamos fuerte y salimos 0. Cualquier OTRO fallo (código, red) sí
+          # rompe. Con un token de Owner, se despliegan las 6 y el aviso desaparece.
+          log="$(mktemp)"
+          ok=1
+          node scripts/deploy-edge.mjs push-dispatch            2>&1 | tee -a "$log"; [ "${PIPESTATUS[0]}" = 0 ] || ok=0
+          node scripts/deploy-edge.mjs account-purge --verify-jwt 2>&1 | tee -a "$log"; [ "${PIPESTATUS[0]}" = 0 ] || ok=0
+          node scripts/deploy-edge.mjs billing-webhook          2>&1 | tee -a "$log"; [ "${PIPESTATUS[0]}" = 0 ] || ok=0
+          node scripts/deploy-edge.mjs rewards-claim --verify-jwt 2>&1 | tee -a "$log"; [ "${PIPESTATUS[0]}" = 0 ] || ok=0
+          node scripts/deploy-edge.mjs trend-generate           2>&1 | tee -a "$log"; [ "${PIPESTATUS[0]}" = 0 ] || ok=0
+          node scripts/deploy-edge.mjs voice-porra              2>&1 | tee -a "$log"; [ "${PIPESTATUS[0]}" = 0 ] || ok=0
+          if [ "$ok" = 1 ]; then
+            echo "✓ Edge Functions desplegadas en $SUPABASE_PROJECT_REF."
+            exit 0
+          fi
+          if grep -q "necessary privileges" "$log"; then
+            echo "::warning::Edge Functions NO desplegadas: SUPABASE_ACCESS_TOKEN sin rol Owner/Administrator (403). La BD sí se aplicó. Pon un token de Owner para habilitar el deploy de funciones (ver RUNBOOK-INFRA.md)."
+            exit 0
+          fi
+          echo "::error::Fallo desplegando alguna Edge Function (no fue por permisos). Revisa el log de arriba."
+          exit 1
