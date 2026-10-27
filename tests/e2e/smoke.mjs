@@ -82,8 +82,9 @@ function lexiconHits(text) {
   return hits;
 }
 
-// Payload RSC del feed: {slug, video} de cada porra, en orden y sin duplicados.
-// Las porras van como JSON dentro del payload: "slug":"…", …, "video":null|"url".
+// Payload RSC del feed: {slug, video, featured} de cada porra, en orden y sin
+// duplicados. Las porras van como JSON dentro del payload: "slug":"…", …,
+// "video":null|"url", …, "featured":true|false.
 function parseFeed(payload) {
   const items = [];
   const seen = new Set();
@@ -97,7 +98,8 @@ function parseFeed(payload) {
     const v = scope.match(/"video":(null|"(?:[^"\\]|\\.)*")/);
     if (!v || seen.has(slug)) continue;
     seen.add(slug);
-    items.push({ slug, video: v[1] === "null" ? null : JSON.parse(v[1]) });
+    const featured = /"featured":true/.test(scope);
+    items.push({ slug, video: v[1] === "null" ? null : JSON.parse(v[1]), featured });
   }
   return items;
 }
@@ -131,17 +133,23 @@ await check("a) GET / responde 200 con la marca y enlaces a /login, /privacidad 
 });
 
 // b) Feed (payload RSC) ---------------------------------------------------
-await check("b) Feed (payload RSC): ≥ 5 porras, ≥ 3 con vídeo y las 5 primeras con vídeo", async () => {
+// Orden de lib/feed.ts: destacadas → con vídeo → sin vídeo. Fuera de las
+// destacadas, las de vídeo van todas delante: antes se exigía vídeo en las 5
+// primeras, que falla en cuanto quedan menos de 5 abiertas con vídeo aunque el
+// orden sea el bueno.
+await check("b) Feed (payload RSC): ≥ 5 porras, ≥ 3 con vídeo y vídeo-primero", async () => {
   const r = await get("/feed", { RSC: "1" });
   if (r.status !== 200) fail(`status ${r.status}${r.location ? ` → ${r.location}` : ""}`);
   feed = parseFeed(r.body);
   const withVideo = feed.filter((p) => p.video);
-  const first5 = feed.slice(0, 5);
-  const info = `${feed.length} porras, ${withVideo.length} con vídeo, primeras 5 con vídeo: ${first5.filter((p) => p.video).length}/5`;
+  const feat = feed.findIndex((p) => !p.featured);
+  const rest = feat < 0 ? [] : feed.slice(feat);
+  const head = rest.slice(0, rest.filter((p) => p.video).length);
+  const info = `${feed.length} porras (${feed.length - rest.length} destacadas), ${withVideo.length} con vídeo`;
   if (feed.length < 5) fail(`solo ${feed.length} porras (¿feed vacío / RLS rota?) · ${info}`);
   if (withVideo.length < 3) fail(`solo ${withVideo.length} con vídeo (¿LIMIT antes del orden vídeo-primero?) · ${info}`);
-  if (first5.some((p) => !p.video)) {
-    fail(`el orden no es vídeo-primero: ${first5.map((p) => `${p.slug}${p.video ? "" : " (sin vídeo)"}`).join(", ")}`);
+  if (head.some((p) => !p.video)) {
+    fail(`el orden no es vídeo-primero: ${head.map((p) => `${p.slug}${p.video ? "" : " (sin vídeo)"}`).join(", ")}`);
   }
   return info;
 });
