@@ -56,6 +56,12 @@ function makeT(dict?: Record<string, string>): T {
   };
 }
 
+// yyyy-mm-dd en hora LOCAL (el mismo formato que devuelve <input type="date">).
+function localISODate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 function detectLang(): Lang {
   try { return /^en\b/i.test(navigator.language ?? "") ? "en" : "es"; } catch { return "es"; }
 }
@@ -206,14 +212,15 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
   t: T; profile: OnboardingProfile; lang: Lang; setLang: (l: Lang) => void; mock: boolean;
   suggestedCountry: string | null; onDone: () => void; onLogin: () => void;
 }) {
-  const [year, setYear] = useState(profile.birthYear ? String(profile.birthYear) : "");
+  // Vinko Ads (0063): fecha completa para comprobar 18 años exactos (antes, solo el año).
+  const [date, setDate] = useState("");
   // SEC-02: elige tu @ aquí mismo (viene uno autogenerado del registro).
   const [handle, setHandle] = useState(profile.handle ?? "");
   // País: lo declarado gana; si no, la sugerencia por IP (personaliza el contenido).
   const [country, setCountry] = useState<string | null>(normIso(profile.country ?? suggestedCountry));
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const thisYear = new Date().getFullYear();
+  const today = localISODate(new Date());
 
   // Idioma auto por navegador, salvo que el perfil ya lo tenga en inglés.
   useEffect(() => { if (profile.lang !== "en") setLang(detectLang()); }, [profile.lang, setLang]);
@@ -221,9 +228,11 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setErr("");
-    const y = parseInt(year, 10);
-    if (!y || y < 1900 || y > thisYear) { setErr(t("age.bad")); return; }
-    if (thisYear - y < 18) { setErr(t("age.under14")); return; } // edad mínima de registro (R3: +18)
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date > today || date < "1900-01-01") { setErr(t("age.bad")); return; }
+    const min18 = new Date();
+    min18.setFullYear(min18.getFullYear() - 18);
+    if (date > localISODate(min18)) { setErr(t("age.under14")); return; } // edad mínima de registro (R3: +18), exacta
+    const y = parseInt(date.slice(0, 4), 10);
     if (mock) { onDone(); return; }
     const sb = supabaseBrowser();
     if (!sb) { setErr(t("login.notready")); return; }
@@ -248,10 +257,20 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
     }
     // FX-03: zona horaria del dispositivo, en silencio (nunca bloquea).
     void syncTz(sb);
+    // Vinko Ads (0063): la fecha va por RPC (valida 14 años exactos y fija
+    // birth_year). Si 0063 aún no está aplicada, se guarda el año como antes.
+    const { error: be } = await sb.rpc("set_birth_date", { p_date: date });
+    const rpcMissing = !!be && /PGRST202|does not exist|schema cache/i.test(be.message);
+    if (be && !rpcMissing) {
+      setBusy(false);
+      setErr(be.message.includes("VINKO_TOO_YOUNG") ? t("age.under14") : t("age.bad"));
+      return;
+    }
+    const base = rpcMissing ? { birth_year: y, lang } : { lang };
     // 0045 añade profiles.country; si aún no está aplicada, guardamos lo básico
     // (año + idioma) para no bloquear el onboarding.
-    let error = (await sb.from("profiles").update({ birth_year: y, lang, country }).eq("id", user.id)).error;
-    if (error) error = (await sb.from("profiles").update({ birth_year: y, lang }).eq("id", user.id)).error;
+    let error = (await sb.from("profiles").update({ ...base, country }).eq("id", user.id)).error;
+    if (error) error = (await sb.from("profiles").update(base).eq("id", user.id)).error;
     setBusy(false);
     if (error) { setErr(error.message); return; }
     onDone();
@@ -262,10 +281,12 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
       <h1 className="text-[26px] font-black leading-tight tracking-tight">{t("onb.s1.title")}</h1>
       <p className="text-sm text-[var(--muted)]">{t("onb.s1.sub")}</p>
       <input
-        inputMode="numeric"
+        type="date"
         autoFocus
-        value={year}
-        onChange={(e) => { setYear(e.target.value.replace(/\D/g, "").slice(0, 4)); setErr(""); }}
+        value={date}
+        min="1900-01-01"
+        max={today}
+        onChange={(e) => { setDate(e.target.value); setErr(""); }}
         placeholder={t("age.ph")}
         aria-label={t("age.ph")}
         className="mono rounded-[13px] border border-[var(--line)] bg-[var(--ink2)] px-4 py-3.5 text-center text-lg tracking-[0.2em] text-[var(--cream)] outline-none focus:border-[var(--win)]"
@@ -301,7 +322,7 @@ function StepAge({ t, profile, lang, setLang, mock, suggestedCountry, onDone, on
       <CountrySelect t={t} lang={lang} prefix="onb" value={country} onChange={setCountry} disabled={busy} />
       {err && <span role="alert" className="text-xs text-[var(--red)]">{err}</span>}
       <div className="mt-auto flex flex-col gap-3">
-        <button type="submit" disabled={busy || year.length < 4} className={BTN_PRIMARY}>{busy ? "…" : t("onb.next")}</button>
+        <button type="submit" disabled={busy || date.length < 10} className={BTN_PRIMARY}>{busy ? "…" : t("onb.next")}</button>
         <p className="text-[11px] leading-relaxed text-[var(--muted)]">{t("age.body")}</p>
       </div>
     </form>

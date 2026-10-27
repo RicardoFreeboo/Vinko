@@ -1,0 +1,13 @@
+{
+  "ajustes.ads.title": "Tus anuncios",
+  "ajustes.ads.lead": "Vinko se sostiene con anuncios que se votan. Tú decides cómo se eligen los que ves.",
+  "ajustes.ads.personal": "Anuncios según mis intereses",
+  "ajustes.ads.personalD": "Usamos tu ciudad aproximada, tu edad y lo que votas para elegir qué ves. Si lo apagas, solo verás campañas para todo el país.",
+  "ajustes.ads.why": "¿Por qué veo esto?",
+  "ajustes.ads.whyLead": "En cada anuncio, el menú ⋯ te dirá qué criterios coincidieron. Por ejemplo:",
+  "ajustes.ads.whyExample": "Esta marca quería llegar a gente de Bogotá interesada en fútbol.",
+  "ajustes.ads.never": "Nunca usamos política, religión ni salud. Ninguna marca sabe quién eres ni qué votaste.",
+  "ajustes.ads.err": "No se pudo guardar. Inténtalo de nuevo.",
+  "legal.privacy.s9.h": "Publicidad dentro de Vinko",
+  "legal.privacy.s9.b": "Mostramos anuncios de marcas dentro de la app y les damos estadísticas agregadas. Para elegir qué anuncio ves usamos tu ciudad aproximada (la deduce nuestro proveedor de hosting a partir de tu conexión; no guardamos tu IP), tu franja de edad, los intereses que eliges y los temas de lo que votas. Nunca usamos política, religión ni salud, y ninguna marca recibe tus datos personales: solo cifras de grupos de 50 personas o más. Puedes desactivar los anuncios según tus intereses en Ajustes. Un 5 % de las cuentas, elegidas al azar, no ve anuncios para que podamos medir su efecto. Pendiente de revisión por el abogado."
+}
