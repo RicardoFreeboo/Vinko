@@ -1,0 +1,33 @@
+name: Vinko Ads · prueba de alcance (solo lectura)
+
+# Prueba ads_estimate_reach() (0072) contra la base del entorno sin escribir
+# nada: scripts/sql/2026-10-27-ads-alcance-smoke.sql va entero en una
+# transacción READ ONLY que acaba en ROLLBACK, y solo imprime OK/FALLO (nunca
+# cifras ni datos de personas: el log es público mientras el repo lo sea).
+# Se lanza al hacer push a la rama vinko-ads/smoke-alcance o a mano
+# (Actions → Run, cuando el archivo esté en main).
+
+on:
+  push:
+    branches: [vinko-ads/smoke-alcance]
+    paths:
+      - ".github/workflows/ads-alcance-smoke.yml"
+      - "scripts/sql/2026-10-27-ads-alcance-smoke.sql"
+  workflow_dispatch: {}
+
+jobs:
+  alcance:
+    name: ads_estimate_reach con datos reales
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prueba de alcance (READ ONLY + ROLLBACK)
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::Falta el secreto SUPABASE_DB_URL."
+            exit 1
+          fi
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -f scripts/sql/2026-10-27-ads-alcance-smoke.sql
