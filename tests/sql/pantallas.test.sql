@@ -71,7 +71,7 @@ begin
   raise notice 'OK §5: ganadora mayoritaria (75%%) → sin visionario';
 end $$;
 
--- profile_receipts (0073): Visionario ×N y mejores recibos del perfil (pantalla 13)
+-- profile_receipts (0076): Visionario ×N y mejores recibos del perfil (pantalla 13)
 -- con el % FINAL de la ganadora, no pct_at_pick: Ana votó la primera (100 %) en la
 -- 1.ª porra y aun así es visionaria con 1 de 4; su recibo debe decir 25 %.
 do $$
@@ -105,5 +105,5 @@ begin
   if (v->>'visionario')::int <> 0 or jsonb_array_length(v->'receipts') <> 0 then
     raise exception 'receipts: Dani debía tener 0 recibos, es %', v;
   end if;
-  raise notice 'OK 0073: profile_receipts — Visionario ×1, porcentaje final 25/75, el más raro primero, sin aciertos = []';
+  raise notice 'OK 0076: profile_receipts — Visionario ×1, porcentaje final 25/75, el más raro primero, sin aciertos = []';
 end $$;

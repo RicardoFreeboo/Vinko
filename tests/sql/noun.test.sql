@@ -1,5 +1,5 @@
 -- ============================================================================
--- LA PALABRA VISIBLE (0075): «porra» → «predicción» en el buzón y en los push.
+-- LA PALABRA VISIBLE (0078): «porra» → «predicción» en el buzón y en los push.
 -- Corre en tests/sql/run.sh.
 -- ============================================================================
 \set ON_ERROR_STOP on

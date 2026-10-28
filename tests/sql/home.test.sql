@@ -1,5 +1,5 @@
 -- ============================================================================
--- INICIO · tus grupos (0074 home_groups, VINKO_PANTALLAS 04): tus grupos con tu
+-- INICIO · tus grupos (0077 home_groups, VINKO_PANTALLAS 04): tus grupos con tu
 -- puesto de la semana, porras por votar de tus grupos, tus votos pendientes y
 -- tus resultados. Mismos stubs de auth que el resto. Corre en tests/sql/run.sh.
 -- ============================================================================

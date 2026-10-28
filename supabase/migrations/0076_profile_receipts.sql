@@ -1,4 +1,4 @@
--- 0073_profile_receipts — datos para el PERFIL rediseñado (VINKO_PANTALLAS 13)
+-- 0076_profile_receipts — datos para el PERFIL rediseñado (VINKO_PANTALLAS 13)
 -- La pantalla de perfil muestra "Visionario ×N" y "Mis mejores recibos" (los
 -- aciertos del usuario donde pocos lo vieron venir). Eso no existía como consulta.
 -- profile_receipts(p_user) devuelve, como el resto de RPC de perfil (SECURITY

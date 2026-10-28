@@ -1,5 +1,5 @@
 -- ============================================================================
--- VINKO — 0077: cada predicción de usuario lleva el mercado de quien la crea.
+-- VINKO — 0080: cada predicción de usuario lleva el mercado de quien la crea.
 -- Descubrir (VINKO_PANTALLAS 05) separa «Colombia | Global»; 0064 añadió
 -- porras.market pero nadie lo rellenaba. Mercado del creador = profiles.market
 -- o, si no tiene, su país declarado cuando es un mercado activo (hoy CO).

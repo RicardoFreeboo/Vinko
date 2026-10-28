@@ -1,4 +1,4 @@
--- 0074_home_groups — INICIO · tus grupos (VINKO_PANTALLAS 04) en una sola llamada.
+-- 0077_home_groups — INICIO · tus grupos (VINKO_PANTALLAS 04) en una sola llamada.
 -- La pestaña Grupos deja de ser una lista y pasa a ser el inicio del diseño:
 --   · groups:   tus grupos con TU puesto de la semana (Puntería desde el corte
 --               semanal, como la pestaña "Esta semana" de /g), a cuántos puntos

@@ -18,7 +18,7 @@ import { t } from "@/lib/i18n";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: t("grupos.title"), robots: { index: false, follow: false } };
 
-// INICIO · tus grupos (VINKO_PANTALLAS 04). Una llamada (home_groups, 0074):
+// INICIO · tus grupos (VINKO_PANTALLAS 04). Una llamada (home_groups, 0077):
 // tus grupos con tu puesto de la semana, lo que falta por votar en ellos (se
 // vota aquí mismo), tus votos esperando resultado y tus últimos resultados.
 // Abajo, crear un grupo o entrar con código.

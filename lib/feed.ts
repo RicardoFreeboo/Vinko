@@ -62,7 +62,7 @@ const SELECT = "id, slug, title, source, closes_at, featured_until, media_url, m
 // Creador vía la FK por defecto de `porras.created_by → profiles.id`.
 const SELECT_CREATOR = ", creator:profiles!porras_created_by_fkey ( handle, avatar_url )";
 
-// `market` (Descubrir 05, pestaña de tu país): solo las de ese mercado (0077
+// `market` (Descubrir 05, pestaña de tu país): solo las de ese mercado (0080
 // lo pone al crear). null = Global, todas.
 export async function getFeed(limit = 30, market: string | null = null): Promise<FeedPorra[]> {
   const sb = await supabaseServer();

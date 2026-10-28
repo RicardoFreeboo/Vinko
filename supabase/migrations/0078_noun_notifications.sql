@@ -1,5 +1,5 @@
 -- ============================================================================
--- VINKO — 0075: la palabra visible también en el buzón y en los push.
+-- VINKO — 0078: la palabra visible también en el buzón y en los push.
 -- Decisión de producto (27-oct): lo que el código llama «porra» se ve como
 -- «predicción» (markets.noun = 'predicción' desde 0070; la copy de la app la
 -- pinta con lib/noun.ts). Los textos de los avisos se montan en SQL en una

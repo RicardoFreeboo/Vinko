@@ -15,7 +15,7 @@ import { t } from "@/lib/i18n";
 
 // DESCUBRIR (VINKO_PANTALLAS 05) — feed VERTICAL a pantalla completa (una
 // predicción por pantalla, vídeo de fondo, pick inline). Arriba, las pestañas
-// «tu país | Global» (si tu país es un mercado activo; 0077 marca cada
+// «tu país | Global» (si tu país es un mercado activo; 0080 marca cada
 // predicción con el de quien la crea) y Buscar. El pique del día va en el
 // primer slide.
 export const dynamic = "force-dynamic";

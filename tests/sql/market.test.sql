@@ -1,5 +1,5 @@
 -- ============================================================================
--- MERCADO DE CADA PREDICCIÓN (0077, Descubrir · Colombia | Global): la de un
+-- MERCADO DE CADA PREDICCIÓN (0080, Descubrir · Colombia | Global): la de un
 -- usuario lleva el mercado de quien la crea; editoriales y gente sin país, no.
 -- Corre en tests/sql/run.sh.
 -- ============================================================================
