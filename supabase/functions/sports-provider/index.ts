@@ -5,7 +5,7 @@
 //   días de las competiciones de remote_config.content_engine.sports, los guarda
 //   en content_events y crea la plantilla Nivel A «¿Quién gana X vs Y?» de los
 //   que empiezan entre 3 h y 48 h (topic_proposals 'scheduled'; la publica
-//   content_publish_due, 0076). Como mucho una sincronización cada
+//   content_publish_due, 0081). Como mucho una sincronización cada
 //   sports.calendar_every_h horas (6 por defecto: el plan gratis da 100
 //   llamadas al día).
 // body.mode = "results": mira los partidos recientes y decide (./deportes.ts):
@@ -19,7 +19,7 @@
 // predicción con auto_resolve), resuelve con resolve_porra_system.
 //
 // INTERRUPTOR: el cron solo trabaja con content_engine.enabled y sin
-// kill_switch (los crons de 0076 ya lo comprueban; esto es la segunda llave).
+// kill_switch (los crons de 0081 ya lo comprueban; esto es la segunda llave).
 // Sin API_FOOTBALL_KEY, registra el error en agent_runs y no hace nada.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {

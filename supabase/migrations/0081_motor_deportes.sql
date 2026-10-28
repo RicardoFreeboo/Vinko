@@ -1,5 +1,5 @@
 -- ============================================================================
--- VINKO — 0076_motor_deportes: F2 del motor de contenido (doc 27-oct-2026,
+-- VINKO — 0081_motor_deportes: F2 del motor de contenido (doc 27-oct-2026,
 -- B.5 «desde el calendario», B.8 y B.9.1–B.9.2).
 --
 --   · resolve_porra_system / void_porra_system: resolver y anular desde el

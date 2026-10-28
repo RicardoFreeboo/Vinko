@@ -151,7 +151,7 @@ begin
 end $$;
 rollback;
 
--- ── 7. F2 (0076): resolver/anular desde el sistema, publicador y crons ──────
+-- ── 7. F2 (0081): resolver/anular desde el sistema, publicador y crons ──────
 do $$
 begin
   if has_function_privilege('authenticated', 'public.resolve_porra_system(uuid,uuid,uuid)', 'execute')
