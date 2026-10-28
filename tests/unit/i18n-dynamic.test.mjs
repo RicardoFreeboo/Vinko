@@ -19,6 +19,17 @@ await test("CountrySelect: las 5 claves de país existen para onb y ajustes", ()
   }
 });
 
+// El smoke de producción (tests/e2e/smoke.mjs, f) pide > 2000 letras de texto
+// en /terminos; el resto de la página (cabecera, pie, enlaces) pone unas 800.
+// Si las secciones bajan de 1200, ese smoke cae en main (pasó el 28-oct).
+await test("LegalDoc: Términos no se queda corto (el smoke de producción pide > 2000 letras)", () => {
+  for (const [lang, d] of Object.entries(dicts)) {
+    let n = 0;
+    for (let i = 1; i <= 6; i++) n += (d[`legal.terms.s${i}.h`] ?? "").length + (d[`legal.terms.s${i}.b`] ?? "").length;
+    assert.ok(n >= 1200, `${lang}: Términos tiene ${n} letras en sus secciones (mínimo 1200)`);
+  }
+});
+
 await test("LegalDoc: cada sección de privacidad y términos tiene título y cuerpo", () => {
   const secs = [
     ...[1, 2, 3, 4, 5, 6, 7, 8].map((n) => `legal.privacy.s${n}`),
