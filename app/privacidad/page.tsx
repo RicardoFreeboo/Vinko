@@ -12,7 +12,7 @@ export default function Privacidad() {
       titleKey="legal.privacy.title"
       sectionKeys={[
         "legal.privacy.s1", "legal.privacy.s2", "legal.privacy.s3", "legal.privacy.s4",
-        "legal.privacy.s5", "legal.privacy.s6", "legal.privacy.s7", "legal.privacy.s8",
+        "legal.privacy.s5", "legal.privacy.s6", "legal.privacy.s7", "legal.privacy.s9", "legal.privacy.s8",
       ]}
     />
   );

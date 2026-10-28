@@ -19,6 +19,8 @@ export default async function AdminTemas() {
     const cola = (cols: string) => sb.from("topic_proposals").select(cols)
       .in("status", ["pending_review", "published"])
       .gte("created_at", since)
+      // B.6: la cola va por nota; a igual nota, lo más reciente primero.
+      .order("score", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
       .limit(150);
     const [res, { data: porras }] = await Promise.all([

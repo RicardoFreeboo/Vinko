@@ -52,6 +52,7 @@ Aparte: sesión de **infra** lanzada (`claude/infra-multientorno`): multi-entorn
 - **Orden sugerido**: backend §5 → componentes compartidos → pantallas de voto (01/02/05/07/08) → home/grupos/liga/perfil → landing → Ads. El trabajo pixel rinde mejor en sesión dedicada con el HTML delante.
 
 **Agente de contenido (spec §2 — manda):**
+> **Documento de ejecución (27-oct):** `docs/motor-contenido/VINKO_MOTOR_Y_SOFT_LAUNCH_PARA_CODE.md` (local, fuera del repo). Para el motor **sustituye** a §2.5–§2.10 de la spec de mercados/agente donde choquen (cupo, nota, autonomía, resolución y observabilidad); el resto de §2 sigue valiendo. Fases F0–F6, una rama `motor/fase-N-*` y un PR por fase. F0 (inventario): `docs/motor-contenido/F0_INVENTARIO.md`.
 - Desbloqueo: `ANTHROPIC_API_KEY`, sembrar `internal.secrets.cron_secret` (== `CRON_SECRET`), desplegar `trend-generate`/`voice-porra`/`rewards-claim`, registrar respuesta del cron en `agent_runs` (fin del fallo silencioso), permitir política (§2.6).
 - Pasar a Colombia: fuentes `gl=CO`/`cc=CO`, prompt y catálogo CO (§2.3), fechas en Bogotá.
 - Calendario deportivo (proveedor con Liga BetPlay — **verificar**) → porras de partido con **resolución automática**; calendario editorial recurrente (reality).

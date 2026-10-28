@@ -1,0 +1,13 @@
+{
+  "ajustes.ads.title": "Your ads",
+  "ajustes.ads.lead": "Vinko is funded by ads people vote on. You decide how the ones you see are chosen.",
+  "ajustes.ads.personal": "Ads based on my interests",
+  "ajustes.ads.personalD": "We use your approximate city, your age and how you vote to choose what you see. If you turn it off, you'll only see whole-country campaigns.",
+  "ajustes.ads.why": "Why am I seeing this?",
+  "ajustes.ads.whyLead": "On every ad, the ⋯ menu will tell you which criteria matched. For example:",
+  "ajustes.ads.whyExample": "This brand wanted to reach people in Bogotá interested in football.",
+  "ajustes.ads.never": "We never use politics, religion or health. No brand knows who you are or how you voted.",
+  "ajustes.ads.err": "Couldn't save. Please try again.",
+  "legal.privacy.s9.h": "Advertising inside Vinko",
+  "legal.privacy.s9.b": "We show brand ads inside the app and give brands aggregated statistics. To choose which ad you see we use your approximate city (worked out by our hosting provider from your connection; we don't store your IP), your age band, the interests you pick and the topics you vote on. We never use politics, religion or health, and no brand receives your personal data: only figures for groups of 50 people or more. You can turn off ads based on your interests in Settings. 5 % of accounts, chosen at random, see no ads so we can measure their effect. Pending review by our lawyer."
+}
