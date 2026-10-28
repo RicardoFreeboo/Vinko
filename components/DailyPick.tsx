@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/client";
-import { PushPrePrompt, InstallHint } from "@/components/PushPrePrompt";
+import { PushPrePrompt } from "@/components/PushPrePrompt";
 import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 
@@ -95,7 +95,6 @@ export function DailyPick({ daily, myAnswer, prev, opensSoon = false }: {
       )}
 
       <PushPrePrompt hasValue={hasValue} />
-      <InstallHint hasValue={hasValue} />
     </>
   );
 }

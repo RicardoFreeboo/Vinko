@@ -11,9 +11,9 @@ import { capture } from "@/lib/analytics";
 import { t } from "@/lib/i18n";
 
 // ============================================================================
-// RT-03 — la vista de RETO de /p/[slug]: se usa en porras con premio y en
-// porras de usuario pequeñas (≤6 participantes). Cara a cara, no termómetro:
-// quién va con qué y qué se juega, de un vistazo.
+// RT-03 — la vista de RETO de /p/[slug]: se usa en predicciones de usuario
+// pequeñas (≤6 participantes). Cara a cara, no termómetro: quién va con qué,
+// de un vistazo. Solo Vinkos (modo solo-puntos, 0061: no hay premios).
 //  · Opciones = botones grandes con los avatares de quien va con cada una.
 //  · Elegir abre una hoja de confirmación; sin sesión pide SOLO el nombre
 //    (pick de invitado) y después ofrece Google para no perderlo (RT-06).
@@ -22,7 +22,6 @@ import { t } from "@/lib/i18n";
 //  · Tras el cierre, el JUEZ propone el resultado (RT-07) y quien perdería
 //    puede estar de acuerdo o no, aquí mismo.
 //  · Fechas SIEMPRE en la hora del dispositivo.
-// En una porra prize no aparece ni un Vinko (RT-03: «qué desaparece»).
 // ============================================================================
 
 export type RetoPick = {
@@ -73,7 +72,7 @@ function AvatarChip({ p, me }: { p: { name: string; avatar: string | null; mine?
 
 export function RetoView({
   porraId, slug, options, status, winningOptionId, closesAt, resolvesAt,
-  stakeKind, stakeText, creatorId, creatorName, judgeId, initialSocial,
+  creatorId, creatorName, judgeId, initialSocial,
 }: {
   porraId: string;
   slug: string;
@@ -82,8 +81,6 @@ export function RetoView({
   winningOptionId: string | null;
   closesAt: string;
   resolvesAt: string | null;
-  stakeKind: "vinkos" | "prize";
-  stakeText: string | null;
   creatorId: string | null;
   creatorName: string;
   judgeId: string | null;
@@ -108,7 +105,6 @@ export function RetoView({
 
   const closed = status !== "open" || Date.parse(closesAt) <= now;
   const resolved = status === "resolved";
-  const prize = stakeKind === "prize";
   const mine = picks.find((p) => p.mine) ?? null;
   const isJudge = !!uid && uid === judgeId;
   const isCreator = !!uid && uid === creatorId;
@@ -184,7 +180,7 @@ export function RetoView({
       capture("pick_made", { is_seed: false, is_guest: true, reto: true });
     } else {
       const { error } = await sb.rpc("make_pick", {
-        p_porra: porraId, p_option: sheet.id, p_stake: prize ? null : stake,
+        p_porra: porraId, p_option: sheet.id, p_stake: stake,
       });
       if (error) { setBusy(false); setErr(mapErr(error.message)); return; }
       capture("pick_made", { is_seed: false, is_guest: false, reto: true });
@@ -231,7 +227,7 @@ export function RetoView({
     const sb = supabaseBrowser();
     if (!sb) return;
     setBusy(true); setErr(null);
-    const { error } = await sb.rpc("void_porra", { p_porra: porraId, p_reason: prize ? "reto cancelado" : "anulada" });
+    const { error } = await sb.rpc("void_porra", { p_porra: porraId, p_reason: "anulada" });
     setBusy(false);
     if (error) { setErr(mapErr(error.message)); return; }
     router.refresh();
@@ -240,10 +236,7 @@ export function RetoView({
   const byIdx = (idx: number) => picks.filter((p) => p.idx === idx);
   const secsLeft = Math.max(0, Math.floor((Date.parse(closesAt) - now) / 1000));
   const lastMinute = !closed && secsLeft <= 60;
-  const stakeLine = prize ? stakeText ?? "" : null;
   const winners = resolved ? picks.filter((p) => options[p.idx]?.id === winningOptionId) : [];
-  const losers = resolved ? picks.filter((p) => options[p.idx]?.id !== winningOptionId) : [];
-  const iWon = resolved && !!mine && options[mine.idx]?.id === winningOptionId;
   const share = mine
     ? t("nueva.sharePick", { opt: options[mine.idx]?.label ?? "", url: porraUrl(slug) })
     : t("nueva.shareText", { title: "", url: porraUrl(slug) });
@@ -298,16 +291,6 @@ export function RetoView({
               ? t("reto.waitingRival")
               : t("reto.inPlay")}
       </p>
-      {resolved && prize && losers.length > 0 && winners.length > 0 && (
-        <p className="text-center text-[14px] font-bold text-[var(--cream)]">
-          {mine && !iWon
-            ? t("reto.paysYou", { stake: stakeLine ?? "" })
-            : t("reto.pays", { who: losers.map((l) => (l.mine ? t("reto.me") : l.name)).join(", "), stake: stakeLine ?? "" })}
-        </p>
-      )}
-      {resolved && prize && (winners.length === 0 || losers.length === 0) && (
-        <p className="text-center text-[13px] text-[var(--muted)]">{t("reto.noLoser")}</p>
-      )}
       {resolvesAt && !resolved && (
         <p className="mono text-center text-[10px] uppercase tracking-[0.1em] text-[var(--muted2)]">
           {t("reto.sabe", { when: Date.parse(resolvesAt) - Date.parse(closesAt) < 60_000 ? t("reto.sabeClose") : fmtLocal(resolvesAt) })}
@@ -402,7 +385,7 @@ export function RetoView({
             <span className="inline-flex items-center gap-3 text-[12px]">
               <span className="text-[var(--muted)]">{t("reto.cancelConfirm")}</span>
               <button type="button" disabled={busy} onClick={cancel} className="font-black text-[var(--red)]">
-                {prize ? t("reto.cancel") : t("reto.cancelVinkos")}
+                {t("reto.cancelVinkos")}
               </button>
               <button type="button" onClick={() => setCancelAsk(false)} className="font-bold text-[var(--muted)]">
                 {t("reto.change")}
@@ -411,7 +394,7 @@ export function RetoView({
           ) : (
             <button type="button" onClick={() => setCancelAsk(true)}
               className="text-[12px] font-bold text-[var(--muted2)] underline decoration-dotted">
-              {prize ? t("reto.cancel") : t("reto.cancelVinkos")}
+              {t("reto.cancelVinkos")}
             </button>
           )}
         </div>
@@ -427,21 +410,17 @@ export function RetoView({
             <p className="text-[16px] font-black text-[var(--cream)]">
               {t("reto.confirmTitle", { opt: sheet.label, who: creatorName })}
             </p>
-            {prize ? (
-              <p className="mt-1 text-[13px] text-[var(--muted)]">{t("reto.confirmPrize", { stake: stakeText ?? "" })}</p>
-            ) : (
-              <div className="mt-2 flex items-center gap-2">
-                <span className="text-[12px] text-[var(--muted)]">{t("reto.stake10")}</span>
-                {STAKES.map((n) => (
-                  <button key={n} type="button" onClick={() => setStake(n)}
-                    className="mono rounded-full border px-3 py-1 text-[12px] font-black"
-                    style={{ borderColor: stake === n ? "var(--win)" : "var(--line)", color: stake === n ? "var(--win)" : "var(--muted)" }}>
-                    🪙 {n}
-                  </button>
-                ))}
-              </div>
-            )}
-            {!prize && <p className="mt-1 text-[11px] text-[var(--muted2)]">{t("reto.confirmVinkos", { n: String(stake) })}</p>}
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-[12px] text-[var(--muted)]">{t("reto.stake10")}</span>
+              {STAKES.map((n) => (
+                <button key={n} type="button" onClick={() => setStake(n)}
+                  className="mono rounded-full border px-3 py-1 text-[12px] font-black"
+                  style={{ borderColor: stake === n ? "var(--win)" : "var(--line)", color: stake === n ? "var(--win)" : "var(--muted)" }}>
+                  🪙 {n}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1 text-[11px] text-[var(--muted2)]">{t("reto.confirmVinkos", { n: String(stake) })}</p>
             {ready && (!uid || isGuest) && (
               <div className="mt-3">
                 <label className="mono text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">

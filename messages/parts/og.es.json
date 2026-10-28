@@ -4,7 +4,7 @@
   "og.participantsOne": "1 participante",
   "og.by": "por @{handle}",
   "og.u.accuracy": "de acierto",
-  "og.u.played": "porras jugadas",
+  "og.u.played": "{nouns} jugadas",
   "og.u.cta": "Rétale en vinko.fun",
   "og.div.bronce": "Liga Bronce",
   "og.div.plata": "Liga Plata",

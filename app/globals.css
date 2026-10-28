@@ -10,6 +10,7 @@
   --ink: #0c1011;
   --ink2: #141a1b;
   --ink3: #1d2627;
+  --ink4: #26302f;
   --win: #1fe07a;
   --windeep: #11b863;
   --gold: #ffc23d;
@@ -19,6 +20,7 @@
   --muted2: #5d716b;
   --red: #ff6b6b;
   --line: rgba(244, 241, 233, 0.1);
+  --line2: rgba(244, 241, 233, 0.18); /* bordes marcados (VINKO_PANTALLAS) */
   --disp: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
 }

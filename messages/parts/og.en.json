@@ -4,7 +4,7 @@
   "og.participantsOne": "1 player",
   "og.by": "by @{handle}",
   "og.u.accuracy": "accuracy",
-  "og.u.played": "pools played",
+  "og.u.played": "{nouns} played",
   "og.u.cta": "Challenge them on vinko.fun",
   "og.div.bronce": "Bronze League",
   "og.div.plata": "Silver League",

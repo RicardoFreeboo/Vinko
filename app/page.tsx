@@ -14,22 +14,19 @@ import "./landing.css";
 // (si no, no verifica el dominio y no deja publicar el consentimiento OAuth).
 // Por eso esta página queda fuera del candado del alfa y no redirige a /feed.
 //
-// Mensaje: con dinero o sin dinero, cada grupo se juega lo que quiera (Vinkos,
-// una ronda, dinero entre amigos). Vinko no toca el dinero: el P2P va directo
-// entre la gente (ver p2p.* y la migración 0054). El dinero es solo +18.
+// Mensaje (modo solo-puntos, REGLAS-LEGALES): lo que está en juego es el
+// honor, la Puntería, los Vinkos y el «te lo dije»; nunca dinero ni cosas
+// (cenas, rondas). Solo +18.
 //
 // Diseño: 3D con CSS (app/landing.css), sin three.js, para no penalizar la
 // carga en móvil. Las islas de cliente son pequeñas: el escenario del móvil,
 // el rotador de palabras, la inclinación de tarjetas y el reveal al scroll.
-// MON-01: el flag de dinero decide la variante de la portada (con/sin dinero).
-// Se lee con la anon key, sin cookies, para que la página siga siendo ISR.
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const money = false;
   return {
-    title: t(money ? "landing.title" : "landing.nm.title"),
-    description: t(money ? "landing.sub" : "landing.nm.sub"),
+    title: t("landing.nm.title"),
+    description: t("landing.nm.sub"),
     robots: { index: true, follow: true },
   };
 }
@@ -43,8 +40,7 @@ const IDEAS = TEMPLATES.slice(0, 6);
 
 const MODES = [
   { k: "vinkos", icon: "🪙", tint: "rgba(255,194,61,0.16)", accent: "var(--gold)" },
-  { k: "free", icon: "🍺", tint: "rgba(31,224,122,0.16)", accent: "var(--win)" },
-  { k: "money", icon: "💶", tint: "rgba(138,245,189,0.14)", accent: "#8af5bd" },
+  { k: "free", icon: "👥", tint: "rgba(31,224,122,0.16)", accent: "var(--win)" },
 ] as const;
 
 function Ticker({ items, reverse = false }: { items: string[]; reverse?: boolean }) {
@@ -60,11 +56,6 @@ function Ticker({ items, reverse = false }: { items: string[]; reverse?: boolean
 }
 
 export default async function Landing() {
-  const money = false;
-  // Sin dinero: fuera los textos y fichas con € (índice 1 de STAKES, "💶" del ticker).
-  const stakes = money ? STAKES : STAKES.filter((x) => !x.includes("€"));
-  const ticker = money ? TICKER : TICKER.filter((x) => !x.includes("€"));
-  const modes = money ? MODES : MODES.filter((m) => m.k !== "money");
   return (
     <main className="lx min-h-dvh text-[var(--cream)]">
       <RevealObserver />
@@ -98,16 +89,16 @@ export default async function Landing() {
             style={{ ["--d" as string]: "80ms" }}
             className="max-w-[640px] text-[2.25rem] font-black leading-[1.03] tracking-[-0.035em] [text-wrap:balance] sm:text-[3.3rem] lg:text-[4rem]"
           >
-            {t(money ? "landing.h1" : "landing.nm.h1")}
+            {t("landing.nm.h1")}
           </h1>
 
           <div data-reveal style={{ ["--d" as string]: "160ms" }} className="flex w-full flex-col gap-1">
             <span className="mono text-[11px] uppercase tracking-[0.16em] text-[var(--muted)]">{t("landing.stakeLabel")}</span>
-            <StakeRotator items={stakes} className="text-[1.9rem] font-black leading-[1.2] tracking-tight sm:text-[2.5rem]" itemClassName="lx-grad" />
+            <StakeRotator items={STAKES} className="text-[1.9rem] font-black leading-[1.2] tracking-tight sm:text-[2.5rem]" itemClassName="lx-grad" />
           </div>
 
           <p data-reveal style={{ ["--d" as string]: "240ms" }} className="max-w-[560px] text-[16px] leading-relaxed text-[var(--muted)] sm:text-[17px]">
-            {t(money ? "landing.sub" : "landing.nm.sub")}
+            {t("landing.nm.sub")}
           </p>
 
           <div data-reveal style={{ ["--d" as string]: "320ms" }} className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
@@ -122,22 +113,22 @@ export default async function Landing() {
           <ul data-reveal style={{ ["--d" as string]: "400ms" }} className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 text-[12px] font-bold sm:gap-x-5 sm:text-[13px] text-[var(--muted)] lg:justify-start">
             <li>⚡ {t("landing.trust.fast")}</li>
             <li>💬 {t("landing.trust.whatsapp")}</li>
-            <li>{money ? <>🔒 {t("landing.trust.money")}</> : <>🤝 {t("landing.nm.trust")}</>}</li>
+            <li>🤝 {t("landing.nm.trust")}</li>
           </ul>
         </div>
 
-        <HeroStage money={money} />
+        <HeroStage />
       </section>
 
-      {/* ============ CINTA: LO QUE OS JUGÁIS ============ */}
+      {/* ============ CINTA: LO QUE ESTÁ EN JUEGO ============ */}
       <section aria-label={t("landing.stakeLabel")} className="lx-ticker-wrap py-6">
         <div className="lx-ticker-tilt flex flex-col gap-3">
-          <Ticker items={ticker} />
-          <Ticker items={[...ticker].reverse()} reverse />
+          <Ticker items={TICKER} />
+          <Ticker items={[...TICKER].reverse()} reverse />
         </div>
       </section>
 
-      {/* ============ TRES MODOS ============ */}
+      {/* ============ DOS MODOS ============ */}
       <section id="modos" className="mx-auto w-full max-w-[1180px] px-5 py-16 sm:px-8 lg:py-24">
         <div data-reveal className="mx-auto flex max-w-[720px] flex-col items-center gap-3 text-center">
           <span className="eyebrow text-[11px]">{t("landing.modes.tag")}</span>
@@ -146,8 +137,8 @@ export default async function Landing() {
           </h2>
         </div>
 
-        <div className={modes.length === 3 ? "mt-10 grid gap-5 md:grid-cols-3" : "mx-auto mt-10 grid max-w-[820px] gap-5 md:grid-cols-2"}>
-          {modes.map((m, i) => (
+        <div className="mx-auto mt-10 grid max-w-[820px] gap-5 md:grid-cols-2">
+          {MODES.map((m, i) => (
             <div key={m.k} data-reveal style={{ ["--d" as string]: `${i * 110}ms` }}>
               <TiltCard className="lx-mode h-full p-6" max={9} style={{ ["--tint" as string]: m.tint }}>
                 <div className="lx-pop-z lx-mode-icon">{m.icon}</div>
@@ -248,11 +239,10 @@ export default async function Landing() {
       </section>
 
       <footer className="mx-auto flex w-full max-w-[1180px] flex-col gap-3 border-t border-[var(--line)] px-5 pb-10 pt-6 sm:px-8">
-        <p className="max-w-[900px] text-[12px] leading-relaxed text-[var(--muted)]">{t(money ? "landing.age" : "landing.nm.age")}</p>
+        <p className="max-w-[900px] text-[12px] leading-relaxed text-[var(--muted)]">{t("landing.nm.age")}</p>
         <nav className="flex flex-wrap gap-x-5 gap-y-2 text-[12px] font-bold">
           <Link href="/privacidad" className="text-[var(--win)]">{t("legal.privacy.title")}</Link>
           <Link href="/terminos" className="text-[var(--win)]">{t("legal.terms.title")}</Link>
-          {money && <Link href="/juego-seguro" className="text-[var(--win)]">{t("landing.safe")}</Link>}
         </nav>
         <p className="mono text-[10px] uppercase tracking-[0.1em] text-[var(--muted2)]">{t("og.footer")}</p>
       </footer>

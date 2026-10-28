@@ -4,7 +4,7 @@
 import { t } from "@/lib/i18n";
 
 export type ClosePreset = "1h" | "tonight" | "tomorrow" | "weekend" | "week" | "custom";
-export type PlantillaKey = "partido" | "reality" | "boda" | "oficina" | "viaje" | "serie" | "libre";
+export type PlantillaKey = "quien" | "partido" | "reality" | "boda" | "oficina" | "viaje" | "serie" | "libre";
 
 export type Plantilla = {
   key: PlantillaKey;      // porras.template_key
@@ -13,7 +13,9 @@ export type Plantilla = {
   resolveOffsetH: number; // horas tras el cierre en las que se espera el resultado
 };
 
+// «¿Quién…?» va primera y es la de arranque de /nueva (VINKO_PANTALLAS 06).
 export const PLANTILLAS: Plantilla[] = [
+  { key: "quien",   emoji: "🙋", close: "weekend",  resolveOffsetH: 2 },
   { key: "partido", emoji: "⚽", close: "tonight",  resolveOffsetH: 3 },
   { key: "reality", emoji: "📺", close: "tomorrow", resolveOffsetH: 4 },
   { key: "boda",    emoji: "💍", close: "tonight",  resolveOffsetH: 6 },
@@ -30,10 +32,12 @@ export function plantilla(key: PlantillaKey): Plantilla {
 }
 
 // Textos precargados. "libre" deja pregunta y criterio vacíos a propósito: el
-// criterio ha de ser concreto, no una frase genérica.
+// criterio ha de ser concreto, no una frase genérica. "quien" deja la pregunta
+// (va sobre alguien concreto del grupo) y propone opciones y criterio.
 export function plantillaTextos(p: Plantilla, tr: (k: string) => string = t): { question: string; options: string[]; criteria: string } {
   const options = tr(`crear.tpl.${p.key}.opts`).split("|").map((s) => s.trim()).filter(Boolean);
   if (p.key === "libre") return { question: "", options, criteria: "" };
+  if (p.key === "quien") return { question: "", options, criteria: tr("crear.tpl.quien.crit") };
   return { question: tr(`crear.tpl.${p.key}.q`), options, criteria: tr(`crear.tpl.${p.key}.crit`) };
 }
 

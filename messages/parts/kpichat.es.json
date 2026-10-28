@@ -9,6 +9,6 @@
   "kpichat.q1": "¿Cómo va todo hoy?",
   "kpichat.q2": "¿Qué fallos ves en los datos?",
   "kpichat.q3": "¿Qué tres cosas mejoro hoy?",
-  "kpichat.q4": "¿Qué porras hay que resolver ya?",
+  "kpichat.q4": "¿Qué {nouns} hay que resolver ya?",
   "admin.nav.sponsors": "Patrocinios"
 }

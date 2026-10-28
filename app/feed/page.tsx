@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Search } from "lucide-react";
 import { getMemberSession } from "@/lib/session";
 import { fetchMe } from "@/lib/me";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -12,22 +13,38 @@ import { Logo } from "@/components/Logo";
 import { AppNav } from "@/components/AppNav";
 import { t } from "@/lib/i18n";
 
-// FEED — pantalla de entrada de la app: feed VERTICAL a pantalla completa (una
-// porra por pantalla, vídeo de fondo, pick inline). El pique del día va en el
-// primer slide; el header (racha, buscar, campana) flota fijo encima.
+// DESCUBRIR (VINKO_PANTALLAS 05) — feed VERTICAL a pantalla completa (una
+// predicción por pantalla, vídeo de fondo, pick inline). Arriba, las pestañas
+// «tu país | Global» (si tu país es un mercado activo; 0080 marca cada
+// predicción con el de quien la crea) y Buscar. El pique del día va en el
+// primer slide.
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = { title: t("feed.title") };
+export const metadata: Metadata = { title: t("nav.descubrir") };
 
 function madridDay(offset = 0): string {
   return new Date(Date.now() + offset * 86400000).toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
 }
 
-export default async function Feed() {
-  const [session, feed] = await Promise.all([getMemberSession(), getFeed()]);
+function Underline() {
+  return <span aria-hidden className="absolute inset-x-0 -bottom-0.5 mx-auto h-[3px] w-6 rounded-full bg-[var(--win)]" />;
+}
+
+export default async function Feed({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+  const [{ m }, session] = await Promise.all([searchParams, getMemberSession()]);
   const sb = await supabaseServer();
+  const me = session && sb ? await fetchMe(sb) : null;
+
+  // Tu mercado: el del perfil o, si no, tu país cuando es un mercado activo.
+  const code = (typeof me?.market === "string" ? me.market : null) ?? me?.country ?? null;
+  const { data: mk } = code && code !== "GLOBAL" && sb
+    ? await sb.from("markets").select("code, name").eq("code", code).eq("active", true).maybeSingle()
+    : { data: null };
+  const market = (mk as { code: string; name: string } | null) ?? null;
+  const tab = market && m !== "global" ? market.code : null;
+  const feed = await getFeed(30, tab);
+  const tz = me?.tz ?? "America/Bogota";
   const today = madridDay(), yesterday = madridDay(-1);
 
-  let streak = 0, unread = 0;
   let daily: { id: string; question: string; options: string[]; status: string; correct_idx: number | null } | null = null;
   let myAnswer: number | null = null;
   let prev: { question: string; options: string[]; correct_idx: number | null;
@@ -35,18 +52,10 @@ export default async function Feed() {
   const feedPicks: Record<string, string> = {};
 
   if (session && sb) {
-    // SEC-01: streak_last y role ya no son columnas públicas → propio perfil vía me().
-    const [p, { data: d }, { data: pv }, { count: n }] = await Promise.all([
-      fetchMe(sb),
+    const [{ data: d }, { data: pv }] = await Promise.all([
       sb.from("daily_picks").select("*").eq("scheduled_for", today).eq("lang", "es").in("status", ["open", "resolved"]).maybeSingle(),
       sb.from("daily_picks").select("*").eq("scheduled_for", yesterday).eq("lang", "es").eq("status", "resolved").maybeSingle(),
-      sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", session.id).is("read_at", null),
     ]);
-    // La racha solo cuenta si el último día activo es hoy o ayer (misma regla
-    // que WeekStreak en /cartera). Si no, está caducada → 0, no un número viejo.
-    const sl = p?.streak_last ?? null;
-    streak = sl && (sl === today || sl === yesterday) ? (p?.streak_days ?? 0) : 0;
-    unread = n ?? 0;
     if (d) {
       daily = { id: d.id, question: d.question, options: d.options as string[], status: d.status, correct_idx: d.correct_idx };
       const { data: a } = await sb.from("daily_pick_answers").select("option_idx").eq("day_id", d.id).eq("user_id", session.id).maybeSingle();
@@ -68,43 +77,50 @@ export default async function Feed() {
     timeZone: "Europe/Madrid", hour: "2-digit", hour12: false,
   }).format(new Date()));
   const dailyOpensSoon = !daily && madridHour < 9;
-
-  const btn = "grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-black/45 leading-none text-white backdrop-blur";
+  const tabCls = (on: boolean) => `relative pb-2 text-[17px] font-black ${on ? "text-[var(--cream)]" : "text-white/55"}`;
 
   return (
     <main className="amb min-h-dvh w-full">
       {/* FX-03: guarda la zona horaria del dispositivo en el perfil (silencioso) */}
       {session && <TzSync />}
-      {/* header FIJO sobre el feed (el degradado superior de cada slide lo hace legible) */}
-      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto flex w-full max-w-[430px] items-center justify-between px-4 pt-3">
-        <Link href="/feed" className="pointer-events-auto" aria-label={t("brand")}><Logo mark={28} word={20} /></Link>
-        <div className="pointer-events-auto flex items-center gap-2.5">
-          {session && (
-            <span className="flex items-center gap-1 rounded-full border border-[var(--gold)]/50 bg-black/45 px-2.5 py-1 text-[13px] font-black text-[var(--gold)] backdrop-blur">
-              🔥 {streak}
-            </span>
-          )}
-          {session ? (
-            <>
-              <Link href="/buscar" aria-label={t("home.search")} className={`${btn} text-[16px]`}>🔍</Link>
-              <Link href="/buzon" aria-label={t("home.notifications")} className={`relative ${btn} text-[17px]`}>
-                🔔
-                {unread > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--red)] px-1 text-[9px] font-black text-white">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
-              </Link>
-            </>
-          ) : (
-            <Link href="/login?next=/feed" className="rounded-full bg-[var(--win)] px-3.5 py-1.5 text-[12px] font-black text-[var(--ink)]">
-              {t("home.loginCta")}
+      {/* cabecera FIJA sobre el feed: pestañas centradas + Buscar (el degradado
+          superior de cada slide la hace legible) */}
+      <header className="pointer-events-none fixed inset-x-0 top-0 z-40 mx-auto flex h-16 w-full max-w-[430px] items-center justify-center px-4 pt-2">
+        {!session && (
+          <Link href="/feed" className="pointer-events-auto absolute left-4" aria-label={t("brand")}><Logo mark={26} word={18} /></Link>
+        )}
+        <nav aria-label={t("nav.descubrir")} className="pointer-events-auto flex items-center gap-7 [text-shadow:0_1px_8px_rgba(0,0,0,0.7)]">
+          {market && (
+            <Link href="/feed" aria-current={tab ? "page" : undefined} className={tabCls(!!tab)}>
+              {market.name}{tab && <Underline />}
             </Link>
           )}
-        </div>
+          <Link href={market ? "/feed?m=global" : "/feed"} aria-current={!tab ? "page" : undefined} className={tabCls(!tab)}>
+            {t("descubrir.global")}{!tab && <Underline />}
+          </Link>
+        </nav>
+        {session ? (
+          <Link href="/buscar" aria-label={t("descubrir.search")}
+            className="pointer-events-auto absolute right-4 grid h-11 w-11 place-items-center rounded-full bg-black/55 text-white backdrop-blur">
+            <Search size={20} strokeWidth={2.2} />
+          </Link>
+        ) : (
+          <Link href="/login?next=/feed" className="pointer-events-auto absolute right-4 rounded-full bg-[var(--win)] px-3.5 py-1.5 text-[12px] font-black text-[var(--ink)]">
+            {t("home.loginCta")}
+          </Link>
+        )}
       </header>
 
-      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()}
+      <VerticalFeed porras={feed} initialPicks={feedPicks} loggedIn={!!session} now={Date.now()} tz={tz}
+        empty={tab && market ? (
+          <div className="rounded-[16px] border border-[var(--line)] bg-[var(--ink2)] p-5 text-center">
+            <p className="text-[15px] font-bold text-[var(--cream)]">{t("descubrir.emptyMarket", { market: market.name })}</p>
+            <div className="mt-4 flex justify-center gap-2">
+              <Link href="/nueva" className="rounded-full bg-[var(--win)] px-4 py-2.5 text-[14px] font-black text-[var(--ink)]">{t("descubrir.emptyMarketCta")}</Link>
+              <Link href="/feed?m=global" className="rounded-full border border-[var(--line2)] px-4 py-2.5 text-[14px] font-bold text-[var(--cream)]">{t("descubrir.seeGlobal")}</Link>
+            </div>
+          </div>
+        ) : undefined}
         intro={
           <>
             {session ? (
@@ -119,7 +135,7 @@ export default async function Feed() {
               </div>
             )}
             {/* HISTORIAS (carril horizontal + visor a pantalla completa): recuperadas
-                el 24-sep. Solo porras con vídeo; abre el StoriesViewer con swipe. */}
+                el 24-sep. Solo predicciones con vídeo; abre el StoriesViewer con swipe. */}
             <Historias porras={feed} initialPicks={feedPicks} loggedIn={!!session} />
           </>
         } />

@@ -191,7 +191,8 @@ begin
   if (select points from profiles where id = u3) <> pts + 50 then
     raise exception 'FX-06: la anulación debía devolver los 50 Vinkos';
   end if;
-  if not exists (select 1 from notifications where user_id = u3 and title like 'Porra anulada:%') then
+  -- 0078: el buzón dice «predicción» (la función sigue escribiendo «Porra anulada»).
+  if not exists (select 1 from notifications where user_id = u3 and title like 'Predicción anulada:%') then
     raise exception 'FX-06: falta el aviso de anulación con devolución';
   end if;
   raise notice 'OK FX-06 caducidad editorial: taken_down + devolución + aviso';
