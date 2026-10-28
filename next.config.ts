@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   // lintar en paralelo: ignora esa base y rompería el build con los avisos
   // preexistentes. El candado de lint vive en CI, no en el build.
   eslint: { ignoreDuringBuilds: true },
+  // El recibo para compartir (VINKO_PANTALLAS 09) lee sus fuentes OFL del disco.
+  outputFileTracingIncludes: { "/p/[slug]/recibo": ["./lib/og-fonts/*.woff"] },
   async headers() {
     return ["/admin", "/api", "/ajustes", "/buzon", "/saldo", "/secret", "/auth", "/s", "/dossier", "/demo"].map((p) => ({
       source: `${p}/:path*`,

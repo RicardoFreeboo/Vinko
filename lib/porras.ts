@@ -26,8 +26,6 @@ export type Porra = {
   arbiter_id?: string | null;
   arbiter_status?: "creator" | "invited" | "accepted" | "declined";
   visibility?: "public" | "private";
-  stake_kind?: "vinkos" | "prize";
-  stake_text?: string | null;
   listed?: boolean;
   creator?: { handle: string | null; display_name: string | null; avatar_url: string | null } | null;
 };
@@ -37,8 +35,7 @@ const SELECT =
   "created_by, arbiter_id, arbiter_status, visibility, porra_options!porra_options_porra_id_fkey ( id, idx, label )";
 // RT-01/FX-04: columnas del reto (0057). Se piden aparte con fallback para que
 // /p no se caiga si la migración aún no está aplicada.
-// §1.5 solo-puntos: stake_kind/stake_text se eliminaron de porras (0061). Se
-// mantienen como opcionales en el tipo (siempre undefined) hasta limpiar la UI.
+// §1.5 solo-puntos: stake_kind/stake_text se eliminaron de porras (0061) y de la UI.
 const SELECT_RETO = SELECT + ", listed, creator:profiles!porras_created_by_fkey ( handle, display_name, avatar_url )";
 
 type Row = Omit<Porra, "options" | "video" | "official"> & {

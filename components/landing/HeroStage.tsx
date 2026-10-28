@@ -10,7 +10,7 @@ import { t } from "@/lib/i18n";
 // inclina siguiendo al puntero; sin ratón (móvil) o tras 2,5 s quieto, se
 // balancea solo. Todo interpolado en un único requestAnimationFrame, que se
 // para fuera de pantalla. Sin JS: balanceo por CSS (data-auto="1").
-export function HeroStage({ money = false }: { money?: boolean }) {
+export function HeroStage() {
   const rig = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -73,7 +73,7 @@ export function HeroStage({ money = false }: { money?: boolean }) {
         <div className="lx-phone">
           <div className="lx-notch" />
           <div className="lx-screen">
-            <PhoneDemo money={money} />
+            <PhoneDemo />
           </div>
           <div className="lx-glare" />
         </div>
@@ -88,7 +88,7 @@ export function HeroStage({ money = false }: { money?: boolean }) {
           <span>{t("landing.float.pays")}</span>
         </div>
         <div className="lx-float f4" aria-hidden>
-          <span>{t(money ? "landing.float.money" : "landing.nm.float")}</span>
+          <span>{t("landing.nm.float")}</span>
         </div>
 
         <div className="lx-coin-slot"><Coin3D size={78} /></div>

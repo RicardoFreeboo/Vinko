@@ -1,12 +1,18 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { Bell, Download, Share, Smartphone } from "lucide-react";
+import { BottomSheet, SheetGhost, SheetPrimary, claimSheet, releaseSheet } from "@/components/BottomSheet";
+import { readConsent } from "@/components/ConsentBanner";
+import { VMark } from "@/components/Logo";
 import { t } from "@/lib/i18n";
 import { capture } from "@/lib/analytics";
 
-// "Añadir a pantalla de inicio" (spec F-08): se enseña en la 2.ª sesión, nunca
-// en la 1.ª. Android/Chrome → beforeinstallprompt (botón Instalar). iOS →
-// explicación (Compartir → Añadir a pantalla de inicio). Descartable (30 días).
+// «Ten Vinko a un toque» (VINKO_PANTALLAS 15, spec F-08): hoja inferior desde
+// la 2.ª sesión, nunca en la 1.ª, y solo en el móvil (en escritorio no hay
+// «pantalla de inicio»; allí ya lo dice el carril derecho de DesktopShell).
+// Android/Chrome → beforeinstallprompt (botón Instalar). iOS → explicación
+// (Compartir → Añadir a pantalla de inicio). «Ahora no» la calla 30 días.
 // Si no toca, no renderiza nada. Montaje: <A2HSPrompt /> en app/layout.tsx.
 
 const SESSIONS_KEY = "vinko_sessions"; // contador de sesiones (localStorage)
@@ -20,6 +26,8 @@ type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ out
 
 // El evento puede llegar antes de que React monte: se guarda a nivel de módulo.
 let stashed: BIPEvent | null = null;
+// Descartada en esta carga de página: aunque el storage falle, no vuelve.
+let dismissedNow = false;
 if (typeof window !== "undefined") {
   window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); stashed = e as BIPEvent; });
 }
@@ -36,6 +44,10 @@ function isIOS(): boolean {
   return /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
 }
 
+function isMobile(): boolean {
+  return isIOS() || /android|mobile/i.test(navigator.userAgent);
+}
+
 // Cuenta la sesión (una vez por pestaña) y devuelve el número de sesión.
 function countSession(): number {
   try {
@@ -47,13 +59,23 @@ function countSession(): number {
   } catch { return 0; }
 }
 
+// Descartada con CUALQUIER marca: "installed", un timestamp de < 30 días o un
+// valor antiguo no numérico (el viejo InstallHint escribía "no" en esta misma
+// clave; Number("no") es NaN y la hoja volvía a salir en todas las pantallas).
 function snoozed(): boolean {
+  if (dismissedNow) return true;
   try {
     const v = localStorage.getItem(DISMISS_KEY);
     if (!v) return false;
-    if (v === "installed") return true;
-    return Date.now() - Number(v) < SNOOZE_MS;
+    const at = Number(v);
+    if (!Number.isFinite(at)) return true;
+    return Date.now() - at < SNOOZE_MS;
   } catch { return true; }
+}
+
+function remember(v: string): void {
+  dismissedNow = true;
+  try { localStorage.setItem(DISMISS_KEY, v); } catch { /* sin storage: vale dismissedNow */ }
 }
 
 // `preview` (solo desarrollo, /bienvenida/preview): fuerza el modo para verlo
@@ -63,18 +85,22 @@ export function A2HSPrompt({ preview }: { preview?: "ios" | "android" } = {}) {
   const forced = process.env.NODE_ENV !== "production" ? preview : undefined;
   const [mode, setMode] = useState<"none" | "ios" | "android">(forced ?? "none");
   const [bip, setBip] = useState<BIPEvent | null>(null);
+  const [claimed, setClaimed] = useState(false);
 
   useEffect(() => {
     if (forced) return;
     const session = countSession();
-    if (session < 2 || snoozed() || isStandalone()) return; // nunca en la 1.ª sesión
+    if (session < 2 || snoozed() || isStandalone() || !isMobile()) return; // nunca en la 1.ª sesión
+    if (readConsent() === null) return; // primero el aviso de cookies: un aviso cada vez
     if (isIOS()) { setMode("ios"); return; }
 
-    const arm = (e: BIPEvent) => { setBip(e); setMode("android"); };
+    // Chrome puede volver a lanzar beforeinstallprompt: cada evento vuelve a
+    // mirar el descarte (antes la hoja reaparecía después de «Ahora no»).
+    const arm = (e: BIPEvent) => { if (snoozed()) return; setBip(e); setMode("android"); };
     if (stashed) arm(stashed);
     const onBip = (e: Event) => { e.preventDefault(); arm(e as BIPEvent); };
     const onInstalled = () => {
-      try { localStorage.setItem(DISMISS_KEY, "installed"); } catch { /* sin storage */ }
+      remember("installed");
       capture("pwa_installed", { is_seed: false });
       setMode("none");
     };
@@ -87,17 +113,23 @@ export function A2HSPrompt({ preview }: { preview?: "ios" | "android" } = {}) {
   }, [forced]);
 
   const hidden = !forced && (!path || SIN.some((p) => path.startsWith(p)));
+  const wanted = mode !== "none" && !hidden;
 
+  // La hoja se pide solo cuando de verdad se ve: en /p no se retiene (allí
+  // manda el aviso de notificaciones tras votar) y nunca se apila con otra.
   useEffect(() => {
-    if (mode !== "none" && !hidden) capture("pwa_install_prompt_shown", { is_seed: false, platform: mode });
-  }, [mode, hidden]);
+    if (!wanted || !claimSheet("a2hs")) return;
+    setClaimed(true);
+    capture("pwa_install_prompt_shown", { is_seed: false, platform: mode });
+    return () => { releaseSheet("a2hs"); setClaimed(false); };
+  }, [wanted, mode]);
 
-  if (mode === "none" || hidden) return null;
-
-  function dismiss() {
-    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch { /* sin storage */ }
+  const dismiss = useCallback(() => {
+    remember(String(Date.now()));
     setMode("none");
-  }
+  }, []);
+
+  if (!wanted || !claimed) return null;
 
   async function install() {
     if (!bip) { dismiss(); return; }
@@ -105,7 +137,7 @@ export function A2HSPrompt({ preview }: { preview?: "ios" | "android" } = {}) {
       await bip.prompt();
       const { outcome } = await bip.userChoice;
       if (outcome === "accepted") {
-        try { localStorage.setItem(DISMISS_KEY, "installed"); } catch { /* sin storage */ }
+        remember("installed");
         setMode("none");
         return;
       }
@@ -114,30 +146,33 @@ export function A2HSPrompt({ preview }: { preview?: "ios" | "android" } = {}) {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] mx-auto w-full max-w-[430px] p-3 pb-[max(12px,env(safe-area-inset-bottom))]">
-      <section role="dialog" aria-labelledby="a2hs-title"
-        className="pointer-events-auto rounded-[18px] border border-[var(--line)] bg-[var(--ink2)] p-4 shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
-        <div className="flex items-start gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[12px] bg-[var(--ink3)] text-xl" aria-hidden>📲</span>
-          <div className="min-w-0 flex-1">
-            <p id="a2hs-title" className="text-[15px] font-black text-[var(--cream)]">{t("a2hs.title")}</p>
-            <p className="mt-0.5 text-[13px] leading-snug text-[var(--muted)]">{t("a2hs.body")}</p>
-            {mode === "ios" && (
-              <p className="mt-2 rounded-[10px] bg-[var(--ink3)] px-3 py-2 text-[13px] font-bold leading-snug text-[var(--cream)]">{t("a2hs.ios")}</p>
-            )}
-          </div>
+    <BottomSheet labelledBy="a2hs-title" onClose={dismiss}>
+      <div className="flex items-center gap-3">
+        <span aria-hidden className="grid h-[62px] w-[62px] shrink-0 place-items-center rounded-[16px] border border-[var(--line2)] bg-[var(--ink)]">
+          <VMark size={40} />
+        </span>
+        <div className="min-w-0">
+          <h2 id="a2hs-title" className="text-[23px] font-black leading-[1.1] tracking-[-0.03em] text-[var(--cream)]">{t("a2hs.title")}</h2>
+          <p className="mt-1 text-[14.5px] leading-snug text-[var(--muted)]">{t("a2hs.body")}</p>
         </div>
-        <div className="mt-3 flex gap-2">
-          {mode === "android" ? (
-            <>
-              <button type="button" onClick={dismiss} className="flex-1 rounded-[12px] border border-[var(--line)] px-3 py-2.5 text-sm font-bold text-[var(--muted)]">{t("a2hs.later")}</button>
-              <button type="button" onClick={install} className="flex-1 rounded-[12px] bg-[var(--win)] px-3 py-2.5 text-sm font-black text-[var(--ink)]">{t("a2hs.install")}</button>
-            </>
-          ) : (
-            <button type="button" onClick={dismiss} className="flex-1 rounded-[12px] bg-[var(--win)] px-3 py-2.5 text-sm font-black text-[var(--ink)]">{t("a2hs.ok")}</button>
-          )}
-        </div>
-      </section>
-    </div>
+      </div>
+      <ul className="mt-[18px] flex flex-col gap-2.5 text-[15px] text-[var(--cream)]">
+        <li className="flex items-center gap-2.5"><Bell size={19} aria-hidden className="shrink-0 text-[var(--muted)]" />{t("a2hs.b1")}</li>
+        <li className="flex items-center gap-2.5"><Smartphone size={19} aria-hidden className="shrink-0 text-[var(--muted)]" />{t("a2hs.b2")}</li>
+      </ul>
+      {mode === "android" ? (
+        <>
+          <SheetPrimary onClick={install}><Download size={20} strokeWidth={2.4} aria-hidden /> {t("a2hs.install")}</SheetPrimary>
+          <SheetGhost onClick={dismiss}>{t("a2hs.later")}</SheetGhost>
+        </>
+      ) : (
+        <>
+          <p className="mt-5 flex items-center gap-2.5 rounded-[14px] bg-[var(--ink3)] px-3.5 py-3 text-left text-[14px] font-bold leading-snug text-[var(--cream)]">
+            <Share size={18} aria-hidden className="shrink-0 text-[var(--win)]" />{t("a2hs.ios")}
+          </p>
+          <SheetPrimary onClick={dismiss}>{t("a2hs.ok")}</SheetPrimary>
+        </>
+      )}
+    </BottomSheet>
   );
 }

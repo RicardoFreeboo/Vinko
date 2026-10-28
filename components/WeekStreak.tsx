@@ -86,7 +86,9 @@ export function WeekStreak({ streakDays, streakBest, shields, streakLast = null,
       </div>
 
       <p className="mt-3 text-center text-[12px] font-semibold" style={{ color: complete ? "var(--win)" : "var(--muted)" }}>
-        {complete ? t("week.done") : playToday ? t("week.keep", { n: String(remaining) }) : t("week.sub", { n: String(remaining) })}
+        {complete ? t("week.done")
+          : playToday ? t(remaining === 1 ? "week.keep1" : "week.keep", { n: String(remaining) })
+          : t(remaining === 1 ? "week.sub1" : "week.sub", { n: String(remaining) })}
       </p>
     </section>
   );

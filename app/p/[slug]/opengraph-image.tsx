@@ -2,7 +2,6 @@ import { ImageResponse } from "next/og";
 import { TEMPLATES } from "@/lib/templates";
 import { EDITORIAL } from "@/lib/editorial";
 import { t } from "@/lib/i18n";
-import { stakeEmoji } from "@/lib/reto";
 import {
   fetchPorraOgData,
   fetchAvatarDataUri,
@@ -63,7 +62,6 @@ export default async function OgImage({ params }: Props) {
   const options = p ? p.options.slice(0, 4) : [];
   const thermo = !!p && !p.is_template && total >= MIN_PICKS_THERMO && options.length > 0;
   const byOption = new Map(tallies.map((x) => [x.option_id, x.n]));
-  const prize = p?.stake_kind === "prize";
   const rows = options.map((o, i) => ({
     id: o.id,
     label: creator && creatorIdx === i ? `${o.label} · ${creator.handle}` : o.label, // RT-04: su lado
@@ -85,9 +83,7 @@ export default async function OgImage({ params }: Props) {
   });
 
   const avatar = creator ? await fetchAvatarDataUri(creator.avatar_url) : null;
-  // RT-04: en un reto, la cabecera es «@ricardo te reta».
   const who = p?.official ? t("p.badgeOfficial")
-    : creator && prize ? t("og.reta", { handle: creator.handle })
     : creator ? t("og.by", { handle: creator.handle }) : null;
   const whoInitials = p?.official ? "V" : creator ? initials(creator.handle) : null;
   const participants = !p || p.is_template
@@ -103,9 +99,7 @@ export default async function OgImage({ params }: Props) {
       ? { text: t("p.badgeOfficial"), color: C.win, filled: true }
       : p?.status === "resolved"
         ? { text: t("p.resolved"), color: C.gold, filled: false }
-        : prize && p?.stake_text
-          ? { text: `${stakeEmoji(p.stake_text)} ${p.stake_text}`, color: C.gold, filled: false } // RT-04: qué os jugáis
-          : null;
+        : null;
 
   return new ImageResponse(
     (

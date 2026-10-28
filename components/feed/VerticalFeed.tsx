@@ -22,12 +22,14 @@ type Slide =
   | { kind: "porra"; p: FeedPorra; k: number }
   | { kind: "ad"; seed: number };
 
-export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro }: {
+export function VerticalFeed({ porras, initialPicks, loggedIn, now, tz, intro, empty }: {
   porras: FeedPorra[];
   initialPicks: Record<string, string>;
   loggedIn: boolean;
   now: number;        // reloj del servidor: "cierra en X h" igual en SSR y cliente
+  tz: string;         // zona del usuario para «Cierra dom 9:00 p. m.»
   intro: ReactNode;   // primer slide (DailyPick con sesión, login sin ella)
+  empty?: ReactNode;  // qué decir si no hay ninguna (p. ej. la pestaña de tu país)
 }) {
   const slides = useMemo<Slide[]>(() => {
     const out: Slide[] = [{ kind: "intro" }];
@@ -125,7 +127,7 @@ export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro }: {
         {/* slide 0: pique del día / login, con hueco para el header fijo */}
         <section data-k={0} className="amb relative flex h-[100dvh] w-full snap-start snap-always flex-col gap-4 overflow-y-auto px-5 pb-[calc(96px+env(safe-area-inset-bottom))] pt-20">
           {intro}
-          {porras.length === 0 && <p className="text-sm text-[var(--muted)]">{t("home.feedEmpty")}</p>}
+          {porras.length === 0 && (empty ?? <p className="text-sm text-[var(--muted)]">{t("home.feedEmpty")}</p>)}
           {porras.length > 0 && (
             <div className="mt-auto flex flex-col gap-3 pt-4">
               {/* asomo de la primera porra: tocar = bajar al feed */}
@@ -160,10 +162,10 @@ export function VerticalFeed({ porras, initialPicks, loggedIn, now, intro }: {
             );
           }
           return (
-            <PorraSlide key={s.p.id} p={s.p} index={i} first={s.k === 0}
+            <PorraSlide key={s.p.id} p={s.p} index={i} first={s.k === 0} last={s.k === porras.length - 1}
               isCurrent={i === current} near={Math.abs(i - current) <= 1}
               pick={picks[s.p.id]} stake={stake} onStake={setStake}
-              social={social[s.p.id]} loggedIn={loggedIn} now={now}
+              social={social[s.p.id]} loggedIn={loggedIn} now={now} tz={tz}
               onPick={onPick} onLike={onLike} onComments={abrirComentarios} />
           );
         })}

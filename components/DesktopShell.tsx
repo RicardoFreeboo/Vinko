@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
+import { Bell, CircleUser, Compass, Plus, Search, Settings, Trophy, Users } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase/client";
 import { Logo } from "@/components/Logo";
 import { VinkoCoin } from "@/components/VinkoCoin";
@@ -24,17 +25,19 @@ import { t } from "@/lib/i18n";
 // /secret, /admin y /s.
 const SIN_SHELL = ["/p/", "/login", "/auth", "/bienvenida", "/privacidad", "/terminos", "/secret", "/admin", "/s/", "/demo"];
 
-// Mismos ítems, orden e iconos que components/AppNav.tsx + Novedades · Buscar · Ajustes.
-const NAV: ReadonlyArray<{ href: string; key: string; icon: ReactNode; primary?: boolean }> = [
-  { href: "/feed", key: "nav.feed", icon: "▦" },
-  { href: "/perfil", key: "nav.perfil", icon: "◉" },
-  { href: "/nueva", key: "nav.crear", icon: "＋", primary: true },
-  { href: "/grupos", key: "nav.grupos", icon: "⌂" },
-  { href: "/liga", key: "nav.liga", icon: "▲" },
-  { href: "/saldo", key: "nav.saldo", icon: <VinkoCoin size={16} /> },
-  { href: "/buzon", key: "nav.buzon", icon: "🔔" },
-  { href: "/buscar", key: "buscar.title", icon: "🔍" },
-  { href: "/ajustes", key: "ajustes.title", icon: "⚙" },
+// Mismos ítems, orden e iconos que components/AppNav.tsx (VINKO_PANTALLAS:
+// Grupos · Descubrir · Crear · Liga · Perfil) + Saldo · Novedades · Buscar · Ajustes.
+// `also`: subpantallas que encienden el ítem.
+const NAV: ReadonlyArray<{ href: string; key: string; icon: ReactNode; primary?: boolean; also?: string[] }> = [
+  { href: "/grupos", key: "nav.grupos", icon: <Users size={19} />, also: ["/g/"] },
+  { href: "/feed", key: "nav.descubrir", icon: <Compass size={19} /> },
+  { href: "/nueva", key: "nav.crear", icon: <Plus size={20} strokeWidth={2.6} />, primary: true },
+  { href: "/liga", key: "nav.liga", icon: <Trophy size={19} />, also: ["/temporada"] },
+  { href: "/perfil", key: "nav.perfil", icon: <CircleUser size={19} />, also: ["/u/"] },
+  { href: "/saldo", key: "nav.saldo", icon: <VinkoCoin size={17} /> },
+  { href: "/buzon", key: "nav.buzon", icon: <Bell size={19} /> },
+  { href: "/buscar", key: "buscar.title", icon: <Search size={19} /> },
+  { href: "/ajustes", key: "ajustes.title", icon: <Settings size={19} /> },
 ];
 
 // Sesión leída en cliente (RLS deja leer tu propia fila). undefined = cargando.
@@ -80,7 +83,7 @@ function Sidebar({ path }: { path: string }) {
       </Link>
       <nav aria-label={t("nav.label")} className="flex flex-col gap-1">
         {NAV.map((item) => {
-          const active = path === item.href || path.startsWith(item.href + "/");
+          const active = path === item.href || path.startsWith(item.href + "/") || !!item.also?.some((p) => path.startsWith(p));
           if (item.primary) {
             // CREAR: botón principal, como el círculo verde del AppNav
             return (

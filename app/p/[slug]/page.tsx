@@ -121,8 +121,8 @@ export default async function PorraPage({ params }: Props) {
   const isInvited = !!uid && porra.arbiter_id === uid && porra.arbiter_status === "invited";
   const open = porra.status === "open";
   const social = socialRes && !socialRes.error ? ((socialRes.data ?? { picks: [] }) as RetoSocial) : { picks: [] as RetoSocial["picks"] };
-  // RT-03: vista de RETO para porras con premio y porras de usuario pequeñas.
-  const reto = isReal && esReto(porra.stake_kind ?? "vinkos", porra.source, social.picks.length);
+  // RT-03: vista de RETO para predicciones de usuario pequeñas (solo Vinkos desde 0061).
+  const reto = isReal && esReto("vinkos", porra.source, social.picks.length);
   const creatorName = porra.creator?.display_name || (porra.creator?.handle ? `@${porra.creator.handle}` : t("reto.someone"));
   // RT-03: en /p el admin ve LO MISMO que un usuario; resolver o anular antes
   // de tiempo se hace solo desde /admin/porras. El juez, solo tras el cierre.
@@ -230,9 +230,7 @@ export default async function PorraPage({ params }: Props) {
               {t("reto.challenges", { name: creatorName })}
             </p>
             <p className="mono rounded-[12px] border border-[var(--gold)]/50 bg-[rgba(255,194,61,0.08)] px-3 py-2 text-[12px] font-black uppercase tracking-[0.12em] text-[var(--gold)]">
-              {porra.stake_kind === "prize"
-                ? t("reto.youPlay", { stake: porra.stake_text ?? "" })
-                : t("reto.vinkosPlay")}
+              {t("reto.vinkosPlay")}
             </p>
           </div>
         )}
@@ -282,8 +280,6 @@ export default async function PorraPage({ params }: Props) {
             winningOptionId={porra.winning_option_id}
             closesAt={porra.closes_at}
             resolvesAt={resolvesAt}
-            stakeKind={porra.stake_kind ?? "vinkos"}
-            stakeText={porra.stake_text ?? null}
             creatorId={porra.created_by ?? null}
             creatorName={creatorName}
             judgeId={judgeId}
@@ -383,7 +379,7 @@ export default async function PorraPage({ params }: Props) {
             {t("og.footer")}
           </p>
           <p className="text-xs text-[var(--muted)]">{t("p.judge")}</p>
-          {porra.stake_kind !== "prize" && <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>}
+          <p className="text-xs text-[var(--muted)]">{t("p.pointsNote")}</p>
           <nav className="mt-1 flex gap-3 text-[11px] text-[var(--muted2)]">
             <Link href="/privacidad" className="underline">{t("legal.privacy.title")}</Link>
             <Link href="/terminos" className="underline">{t("legal.terms.title")}</Link>
