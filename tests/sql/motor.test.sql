@@ -150,3 +150,120 @@ begin
   raise notice 'motor: publish_proposal hereda mercado y recorta opciones a 40';
 end $$;
 rollback;
+
+-- ── 7. F2 (0081): resolver/anular desde el sistema, publicador y crons ──────
+do $$
+begin
+  if has_function_privilege('authenticated', 'public.resolve_porra_system(uuid,uuid,uuid)', 'execute')
+     or has_function_privilege('anon', 'public.resolve_porra_system(uuid,uuid,uuid)', 'execute')
+     or has_function_privilege('authenticated', 'public.void_porra_system(uuid,text,uuid)', 'execute')
+     or has_function_privilege('authenticated', 'public.content_publish_due(integer)', 'execute')
+     or has_function_privilege('authenticated', 'public.motor_avisar_admins(text,text,text)', 'execute') then
+    raise exception 'las funciones de sistema del motor no pueden ejecutarlas los usuarios';
+  end if;
+  if not has_function_privilege('service_role', 'public.resolve_porra_system(uuid,uuid,uuid)', 'execute')
+     or not has_function_privilege('service_role', 'public.void_porra_system(uuid,text,uuid)', 'execute') then
+    raise exception 'service_role debe poder resolver y anular';
+  end if;
+  if (select count(*) from cron.job where jobname in ('vinko-content-calendar', 'vinko-results-provider')
+        and command like '%content_engine_on()%') <> 2 then
+    raise exception 'los crons de calendario y resultados deben llevar la guarda content_engine_on()';
+  end if;
+  if not exists (select 1 from cron.job where jobname = 'vinko-content-publish') then
+    raise exception 'falta el cron del publicador';
+  end if;
+  if (select value->'sports'->>'auto_resolve' from remote_config where key = 'content_engine') <> 'false' then
+    raise exception 'el proveedor nace en modo sombra (sports.auto_resolve=false)';
+  end if;
+end $$;
+
+begin;
+do $$
+declare u1 uuid; u2 uuid; v_p uuid; v_q uuid; o_si uuid; o2 uuid; pts int; n int; err text;
+        v_ev uuid; v_tp uuid; p porras%rowtype;
+begin
+  insert into auth.users (email) values ('motor.f2.uno@test.dev') returning id into u1;
+  insert into auth.users (email) values ('motor.f2.dos@test.dev') returning id into u2;
+  update profiles set points = 1000 where id in (u1, u2);
+  insert into agent_runs (kind) values ('calendar'), ('results');
+
+  -- resolver: un voto a cada opción; cerrar; resolver dos veces → paga una
+  insert into porras (slug, title, source, status, closes_at, visibility)
+    values ('motor-f2-cerrada', '¿Gana Millonarios el clásico del domingo?', 'editorial', 'open', now() + interval '1 day', 'public')
+    returning id into v_p;
+  insert into porra_options (porra_id, idx, label) values (v_p, 0, 'Sí') returning id into o_si;
+  insert into porra_options (porra_id, idx, label) values (v_p, 1, 'No');
+  insert into picks (porra_id, user_id, option_id, points_spent)
+    select v_p, u1, o_si, 10 union all
+    select v_p, u2, o.id, 10 from porra_options o where o.porra_id = v_p and o.idx = 1;
+  update porras set closes_at = now() - interval '5 minutes' where id = v_p;
+  pts := (select points from profiles where id = u1);
+  if not resolve_porra_system(v_p, o_si, null) then raise exception 'resolve_porra_system debía resolver'; end if;
+  if resolve_porra_system(v_p, o_si, null) then raise exception 'la segunda llamada no debía hacer nada'; end if;
+  if (select points from profiles where id = u1) <> pts + 20 then
+    raise exception 'el acertante debía cobrar 20 una sola vez (cobró %)', (select points from profiles where id = u1) - pts;
+  end if;
+  if (select status from porras where id = v_p) <> 'resolved' then raise exception 'debía quedar resolved'; end if;
+
+  -- no se resuelve lo que no ha cerrado
+  insert into porras (slug, title, source, status, closes_at, visibility)
+    values ('motor-f2-abierta', '¿Gana Nacional la final de la Liga BetPlay?', 'editorial', 'open', now() + interval '1 day', 'public')
+    returning id into v_q;
+  insert into porra_options (porra_id, idx, label) values (v_q, 0, 'Sí') returning id into o2;
+  insert into porra_options (porra_id, idx, label) values (v_q, 1, 'No');
+  begin
+    perform resolve_porra_system(v_q, o2, null);
+    raise exception 'no debía resolver una predicción sin cerrar';
+  exception when others then
+    err := sqlerrm;
+    if err not like '%VINKO_NOT_CLOSED%' then raise exception 'error inesperado: %', err; end if;
+  end;
+
+  -- anular: devuelve una sola vez
+  insert into picks (porra_id, user_id, option_id, points_spent) values (v_q, u2, o2, 10);
+  pts := (select points from profiles where id = u2);
+  if not void_porra_system(v_q, 'partido cancelado', null) then raise exception 'void_porra_system debía anular'; end if;
+  if void_porra_system(v_q, 'partido cancelado', null) then raise exception 'anular dos veces no debía devolver dos veces'; end if;
+  if (select points from profiles where id = u2) <> pts + 10 then raise exception 'debía devolver 10 una sola vez'; end if;
+  if (select status from porras where id = v_q) <> 'taken_down' then raise exception 'debía quedar taken_down'; end if;
+
+  -- publicador: plantilla Nivel A de un partido, con sus dos interruptores
+  insert into content_events (market, kind, provider, external_id, title, home, away, starts_at)
+    values ('CO', 'match', 'api_football', 'test-f2-1', 'Millonarios vs America de Cali', 'Millonarios', 'America de Cali', now() + interval '2 days')
+    returning id into v_ev;
+  insert into topic_proposals (title, options, category, resolution_criteria, closes_at, resolves_at, market,
+                               resolution_kind, resolution_source, autonomy, status, scheduled_for, event_id, template_key, kind)
+    values ('¿Quién gana Millonarios vs America de Cali?', '["Millonarios", "Empate", "America de Cali"]'::jsonb, 'futbol',
+            'Gana la opción que coincida con el resultado oficial al final del tiempo reglamentario, según el acta del partido.',
+            now() + interval '2 days', now() + interval '2 days 2 hours', 'CO', 'calendar', 'API-Football (partido test-f2-1)',
+            'A', 'scheduled', now(), v_ev, 'match_winner', 'porra')
+    returning id into v_tp;
+  insert into topic_proposals (title, options, category, resolution_criteria, closes_at, market, autonomy, status, scheduled_for, kind)
+    values ('¿Llega a tiempo esta predicción tardía?', '["Sí", "No"]'::jsonb, 'otros',
+            'Según el comunicado oficial publicado por el organizador del evento.', now() + interval '30 minutes', 'CO', 'A', 'scheduled', now(), 'porra');
+  if content_publish_due(10) <> 0 then raise exception 'con el motor apagado no debía publicar'; end if;
+  update remote_config set value = jsonb_set(value, '{enabled}', 'true') where key = 'content_engine';
+  if content_publish_due(10) <> 0 then raise exception 'sin autopublish_enabled en el mercado no debía publicar'; end if;
+  update markets set content_config = content_config || '{"autopublish_enabled": true}' where code = 'CO';
+  n := content_publish_due(10);
+  if n <> 1 then raise exception 'debía publicar 1 (publicó %)', n; end if;
+  select * into p from porras where event_id = v_ev;
+  if p.planned_by is distinct from 'planner' or p.auto_resolve is distinct from true
+     or p.template_key is distinct from 'match_winner' or p.market is distinct from 'CO'
+     or p.resolution_kind is distinct from 'calendar' then
+    raise exception 'la predicción publicada no hereda los datos de la plantilla';
+  end if;
+  if (select count(*) from porra_options where porra_id = p.id) <> 3 then raise exception 'debía tener 3 opciones'; end if;
+  if (select status from topic_proposals where id = v_tp) <> 'published' then raise exception 'la propuesta debía quedar published'; end if;
+  if (select status from topic_proposals where title = '¿Llega a tiempo esta predicción tardía?') <> 'expired' then
+    raise exception 'lo que cierra en menos de 1 h debía caducar';
+  end if;
+  begin
+    insert into topic_proposals (title, options, status, event_id, template_key)
+      values ('Duplicada', '["A", "B"]'::jsonb, 'scheduled', v_ev, 'match_winner');
+    raise exception 'dos plantillas iguales para el mismo partido debían rechazarse';
+  exception when unique_violation then null;
+  end;
+  raise notice 'motor F2: resolver/anular una sola vez, publicador con doble interruptor, plantilla única por partido';
+end $$;
+rollback;
